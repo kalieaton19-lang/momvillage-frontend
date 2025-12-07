@@ -1,0 +1,10 @@
+[
+  {
+    "email": "demo@example.com",
+    "passwordHash": "$2b$10$PdZy8BBHtlqlw9lA0STR2OqK8T5laS1UFcJ7fBzt3xIOyvjxGONay"
+  },
+  {
+    "email": "kalyssaeaton@gmail.com",
+    "passwordHash": "$2b$10$OCxe3EsI0.2scpg9fNpHAO9daohSphA6w56vjO7sKascM6NSSCQo."
+  }
+]

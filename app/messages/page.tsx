@@ -1,0 +1,410 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "../../lib/supabase";
+
+interface Conversation {
+  id: string;
+  match_id: string;
+  other_user_id?: string;
+  other_user_name?: string;
+  other_user_photo?: string;
+  last_message?: string;
+  last_message_time?: string;
+  created_at?: string;
+}
+
+interface Message {
+  id: string;
+  match_id: string;
+  sender_id: string;
+  message_text: string;
+  created_at: string;
+}
+
+export default function MessagesPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation);
+      const interval = setInterval(() => {
+        loadMessages(selectedConversation);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  async function checkUser() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      
+      setUser(session.user);
+      
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser?.user_metadata) {
+        setCurrentUserProfile(currentUser.user_metadata);
+      }
+      
+      await loadConversations(session.user.id);
+    } catch (error) {
+      console.error('Error checking user:', error);
+      router.push('/login');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadConversations(userId: string) {
+    try {
+      // Load all messages for this user
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`sender_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading conversations - table structure issue:', error);
+        setConversations([]);
+        return;
+      }
+
+      // Group messages by match_id to create conversations
+      const convMap = new Map<string, Conversation>();
+      
+      if (data && data.length > 0) {
+        for (const msg of data) {
+          const matchId = msg.match_id;
+          
+          // Skip if no match_id (incomplete data)
+          if (!matchId) continue;
+          
+          if (!convMap.has(matchId)) {
+            // Determine other user ID (if msg.sender_id is not current user)
+            const otherUserId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+            
+            convMap.set(matchId, {
+              id: matchId,
+              match_id: matchId,
+              other_user_id: otherUserId,
+              last_message: msg.message_text,
+              last_message_time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
+              created_at: msg.created_at,
+            });
+          }
+        }
+      }
+
+      setConversations(Array.from(convMap.values()));
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      setConversations([]);
+    }
+  }
+
+  async function loadMessages(conversationId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id, match_id, sender_id, message_text, created_at')
+        .eq('match_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error loading messages:', error);
+        setMessages([]);
+        return;
+      }
+
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
+    }
+  }
+
+  async function sendMessage() {
+    if (!messageText.trim() || !selectedConversation || !user) return;
+
+    setSendingMessage(true);
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert([
+          {
+            match_id: selectedConversation,
+            sender_id: user.id,
+            message_text: messageText,
+            created_at: new Date().toISOString(),
+          }
+        ]);
+
+      if (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+        return;
+      }
+
+      setMessageText("");
+      await loadMessages(selectedConversation);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setSendingMessage(false);
+    }
+  }
+
+  async function startNewConversation(otherUserId: string, otherUserName: string, otherUserPhoto?: string) {
+    try {
+      // Generate a match_id based on sorted user IDs
+      const matchId = [user.id, otherUserId].sort().join('_');
+      
+      // Check if conversation already exists
+      const { data: existingConv } = await supabase
+        .from('messages')
+        .select('match_id')
+        .eq('match_id', matchId)
+        .limit(1);
+
+      if (existingConv && existingConv.length > 0) {
+        setSelectedConversation(matchId);
+        return;
+      }
+
+      // Create first message to start the conversation
+      const { error } = await supabase
+        .from('messages')
+        .insert([
+          {
+            match_id: matchId,
+            sender_id: user.id,
+            message_text: 'Conversation started',
+          }
+        ]);
+
+      if (error) {
+        console.error('Error creating conversation:', error);
+        return;
+      }
+
+      setSelectedConversation(matchId);
+      await loadConversations(user.id);
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+    }
+  }
+
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function formatTime(dateString: string) {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  }
+
+  function getOtherUserInfo(conv: Conversation) {
+    return {
+      name: conv.other_user_name || 'Mom',
+      photo: conv.other_user_photo,
+    };
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+        <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+      <div className="max-w-7xl mx-auto h-screen flex flex-col">
+        <header className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
+          <div>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">Messages 💬</h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+              Connect with your village
+            </p>
+          </div>
+          <Link href="/home" className="text-sm text-pink-600 dark:text-pink-400 hover:underline">
+            Back to Home
+          </Link>
+        </header>
+
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-full md:w-80 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-y-auto">
+            {conversations.length === 0 ? (
+              <div className="p-6 text-center">
+                <div className="text-4xl mb-3">💌</div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                  No conversations yet. Start connecting with other moms!
+                </p>
+                <Link
+                  href="/find-moms"
+                  className="inline-block px-4 py-2 bg-pink-600 text-white rounded-full text-sm font-medium hover:bg-pink-700 transition-colors"
+                >
+                  Find Moms
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {conversations.map(conv => {
+                  const otherUser = getOtherUserInfo(conv);
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => setSelectedConversation(conv.id)}
+                      className={`w-full text-left p-4 transition-colors ${
+                        selectedConversation === conv.id
+                          ? 'bg-pink-50 dark:bg-pink-900/20 border-l-2 border-pink-600'
+                          : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {otherUser.photo ? (
+                          <img
+                            src={otherUser.photo}
+                            alt={otherUser.name}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                            {otherUser.name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+                              {otherUser.name}
+                            </h3>
+                            {conv.last_message_time && (
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+                                {conv.last_message_time}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+                            {conv.last_message || 'No messages yet'}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {selectedConversation ? (
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-black space-y-4">
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">👋</div>
+                      <p className="text-zinc-600 dark:text-zinc-400">
+                        Start the conversation!
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map(msg => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs px-4 py-2 rounded-2xl ${
+                            msg.sender_id === user?.id
+                              ? 'bg-pink-600 text-white rounded-br-none'
+                              : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none'
+                          }`}
+                        >
+                          <p className="break-words">{msg.message_text}</p>
+                          <p className={`text-xs mt-1 ${
+                            msg.sender_id === user?.id
+                              ? 'text-pink-100'
+                              : 'text-zinc-500 dark:text-zinc-400'
+                          }`}>
+                            {formatTime(msg.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
+              </div>
+
+              <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                    placeholder="Type your message..."
+                    className="flex-1 px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-pink-500"
+                  />
+                  <button
+                    onClick={sendMessage}
+                    disabled={sendingMessage || !messageText.trim()}
+                    className="px-6 py-3 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-white dark:bg-black">
+              <div className="text-center">
+                <div className="text-6xl mb-4">💭</div>
+                <p className="text-zinc-600 dark:text-zinc-400 text-lg">
+                  Select a conversation to start chatting
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
