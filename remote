@@ -1,0 +1,3 @@
+cd /Users/kalyssafaith/Desktop/momvillage-frontend
+git remote add origin https://github.com/kalieaton19-lang/momvillage-frontend.git
+git push -u origin main
