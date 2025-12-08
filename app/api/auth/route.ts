@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { findUser } from "../../../lib/users";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { signToken } from "../../../lib/jwt";
 
 export async function POST(request: Request) {
