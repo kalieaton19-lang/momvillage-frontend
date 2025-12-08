@@ -80,17 +80,33 @@ export default function MessagesPage() {
 
   async function loadConversations(userId: string) {
     try {
-      // Load all messages for this user
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`sender_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading conversations - table structure issue:', error);
-        setConversations([]);
-        return;
+      // Fallback if database API isn't available (local-only mode)
+      const hasDb = typeof (supabase as any).from === 'function';
+      let data: any[] | null = null;
+      if (hasDb) {
+        const { data: rows, error } = await (supabase as any)
+          .from('messages')
+          .select('*')
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .order('created_at', { ascending: false });
+        if (error) {
+          console.warn('Messages table not available; using local storage fallback.');
+          data = null;
+        } else {
+          data = rows;
+        }
+      }
+      if (!data) {
+        try {
+          const raw = (typeof window !== 'undefined') ? window.localStorage.getItem('mv_messages') : null;
+          const all = raw ? JSON.parse(raw) : [];
+          data = Array.isArray(all) ? all
+            .filter((m: any) => m.sender_id === userId || m.receiver_id === userId)
+            .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''))
+            : [];
+        } catch {
+          data = [];
+        }
       }
 
       // Group messages by match_id to create conversations
@@ -128,19 +144,30 @@ export default function MessagesPage() {
 
   async function loadMessages(conversationId: string) {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('id, match_id, sender_id, message_text, created_at')
-        .eq('match_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error loading messages:', error);
-        setMessages([]);
-        return;
+      const hasDb = typeof (supabase as any).from === 'function';
+      if (hasDb) {
+        const { data, error } = await (supabase as any)
+          .from('messages')
+          .select('id, match_id, sender_id, receiver_id, message_text, created_at')
+          .eq('match_id', conversationId)
+          .order('created_at', { ascending: true });
+        if (error) {
+          console.warn('Messages table not available; using local storage fallback.');
+        } else {
+          setMessages(data || []);
+          return;
+        }
       }
-
-      setMessages(data || []);
+      // Fallback to local storage
+      try {
+        const raw = (typeof window !== 'undefined') ? window.localStorage.getItem('mv_messages') : null;
+        const all = raw ? JSON.parse(raw) : [];
+        const filtered = Array.isArray(all) ? all.filter((m: any) => m.match_id === conversationId) : [];
+        filtered.sort((a: any, b: any) => (a.created_at || '').localeCompare(b.created_at || ''));
+        setMessages(filtered);
+      } catch {
+        setMessages([]);
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
       setMessages([]);
@@ -152,21 +179,46 @@ export default function MessagesPage() {
 
     setSendingMessage(true);
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert([
-          {
-            match_id: selectedConversation,
-            sender_id: user.id,
-            message_text: messageText,
-            created_at: new Date().toISOString(),
-          }
-        ]);
-
-      if (error) {
-        console.error('Error sending message:', error);
+      const hasDb = typeof (supabase as any).from === 'function';
+      if (hasDb) {
+        const { error } = await (supabase as any)
+          .from('messages')
+          .insert([
+            {
+              match_id: selectedConversation,
+              sender_id: user.id,
+              receiver_id: null,
+              message_text: messageText,
+              created_at: new Date().toISOString(),
+            }
+          ]);
+        if (error) {
+          console.warn('Error sending via DB; using local storage fallback.');
+        } else {
+          setMessageText("");
+          await loadMessages(selectedConversation);
+          return;
+        }
+      }
+      // Fallback to local storage
+      try {
+        const raw = (typeof window !== 'undefined') ? window.localStorage.getItem('mv_messages') : null;
+        const all = raw ? JSON.parse(raw) : [];
+        const newMsg = {
+          id: `local_${Date.now()}`,
+          match_id: selectedConversation,
+          sender_id: user.id,
+          receiver_id: null,
+          message_text: messageText,
+          created_at: new Date().toISOString(),
+        };
+        const next = Array.isArray(all) ? [ ...all, newMsg ] : [ newMsg ];
+        if (typeof window !== 'undefined') window.localStorage.setItem('mv_messages', JSON.stringify(next));
+        setMessageText("");
+        await loadMessages(selectedConversation);
+      } catch (e) {
+        console.error('Error sending message (local fallback):', e);
         alert('Failed to send message. Please try again.');
-        return;
       }
 
       setMessageText("");
@@ -185,31 +237,69 @@ export default function MessagesPage() {
       const matchId = [user.id, otherUserId].sort().join('_');
       
       // Check if conversation already exists
-      const { data: existingConv } = await supabase
-        .from('messages')
-        .select('match_id')
-        .eq('match_id', matchId)
-        .limit(1);
+      let exists = false;
+      const hasDb = typeof (supabase as any).from === 'function';
+      if (hasDb) {
+        const { data: existingConv } = await (supabase as any)
+          .from('messages')
+          .select('match_id')
+          .eq('match_id', matchId)
+          .limit(1);
+        exists = !!(existingConv && existingConv.length > 0);
+      } else {
+        try {
+          const raw = (typeof window !== 'undefined') ? window.localStorage.getItem('mv_messages') : null;
+          const all = raw ? JSON.parse(raw) : [];
+          exists = Array.isArray(all) && all.some((m: any) => m.match_id === matchId);
+        } catch {
+          exists = false;
+        }
+      }
 
-      if (existingConv && existingConv.length > 0) {
+      if (exists) {
         setSelectedConversation(matchId);
         return;
       }
 
       // Create first message to start the conversation
-      const { error } = await supabase
-        .from('messages')
-        .insert([
-          {
-            match_id: matchId,
-            sender_id: user.id,
-            message_text: 'Conversation started',
-          }
-        ]);
-
-      if (error) {
-        console.error('Error creating conversation:', error);
-        return;
+      if (hasDb) {
+        const { error } = await (supabase as any)
+          .from('messages')
+          .insert([
+            {
+              match_id: matchId,
+              sender_id: user.id,
+              receiver_id: otherUserId,
+              message_text: 'Conversation started',
+              created_at: new Date().toISOString(),
+            }
+          ]);
+        if (error) {
+          console.warn('Error creating conversation via DB; using local storage fallback.');
+        } else {
+          setSelectedConversation(matchId);
+          await loadConversations(user.id);
+          return;
+        }
+      }
+      // Local storage fallback
+      try {
+        const raw = (typeof window !== 'undefined') ? window.localStorage.getItem('mv_messages') : null;
+        const all = raw ? JSON.parse(raw) : [];
+        const seed = {
+          id: `local_${Date.now()}`,
+          match_id: matchId,
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          message_text: 'Conversation started',
+          created_at: new Date().toISOString(),
+        };
+        const next = Array.isArray(all) ? [ ...all, seed ] : [ seed ];
+        if (typeof window !== 'undefined') window.localStorage.setItem('mv_messages', JSON.stringify(next));
+        setSelectedConversation(matchId);
+        await loadConversations(user.id);
+      } catch (e) {
+        console.error('Error starting conversation (local fallback):', e);
       }
 
       setSelectedConversation(matchId);

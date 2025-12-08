@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { findUser } from "../../../lib/users";
-import bcrypt from "bcryptjs";
+import { compareAsync } from "../../../lib/bcrypt";
 import { signToken } from "../../../lib/jwt";
 
 export async function POST(request: Request) {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       return new NextResponse(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
     }
 
-    const match = await bcrypt.compare(password, (user as any).passwordHash);
+    const match = await compareAsync(password, (user as any).passwordHash);
     if (!match) {
       return new NextResponse(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
     }
