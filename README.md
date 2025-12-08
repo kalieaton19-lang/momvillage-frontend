@@ -50,6 +50,8 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+Deployment note (Dec 8, 2025): Triggered a fresh redeploy to ensure Vercel picks up the `bcryptjs` typing fix (`lib/bcrypt.ts` uses `import * as bcrypt`).
+
 ## Supabase integration (local dev)
 
 This project includes optional Supabase authentication and admin routes. Follow these steps to connect your Supabase project for local development.
