@@ -22,11 +22,53 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const clientUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const clientAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const serverUrl = process.env.SUPABASE_URL ?? clientUrl;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+  const missingClientEnv = clientUrl === "" || clientAnon === "";
+  const missingServerEnv = !missingClientEnv && (serverUrl === "" || serviceKey === "");
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {process.env.NODE_ENV === "production" && missingClientEnv && (
+          <div style={{
+            background: "#fff3cd",
+            color: "#664d03",
+            border: "1px solid #f1e4a6",
+            padding: "12px",
+            margin: "0",
+            textAlign: "center",
+            fontSize: "14px",
+          }}>
+            Supabase environment variables are missing. Please set
+            <code style={{ margin: "0 4px" }}>NEXT_PUBLIC_SUPABASE_URL</code>
+            and
+            <code style={{ margin: "0 4px" }}>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
+            in your Vercel Project → Settings → Environment Variables, then redeploy.
+          </div>
+        )}
+        {process.env.NODE_ENV === "production" && missingServerEnv && (
+          <div style={{
+            background: "#e7f5ff",
+            color: "#0b5ed7",
+            border: "1px solid #b6dcff",
+            padding: "10px",
+            margin: "0",
+            textAlign: "center",
+            fontSize: "13px",
+          }}>
+            Server-side Supabase keys are missing. Set
+            <code style={{ margin: "0 4px" }}>SUPABASE_URL</code>
+            and
+            <code style={{ margin: "0 4px" }}>SUPABASE_SERVICE_ROLE_KEY</code>
+            in Vercel for admin operations to work, then redeploy.
+          </div>
+        )}
         {children}
       </body>
     </html>

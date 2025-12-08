@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { BannerAd } from "@/app/components/ads/BannerAd";
 
 interface TimeSlot {
   id: string;
@@ -40,6 +41,7 @@ export default function UnifiedCalendarPage() {
   const [user, setUser] = useState<any>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<Record<string, TimeSlot[]>>({});
+  const [weeklyAvailability, setWeeklyAvailability] = useState<Record<string, TimeSlot[]>>({});
   const [meetups, setMeetups] = useState<Meetup[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -72,6 +74,9 @@ export default function UnifiedCalendarPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.user_metadata?.availability) {
         setAvailability(user.user_metadata.availability);
+      }
+      if (user?.user_metadata?.weeklyAvailability) {
+        setWeeklyAvailability(user.user_metadata.weeklyAvailability);
       }
       if (user?.user_metadata?.meetups) {
         setMeetups(user.user_metadata.meetups);
@@ -123,6 +128,33 @@ export default function UnifiedCalendarPage() {
           textColor: 'text-green-700 dark:text-green-300',
         });
       });
+    }
+
+    // Add weekly recurring availability based on weekday
+    try {
+      const dateObj = new Date(dateStr + 'T00:00:00');
+      const weekdayIndex = dateObj.getDay(); // 0 Sun .. 6 Sat
+      const weekdayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const weekdayName = weekdayNames[weekdayIndex];
+      const slots = weeklyAvailability[weekdayName] || [];
+      // If specific-date availability exists, treat it as an override and skip weekly
+      const hasSpecificForDate = !!availability[dateStr]?.length;
+      if (!hasSpecificForDate) {
+        slots.forEach((slot) => {
+          events.push({
+            id: `weekly-${weekdayName}-${dateStr}-${slot.start}`,
+            date: dateStr,
+            type: 'availability',
+            title: `Recurring ${slot.start}-${slot.end}`,
+            time: slot.start,
+            color: 'bg-green-100 dark:bg-green-900/30',
+            bgColor: 'bg-green-50 dark:bg-green-900/20',
+            textColor: 'text-green-700 dark:text-green-300',
+          });
+        });
+      }
+    } catch (_) {
+      // ignore date parse issues silently
     }
 
     // Add meetups/services for this date
@@ -182,13 +214,14 @@ export default function UnifiedCalendarPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
       <div className="max-w-7xl mx-auto">
+        <BannerAd className="mb-6" />
         {/* Header */}
         <header className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">Schedule & Meetups 📅</h1>
+              <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">Calendar 📅</h1>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                Your availability, meetups, and services all in one place
+                See your availability and events by date
               </p>
             </div>
             <Link href="/home" className="text-sm text-pink-600 dark:text-pink-400 hover:underline">
@@ -405,7 +438,7 @@ export default function UnifiedCalendarPage() {
             <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">Recurring availability</div>
           </Link>
           <Link
-            href="#add-event"
+            href="/meetups-services"
             className="px-6 py-4 bg-gradient-to-r from-pink-100 to-pink-50 dark:from-pink-900/30 dark:to-pink-900/20 border border-pink-200 dark:border-pink-700 rounded-2xl text-center hover:border-pink-400 dark:hover:border-pink-600 transition-colors"
           >
             <div className="font-semibold text-pink-700 dark:text-pink-300">🤝 Create Meetups</div>

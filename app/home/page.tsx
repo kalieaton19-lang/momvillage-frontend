@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { BannerAd } from "@/app/components/ads/BannerAd";
+import { PopupAd } from "@/app/components/ads/PopupAd";
 
 export default function HomePage() {
   const router = useRouter();
@@ -54,6 +56,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
       <div className="max-w-6xl mx-auto p-6">
+        <BannerAd />
+        <PopupAd />
         {/* Header */}
         <header className="flex items-center justify-between mb-8">
           <div>
@@ -110,8 +114,8 @@ export default function HomePage() {
             color="pink"
           />
           <ActionCard
-            title="Schedule & Meetups 📅"
-            description="Set your weekly schedule, mark specific dates when you're free, and track all your meetups and services with other moms in one central calendar."
+            title="Calendar 📅"
+            description="See your availability and events by date in one place."
             href="/calendar"
             color="purple"
           />

@@ -192,7 +192,11 @@ export default function MeetupsServicesPage() {
       setSelectedInvitee("");
       setShowForm(false);
       await loadInvitations(currentUserId);
-      setTimeout(() => setMessage(""), 3000);
+      // Brief success, then show My Invitations tab for clarity
+      setTimeout(() => {
+        setMessage("");
+        setActiveTab('invitations');
+      }, 800);
     } catch (error) {
       console.error('Error creating invitation:', error);
       setMessage("Failed to send invitation");
@@ -319,6 +323,28 @@ export default function MeetupsServicesPage() {
         {activeTab === 'create' && (
           <div className="max-w-2xl">
             {!showForm ? (
+              <>
+              {/* Quick Actions */}
+              <div className="mb-6 flex flex-wrap gap-3">
+                <Link
+                  href="/find-moms"
+                  className="px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm"
+                >
+                  👥 Invite another mom
+                </Link>
+                <button
+                  onClick={() => { setFormType('meetup'); setShowForm(true); }}
+                  className="px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 text-sm"
+                >
+                  👋 Create Meetup
+                </button>
+                <button
+                  onClick={() => { setFormType('service'); setShowForm(true); }}
+                  className="px-4 py-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 text-sm"
+                >
+                  🤝 Service Exchange
+                </button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => {
@@ -347,6 +373,17 @@ export default function MeetupsServicesPage() {
                   </p>
                 </button>
               </div>
+              <div className="mt-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">How to create an invitation</h3>
+                <ol className="list-decimal ml-5 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                  <li>Choose what you want to do: <span className="font-medium">Plan a Meetup</span> or <span className="font-medium">Exchange Services</span>.</li>
+                  <li>Pick who to invite from your <span className="font-medium">conversations</span> or <span className="font-medium">village members</span>. If you don’t have any yet, use <Link href="/find-moms" className="text-pink-600 dark:text-pink-400 hover:underline">Find Moms</Link> to connect.</li>
+                  <li>Fill in the details: a short title, optional description, the <span className="font-medium">date</span>, <span className="font-medium">start</span> and <span className="font-medium">end</span> times, and an optional location.</li>
+                  <li>Press <span className="font-medium">Send Invitation</span>. The other mom will see it under <span className="font-medium">My Invitations</span>.</li>
+                  <li>Once accepted, your invitation shows as <span className="font-medium">Confirmed</span>. You can coordinate further in <Link href="/messages" className="text-pink-600 dark:text-pink-400 hover:underline">Messages</Link>.</li>
+                </ol>
+              </div>
+              </>
             ) : (
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">
@@ -398,6 +435,9 @@ export default function MeetupsServicesPage() {
                     </div>
                   )}
                 </div>
+                    <div className="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 bg-zinc-50 dark:bg-zinc-800/50 text-xs text-zinc-600 dark:text-zinc-400">
+                      Tip: Choose someone first, then add the title, date and time. Invitations appear under <span className="font-medium">My Invitations</span> for the invitee.
+                    </div>
 
                 {selectedInvitee && (
                   <>

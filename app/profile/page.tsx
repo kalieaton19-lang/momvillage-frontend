@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { Button } from "@/app/components/ui/Button";
+import { Alert } from "@/app/components/ui/Alert";
+import { Input } from "@/app/components/ui/Input";
 
 interface UserProfile {
   id?: string;
@@ -287,104 +290,74 @@ export default function ProfilePage() {
           </div>
 
           {message && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-md text-sm">
+            <Alert variant="success" className="mb-4" title="Saved">
               {message}
-            </div>
+            </Alert>
           )}
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-md text-sm">
+            <Alert variant="error" className="mb-4" title="Error">
               {error}
-            </div>
+            </Alert>
           )}
 
           {/* Profile Form */}
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={profile.full_name || ""}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                disabled={!editing}
-                className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                placeholder="Your full name"
-              />
-            </div>
+            <Input
+              label="Full Name"
+              type="text"
+              value={profile.full_name || ""}
+              onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+              disabled={!editing}
+              placeholder="Your full name"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={profile.phone || ""}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                disabled={!editing}
-                className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                placeholder="(123) 456-7890"
-              />
-            </div>
+            <Input
+              label="Phone"
+              type="tel"
+              value={profile.phone || ""}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              disabled={!editing}
+              placeholder="(123) 456-7890"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Address
-              </label>
-              <input
-                type="text"
-                value={profile.address || ""}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                disabled={!editing}
-                className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                placeholder="Street address"
-              />
-            </div>
+            <Input
+              label="Address"
+              type="text"
+              value={profile.address || ""}
+              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+              disabled={!editing}
+              placeholder="Street address"
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  City
-                </label>
-                <input
+                <Input
+                  label="City"
                   type="text"
                   value={profile.city || ""}
                   onChange={(e) => setProfile({ ...profile, city: e.target.value })}
                   disabled={!editing}
-                  className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="City"
                 />
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  State
-                </label>
-                <input
+                <Input
+                  label="State"
                   type="text"
                   value={profile.state || ""}
                   onChange={(e) => setProfile({ ...profile, state: e.target.value })}
                   disabled={!editing}
-                  className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="State"
                 />
-              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                ZIP Code
-              </label>
-              <input
-                type="text"
-                value={profile.zip_code || ""}
-                onChange={(e) => setProfile({ ...profile, zip_code: e.target.value })}
-                disabled={!editing}
-                className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                placeholder="12345"
-              />
-            </div>
+            <Input
+              label="ZIP Code"
+              type="text"
+              value={profile.zip_code || ""}
+              onChange={(e) => setProfile({ ...profile, zip_code: e.target.value })}
+              disabled={!editing}
+              placeholder="12345"
+            />
 
             <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Family Information</h3>
@@ -491,23 +464,20 @@ export default function ProfilePage() {
 
             {editing && (
               <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-full hover:bg-pink-700 disabled:opacity-60"
-                >
+                <Button onClick={handleSave} disabled={saving} fullWidth>
                   {saving ? "Saving..." : "Save Changes"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setEditing(false);
                     setMessage("");
                   }}
                   disabled={saving}
-                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-full hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  fullWidth
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             )}
           </div>

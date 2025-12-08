@@ -13,6 +13,21 @@ pnpm dev
 # or
 bun dev
 ```
+## Project Structure
+
+- `app/` — Next.js App Router pages and feature folders
+	- `components/` — shared UI components
+	- `home/`, `login/`, `signup/`, `profile/`, `village/`, etc.
+- `lib/` — Supabase clients and user helpers
+- `types/` — shared TypeScript domain types
+- `utils/` — small helpers (dates, parsing)
+
+## Conventions
+
+- Use shared UI from `app/components/ui` (`Button`, `Input`, `Card`).
+- Keep Supabase access via `lib/supabase.ts` (client) and `lib/supabaseAdmin.ts` (server).
+- Add new domain types to `types/` and import across features.
+- Prefer device-only dev: `HOST=127.0.0.1 PORT=3000 npm run dev`.
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
