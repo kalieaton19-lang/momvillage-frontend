@@ -3,13 +3,13 @@ import Link from "next/link";
 import Header from "./components/Header";
 
 export default function Home() {
-  const heroImage = process.env.NEXT_PUBLIC_HERO_IMAGE_URL || "";
+  const heroImage = process.env.NEXT_PUBLIC_HERO_IMAGE_URL || "/hero.jpeg";
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
       <Header />
 
       <main className="max-w-6xl mx-auto p-6 flex flex-col gap-12">
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <section className="grid grid-cols-1 gap-8 items-start">
           <div>
             <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-zinc-900 dark:text-zinc-50">
               A Village of Moms,<br />For Moms.
@@ -34,46 +34,47 @@ export default function Home() {
                 Sign In
               </Link>
             </div>
-          </div>
 
-          <div className="relative w-full">
-            {heroImage ? (
-              <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
-                {heroImage.startsWith("/") ? (
-                  <Image
-                    src={heroImage}
-                    alt="MomVillage hero"
-                    width={1200}
-                    height={900}
-                    className="h-full w-full object-cover"
-                    priority
-                  />
-                ) : (
-                  <img
-                    src={heroImage}
-                    alt="MomVillage hero"
-                    className="h-full w-full object-cover"
-                    loading="eager"
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="aspect-[4/3] w-full rounded-2xl bg-gradient-to-tr from-pink-50 to-pink-100 dark:from-transparent dark:to-zinc-800 flex items-center justify-center">
-                <svg className="w-3/4 h-3/4" viewBox="0 0 600 450" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="600" height="450" rx="24" fill="url(#g)" />
-                  <g opacity="0.95">
-                    <circle cx="180" cy="180" r="60" fill="#fff" />
-                    <rect x="260" y="120" width="220" height="180" rx="12" fill="#fff" />
-                  </g>
-                  <defs>
-                    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#fff" stopOpacity="0.9" />
-                      <stop offset="1" stopColor="#ffd6e0" stopOpacity="0.9" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-            )}
+            {/* Hero image placed directly under the CTAs */}
+            <div className="relative w-full mt-8">
+              {heroImage ? (
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
+                  {heroImage.startsWith("/") ? (
+                    <Image
+                      src={heroImage}
+                      alt="MomVillage hero"
+                      width={1200}
+                      height={900}
+                      className="h-full w-full object-cover"
+                      priority
+                    />
+                  ) : (
+                    <img
+                      src={heroImage}
+                      alt="MomVillage hero"
+                      className="h-full w-full object-cover"
+                      loading="eager"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="aspect-[4/3] w-full rounded-2xl bg-gradient-to-tr from-pink-50 to-pink-100 dark:from-transparent dark:to-zinc-800 flex items-center justify-center">
+                  <svg className="w-3/4 h-3/4" viewBox="0 0 600 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="600" height="450" rx="24" fill="url(#g)" />
+                    <g opacity="0.95">
+                      <circle cx="180" cy="180" r="60" fill="#fff" />
+                      <rect x="260" y="120" width="220" height="180" rx="12" fill="#fff" />
+                    </g>
+                    <defs>
+                      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="#fff" stopOpacity="0.9" />
+                        <stop offset="1" stopColor="#ffd6e0" stopOpacity="0.9" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
