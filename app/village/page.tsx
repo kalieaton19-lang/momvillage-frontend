@@ -152,15 +152,17 @@ export default function VillagePage() {
       } else if (data?.users) {
         // Filter users by name matching (case-insensitive)
         const lowerQuery = query.toLowerCase();
-        const filtered = data.users
-          .filter(u => {
+        type UserRow = { id: string; email?: string | null; user_metadata?: Record<string, any> };
+        const users: UserRow[] = (data.users || []) as unknown as UserRow[];
+        const filtered = users
+          .filter((u: UserRow) => {
             const fullName = u.user_metadata?.full_name || '';
             return fullName.toLowerCase().includes(lowerQuery) && u.id !== currentUserId;
           })
-          .map(u => ({
+          .map((u: UserRow): MomProfile => ({
             id: u.id,
-            email: u.email,
-            user_metadata: u.user_metadata,
+            email: u.email ?? undefined,
+            user_metadata: u.user_metadata as any,
           })) as MomProfile[];
         
         setSearchResults(filtered);

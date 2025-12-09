@@ -116,11 +116,13 @@ export default function FindMomsPage() {
       }
       
       // Filter out the current user and format the data
-      const otherMoms: MomProfile[] = data?.users
-        ?.filter(u => u.id !== user?.id)
-        .map(u => ({
+      type UserRow = { id: string; email?: string | null; user_metadata?: Record<string, any> };
+      const users: UserRow[] = (data?.users || []) as unknown as UserRow[];
+      const otherMoms: MomProfile[] = users
+        .filter((u: UserRow) => u.id !== user?.id)
+        .map((u: UserRow): MomProfile => ({
           id: u.id,
-          email: u.email,
+          email: u.email ?? undefined,
           user_metadata: u.user_metadata as any
         })) || [];
       
