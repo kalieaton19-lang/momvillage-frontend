@@ -26,6 +26,7 @@ export default function RootLayout({
   const clientAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
   const serverUrl = process.env.SUPABASE_URL ?? clientUrl;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const requireAdminBanner = (process.env.NEXT_PUBLIC_REQUIRE_ADMIN_ENVS || "").toLowerCase() === "true";
 
   const missingClientEnv = clientUrl === "" || clientAnon === "";
   const missingServerEnv = !missingClientEnv && (serverUrl === "" || serviceKey === "");
@@ -92,7 +93,7 @@ export default function RootLayout({
             in your Vercel Project → Settings → Environment Variables, then redeploy.
           </div>
         )}
-        {process.env.NODE_ENV === "production" && missingServerEnv && (
+        {process.env.NODE_ENV === "production" && requireAdminBanner && missingServerEnv && (
           <div style={{
             background: "#e7f5ff",
             color: "#0b5ed7",
