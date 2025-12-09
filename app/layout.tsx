@@ -35,6 +35,46 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Dev-only env status helper */}
+        {process.env.NODE_ENV !== "production" && (
+          <div
+            style={{
+              position: "fixed",
+              right: 12,
+              bottom: 12,
+              zIndex: 9999,
+              background: "#111827",
+              color: "#e5e7eb",
+              border: "1px solid #374151",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 12,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+            }}
+          >
+            <details>
+              <summary style={{ cursor: "pointer", outline: "none" }}>Env status</summary>
+              <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+                <div>
+                  Client URL: {clientUrl ? "set" : "missing"}
+                  {clientUrl ? ` (len ${clientUrl.length})` : ""}
+                </div>
+                <div>
+                  Anon Key: {clientAnon ? "set" : "missing"}
+                  {clientAnon ? ` (len ${clientAnon.length})` : ""}
+                </div>
+                <div>
+                  Server URL: {serverUrl ? "set" : "missing"}
+                  {serverUrl ? ` (len ${serverUrl.length})` : ""}
+                </div>
+                <div>
+                  Service Role: {serviceKey ? "set" : "missing"}
+                  {serviceKey ? ` (len ${serviceKey.length})` : ""}
+                </div>
+              </div>
+            </details>
+          </div>
+        )}
         {process.env.NODE_ENV === "production" && missingClientEnv && (
           <div style={{
             background: "#fff3cd",
