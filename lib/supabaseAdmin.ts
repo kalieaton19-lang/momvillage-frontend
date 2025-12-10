@@ -6,6 +6,10 @@ export function getSupabaseAdmin() {
   if (cachedAdmin) return cachedAdmin;
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  // One-time debug log to help diagnose env loading in dev
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[supabaseAdmin] url present:', Boolean(url), 'service role present:', Boolean(serviceRoleKey));
+  }
 
   if (!url || !serviceRoleKey) {
     // Provide a minimal stub to avoid build-time crashes when envs are missing.
