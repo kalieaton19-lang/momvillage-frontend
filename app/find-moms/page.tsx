@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AvailabilityToggle from "@/app/components/AvailabilityToggle";
 import { supabase } from "../../lib/supabase";
 
 interface MomProfile {
@@ -20,6 +21,8 @@ interface MomProfile {
     profile_photo_url?: string;
     services_offered?: string[];
     services_needed?: string[];
+    availability?: Record<string, Array<{ start: string; end: string }>>;
+    weeklyAvailability?: Record<string, Array<{ start: string; end: string }>>;
   };
 }
 
@@ -40,6 +43,7 @@ interface Filters {
   parentingStyle: boolean;
   servicesOffered: boolean;
   servicesNeeded: boolean;
+  availability: boolean;
 }
 
 export default function FindMomsPage() {
@@ -49,6 +53,7 @@ export default function FindMomsPage() {
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [moms, setMoms] = useState<MomProfile[]>([]);
   const [filteredMoms, setFilteredMoms] = useState<MomProfile[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>({
     location: true,
     kidsAgeGroups: false,
@@ -57,6 +62,7 @@ export default function FindMomsPage() {
     parentingStyle: false,
     servicesOffered: false,
     servicesNeeded: false,
+    availability: false,
   });
   const [searchRadius, setSearchRadius] = useState<number>(10); // miles
 
@@ -99,39 +105,32 @@ export default function FindMomsPage() {
 
   async function loadMoms() {
     try {
-      console.log('Loading moms from nearby areas...');
-      
-      // Fetch all users from Supabase auth
-      // Note: This uses the anon key, so we can only access public user data
-      // For a production app with many users, you'd want a backend API with pagination
-      const { data, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) {
-        // If admin API doesn't work with anon key, we'll need a backend endpoint
-        // For now, just load an empty list
-        console.log('Admin API not available with anon key, would need backend API');
-        setMoms([]);
-        setFilteredMoms([]);
-        return;
+      console.log('Loading moms from backend API...');
+
+      const res = await fetch('/api/supabase/users', { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok || json?.error) {
+        setLoadError(json?.error || `Failed to load users (status ${res.status})`);
+      } else {
+        setLoadError(null);
       }
-      
-      // Filter out the current user and format the data
-      type UserRow = { id: string; email?: string | null; user_metadata?: Record<string, any> };
-      const users: UserRow[] = (data?.users || []) as unknown as UserRow[];
+      const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
+
       const otherMoms: MomProfile[] = users
-        .filter((u: UserRow) => u.id !== user?.id)
-        .map((u: UserRow): MomProfile => ({
+        .filter((u) => u.id !== user?.id)
+        .map((u) => ({
           id: u.id,
           email: u.email ?? undefined,
-          user_metadata: u.user_metadata as any
-        })) || [];
-      
+          user_metadata: (u.user_metadata || undefined) as any,
+        }));
+
       setMoms(otherMoms);
-      applyFilters(); // Apply filters to the loaded moms
+      applyFilters();
     } catch (error) {
       console.error('Error loading moms:', error);
       setMoms([]);
       setFilteredMoms([]);
+      setLoadError(error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -140,11 +139,50 @@ export default function FindMomsPage() {
 
     let filtered = [...moms];
 
-    // Filter by location (city/state match)
+    // Helpers: normalize city/state for robust matching
+    const normalizeCity = (s: any) => String(s || '').trim().toLowerCase()
+      .replace(/\./g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/^st\s+/,'saint ');
+    const STATE_MAP: Record<string,string> = {
+      'alabama':'al','al':'al','alaska':'ak','ak':'ak','arizona':'az','az':'az','arkansas':'ar','ar':'ar',
+      'california':'ca','ca':'ca','colorado':'co','co':'co','connecticut':'ct','ct':'ct','delaware':'de','de':'de',
+      'florida':'fl','fl':'fl','georgia':'ga','ga':'ga','hawaii':'hi','hi':'hi','idaho':'id','id':'id','illinois':'il','il':'il',
+      'indiana':'in','in':'in','iowa':'ia','ia':'ia','kansas':'ks','ks':'ks','kentucky':'ky','ky':'ky','louisiana':'la','la':'la',
+      'maine':'me','me':'me','maryland':'md','md':'md','massachusetts':'ma','ma':'ma','michigan':'mi','mi':'mi','minnesota':'mn','mn':'mn',
+      'mississippi':'ms','ms':'ms','missouri':'mo','mo':'mo','montana':'mt','mt':'mt','nebraska':'ne','ne':'ne','nevada':'nv','nv':'nv',
+      'new hampshire':'nh','nh':'nh','new jersey':'nj','nj':'nj','new mexico':'nm','nm':'nm','new york':'ny','ny':'ny',
+      'north carolina':'nc','nc':'nc','north dakota':'nd','nd':'nd','ohio':'oh','oh':'oh','oklahoma':'ok','ok':'ok','oregon':'or','or':'or',
+      'pennsylvania':'pa','pa':'pa','rhode island':'ri','ri':'ri','south carolina':'sc','sc':'sc','south dakota':'sd','sd':'sd',
+      'tennessee':'tn','tn':'tn','texas':'tx','tx':'tx','utah':'ut','ut':'ut','vermont':'vt','vt':'vt','virginia':'va','va':'va',
+      'washington':'wa','wa':'wa','west virginia':'wv','wv':'wv','wisconsin':'wi','wi':'wi','wyoming':'wy','wy':'wy'
+    };
+    const normalizeState = (s: any) => STATE_MAP[String(s || '').trim().toLowerCase()] || String(s || '').trim().toLowerCase();
+
+    // Location handling
+    // - If location filter is ON: require exact city + state match (case-insensitive)
+    // - If location filter is OFF but any other filter is ON: require exact state match (case-insensitive)
+    const otherFiltersActive = (
+      filters.kidsAgeGroups ||
+      filters.numberOfKids ||
+      filters.language ||
+      filters.parentingStyle ||
+      filters.servicesOffered ||
+      filters.servicesNeeded ||
+      filters.availability
+    );
+
     if (filters.location && currentProfile.city && currentProfile.state) {
+      const city = normalizeCity(currentProfile.city);
+      const state = normalizeState(currentProfile.state);
       filtered = filtered.filter(mom => 
-        mom.user_metadata?.city?.toLowerCase() === currentProfile.city?.toLowerCase() &&
-        mom.user_metadata?.state?.toLowerCase() === currentProfile.state?.toLowerCase()
+        normalizeCity(mom.user_metadata?.city) === city &&
+        normalizeState(mom.user_metadata?.state) === state
+      );
+    } else if (!filters.location && otherFiltersActive && currentProfile.state) {
+      const state = normalizeState(currentProfile.state);
+      filtered = filtered.filter(mom => 
+        normalizeState(mom.user_metadata?.state) === state
       );
     }
 
@@ -164,17 +202,19 @@ export default function FindMomsPage() {
       });
     }
 
-    // Filter by language
+    // Filter by language (case-insensitive)
     if (filters.language && currentProfile.preferred_language) {
+      const lang = String(currentProfile.preferred_language).trim().toLowerCase();
       filtered = filtered.filter(mom => 
-        mom.user_metadata?.preferred_language === currentProfile.preferred_language
+        String(mom.user_metadata?.preferred_language || '').trim().toLowerCase() === lang
       );
     }
 
-    // Filter by parenting style
+    // Filter by parenting style (case-insensitive)
     if (filters.parentingStyle && currentProfile.parenting_style) {
+      const style = String(currentProfile.parenting_style).trim().toLowerCase();
       filtered = filtered.filter(mom => 
-        mom.user_metadata?.parenting_style === currentProfile.parenting_style
+        String(mom.user_metadata?.parenting_style || '').trim().toLowerCase() === style
       );
     }
 
@@ -191,6 +231,17 @@ export default function FindMomsPage() {
       filtered = filtered.filter(mom => {
         const momServicesNeeded = (mom.user_metadata?.services_needed || []) as string[];
         return momServicesNeeded.some((service: string) => currentProfile.services_offered?.includes(service));
+      });
+    }
+
+    // Filter by availability (only moms who have set any availability)
+    if (filters.availability) {
+      filtered = filtered.filter(mom => {
+        const a = mom.user_metadata?.availability;
+        const w = mom.user_metadata?.weeklyAvailability;
+        const hasSpecific = a && typeof a === 'object' && Object.values(a).some(arr => Array.isArray(arr) && arr.length > 0);
+        const hasWeekly = w && typeof w === 'object' && Object.values(w).some(arr => Array.isArray(arr) && arr.length > 0);
+        return Boolean(hasSpecific || hasWeekly);
       });
     }
 
@@ -247,6 +298,11 @@ export default function FindMomsPage() {
                   enabled={filters.location}
                   onToggle={() => toggleFilter('location')}
                   disabled={!currentProfile?.city || !currentProfile?.state}
+                />
+
+                <AvailabilityToggle
+                  enabled={filters.availability}
+                  onToggle={() => toggleFilter('availability')}
                 />
 
                 <FilterToggle
@@ -319,11 +375,36 @@ export default function FindMomsPage() {
                     parentingStyle: false,
                     servicesOffered: false,
                     servicesNeeded: false,
+                    availability: false,
                   })}
                   className="text-sm text-pink-600 dark:text-pink-400 hover:underline"
                 >
                   Clear All Filters
                 </button>
+
+                {/* Debug info to help diagnose empty results */}
+                <div className="mt-4 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50 dark:bg-zinc-800/40">
+                  <div className="font-medium text-zinc-700 dark:text-zinc-300 mb-1">Debug</div>
+                  <div className="text-zinc-600 dark:text-zinc-400">Profile: {currentProfile?.city || '-'}, {currentProfile?.state || '-'}</div>
+                  <div className="text-zinc-600 dark:text-zinc-400">Fetched: {moms.length}</div>
+                  <div className="text-zinc-600 dark:text-zinc-400">Visible: {filteredMoms.length}</div>
+                  {loadError && (
+                    <div className="mt-2 text-red-600 dark:text-red-400">API error: {loadError}</div>
+                  )}
+                  {/* Show first 5 candidates with city/state (normalized) to diagnose */}
+                  {moms.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-zinc-700 dark:text-zinc-300 font-medium mb-1">Sample candidates (city/state)</div>
+                      <ul className="space-y-1">
+                        {moms.slice(0,5).map((m) => (
+                          <li key={m.id} className="text-zinc-600 dark:text-zinc-400">
+                            {(m.user_metadata?.full_name || 'Mom')}: {(m.user_metadata?.city || '-')}, {(m.user_metadata?.state || '-')}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -352,10 +433,15 @@ export default function FindMomsPage() {
                 <h3 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
                   Your Village is Growing!
                 </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
-                  We're still building this feature. Soon you'll be able to connect with amazing moms in{' '}
-                  {currentProfile.city}, {currentProfile.state}!
-                </p>
+                {loadError ? (
+                  <p className="text-red-600 dark:text-red-400 mb-6 max-w-md mx-auto">
+                    Couldn’t load moms: {loadError}. If you’re running locally, make sure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in `.env.local`.
+                  </p>
+                ) : (
+                  <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
+                    No matches yet for {currentProfile.city}, {currentProfile.state}. Try turning off the location filter or enabling another filter.
+                  </p>
+                )}
                 <div className="flex gap-4 justify-center">
                   <Link
                     href="/profile"
