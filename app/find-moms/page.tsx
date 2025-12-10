@@ -169,7 +169,7 @@ export default function FindMomsPage() {
     const normalizeState = (s: any) => STATE_MAP[String(s || '').trim().toLowerCase()] || String(s || '').trim().toLowerCase();
 
     // Location handling
-    // - If location filter is ON: require exact city + state match (case-insensitive)
+    // - If location filter is ON: prefer exact city+state match; fallback to zip match; or nearby proxy by zip prefix
     // - If location filter is OFF but any other filter is ON: require exact state match (case-insensitive)
     const otherFiltersActive = (
       filters.kidsAgeGroups ||
@@ -181,13 +181,38 @@ export default function FindMomsPage() {
       filters.availability
     );
 
-    if (filters.location && currentProfile.city && currentProfile.state) {
+    const currentZip = String(currentProfile.zip_code || '').trim();
+    const zip3 = currentZip.slice(0,3);
+
+    if (filters.location && (currentProfile.city && currentProfile.state)) {
       const city = normalizeCity(currentProfile.city);
       const state = normalizeState(currentProfile.state);
-      filtered = filtered.filter(mom => 
+      let cityState = filtered.filter(mom => 
         normalizeCity(mom.user_metadata?.city) === city &&
         normalizeState(mom.user_metadata?.state) === state
       );
+      // Fallback: zip-code exact match when available and city/state yields none
+      if (cityState.length === 0 && currentZip) {
+        cityState = filtered.filter(mom => String(mom.user_metadata?.zip_code || '').trim() === currentZip);
+      }
+      // Nearby proxy based on searchRadius:
+      // <= 5mi: require exact ZIP
+      // <= 15mi: ZIP3 prefix within same state
+      // > 15mi: state-only
+      if (cityState.length === 0 && currentProfile.state) {
+        if (searchRadius <= 5 && currentZip) {
+          cityState = filtered.filter(mom => String(mom.user_metadata?.zip_code || '').trim() === currentZip);
+        } else if (searchRadius <= 15 && zip3) {
+          cityState = filtered.filter(mom => {
+            const momState = normalizeState(mom.user_metadata?.state);
+            const momZip3 = String(mom.user_metadata?.zip_code || '').trim().slice(0,3);
+            return momState === state && momZip3 && momZip3 === zip3;
+          });
+        } else {
+          cityState = filtered.filter(mom => normalizeState(mom.user_metadata?.state) === state);
+        }
+      }
+      filtered = cityState;
     } else if (!filters.location && otherFiltersActive && currentProfile.state) {
       const state = normalizeState(currentProfile.state);
       filtered = filtered.filter(mom => 
@@ -265,8 +290,32 @@ export default function FindMomsPage() {
 
       if (filters.location && hasState) {
         const state = normalizeState(currentProfile.state);
-        relaxed = relaxed.filter(mom => normalizeState(mom.user_metadata?.state) === state);
-        note = "Relaxed to state-only";
+        const currentZip = String(currentProfile.zip_code || '').trim();
+        const zip3 = currentZip.slice(0,3);
+        // Use searchRadius to decide relaxation tier
+        let tmp: typeof relaxed = [];
+        if (searchRadius <= 5 && currentZip) {
+          tmp = relaxed.filter(mom => String(mom.user_metadata?.zip_code || '').trim() === currentZip);
+          if (tmp.length > 0) {
+            relaxed = tmp;
+            note = "Relaxed to exact ZIP";
+          }
+        }
+        if (!tmp.length && searchRadius <= 15 && zip3) {
+          tmp = relaxed.filter(mom => {
+            const momState = normalizeState(mom.user_metadata?.state);
+            const momZip3 = String(mom.user_metadata?.zip_code || '').trim().slice(0,3);
+            return momState === state && momZip3 && momZip3 === zip3;
+          });
+          if (tmp.length > 0) {
+            relaxed = tmp;
+            note = "Relaxed to nearby ZIP prefix";
+          }
+        }
+        if (!tmp.length) {
+          relaxed = relaxed.filter(mom => normalizeState(mom.user_metadata?.state) === state);
+          note = "Relaxed to state-only";
+        }
       }
 
       // Step 2: if still none, drop services filters
@@ -354,6 +403,25 @@ export default function FindMomsPage() {
                   enabled={showAll}
                   onToggle={() => setShowAll(!showAll)}
                 />
+                {/* Nearby radius control (affects location fallback logic) */}
+                <div className="w-full p-3 rounded-lg border bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">📏 Nearby Radius</span>
+                    <span className="text-xs text-zinc-600 dark:text-zinc-400">{searchRadius} mi</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={50}
+                    step={5}
+                    value={searchRadius}
+                    onChange={(e) => setSearchRadius(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    ≤5mi: exact ZIP, ≤15mi: ZIP3 prefix, >15mi: state-only
+                  </div>
+                </div>
                 <FilterToggle
                   label="📍 Same Location"
                   description={currentProfile?.city && currentProfile?.state 
@@ -455,6 +523,38 @@ export default function FindMomsPage() {
                   <div className="text-zinc-600 dark:text-zinc-400">Profile: {currentProfile?.city || '-'}, {currentProfile?.state || '-'}</div>
                   <div className="text-zinc-600 dark:text-zinc-400">Fetched: {moms.length}</div>
                   <div className="text-zinc-600 dark:text-zinc-400">Visible: {filteredMoms.length}</div>
+                  {/* Quick diagnostics for location matching */}
+                  {currentProfile?.city && currentProfile?.state && moms.length > 0 && (
+                    <div className="mt-1 text-zinc-600 dark:text-zinc-400">
+                      {(() => {
+                        const nCity = (s: any) => String(s || '').trim().toLowerCase().replace(/\./g,'').replace(/\s+/g,' ').replace(/^st\s+/,'saint ');
+                        const STATE_MAP: Record<string,string> = {
+                          'alabama':'al','al':'al','alaska':'ak','ak':'ak','arizona':'az','az':'az','arkansas':'ar','ar':'ar',
+                          'california':'ca','ca':'ca','colorado':'co','co':'co','connecticut':'ct','ct':'ct','delaware':'de','de':'de',
+                          'florida':'fl','fl':'fl','georgia':'ga','ga':'ga','hawaii':'hi','hi':'hi','idaho':'id','id':'id','illinois':'il','il':'il',
+                          'indiana':'in','in':'in','iowa':'ia','ia':'ia','kansas':'ks','ks':'ks','kentucky':'ky','ky':'ky','louisiana':'la','la':'la',
+                          'maine':'me','me':'me','maryland':'md','md':'md','massachusetts':'ma','ma':'ma','michigan':'mi','mi':'mi','minnesota':'mn','mn':'mn',
+                          'mississippi':'ms','ms':'ms','missouri':'mo','mo':'mo','montana':'mt','mt':'mt','nebraska':'ne','ne':'ne','nevada':'nv','nv':'nv',
+                          'new hampshire':'nh','nh':'nh','new jersey':'nj','nj':'nj','new mexico':'nm','nm':'nm','new york':'ny','ny':'ny',
+                          'north carolina':'nc','nc':'nc','north dakota':'nd','nd':'nd','ohio':'oh','oh':'oh','oklahoma':'ok','ok':'ok','oregon':'or','or':'or',
+                          'pennsylvania':'pa','pa':'pa','rhode island':'ri','ri':'ri','south carolina':'sc','sc':'sc','south dakota':'sd','sd':'sd',
+                          'tennessee':'tn','tn':'tn','texas':'tx','tx':'tx','utah':'ut','ut':'ut','vermont':'vt','vt':'vt','virginia':'va','va':'va',
+                          'washington':'wa','wa':'wa','west virginia':'wv','wv':'wv','wisconsin':'wi','wi':'wi','wyoming':'wy','wy':'wy'
+                        };
+                        const nState = (s: any) => STATE_MAP[String(s || '').trim().toLowerCase()] || String(s || '').trim().toLowerCase();
+                        const cCity = nCity(currentProfile.city);
+                        const cState = nState(currentProfile.state);
+                        const cityStateMatches = moms.filter(m => nCity(m.user_metadata?.city) === cCity && nState(m.user_metadata?.state) === cState).length;
+                        const stateOnlyMatches = moms.filter(m => nState(m.user_metadata?.state) === cState).length;
+                        return (
+                          <>
+                            <div>City+State matches (normalized): {cityStateMatches}</div>
+                            <div>State-only matches (normalized): {stateOnlyMatches}</div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
                   {loadError && (
                     <div className="mt-2 text-red-600 dark:text-red-400">API error: {loadError}</div>
                   )}
@@ -478,6 +578,18 @@ export default function FindMomsPage() {
 
           {/* Results Grid */}
           <div className="lg:col-span-3">
+            {/* Top controls for mobile/visibility */}
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                onClick={() => setShowAll(!showAll)}
+                className={`px-3 py-2 rounded-full text-sm font-medium border ${showAll ? 'bg-pink-600 text-white border-pink-700' : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800'}`}
+              >
+                {showAll ? 'Showing All Moms' : '👀 Show All'}
+              </button>
+              {relaxationNote && (
+                <span className="text-xs text-blue-700 dark:text-blue-300">{relaxationNote}</span>
+              )}
+            </div>
             {!currentProfile?.city || !currentProfile?.state ? (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-8 text-center">
                 <div className="text-4xl mb-4">📍</div>
@@ -598,6 +710,25 @@ function MomCard({ mom, currentUserId, currentProfile }: MomCardProps) {
     'washington':'wa','wa':'wa','west virginia':'wv','wv':'wv','wisconsin':'wi','wi':'wi','wyoming':'wy','wy':'wy'
   };
   const normState = (s: any) => STATE_MAP[String(s || '').trim().toLowerCase()] || String(s || '').trim().toLowerCase();
+  // Determine match type badge
+  const currentZip = String(currentProfile?.zip_code || '').trim();
+  const momZip = String(metadata?.zip_code || '').trim();
+  const zip3 = currentZip.slice(0,3);
+  const momZip3 = momZip.slice(0,3);
+  const yourCity = normCity(currentProfile?.city);
+  const yourState = normState(currentProfile?.state);
+  const momCity = normCity(metadata?.city);
+  const momState = normState(metadata?.state);
+  let matchBadge: string | null = null;
+  if (yourCity && momCity && yourState && momState && yourCity === momCity && yourState === momState) {
+    matchBadge = 'Exact City+State';
+  } else if (currentZip && momZip && currentZip === momZip) {
+    matchBadge = 'Exact ZIP';
+  } else if (zip3 && momZip3 && yourState && momState && yourState === momState && zip3 === momZip3) {
+    matchBadge = 'Nearby (ZIP3)';
+  } else if (yourState && momState && yourState === momState) {
+    matchBadge = 'Same State';
+  }
   
   async function handleConnect() {
     try {
@@ -669,6 +800,11 @@ function MomCard({ mom, currentUserId, currentProfile }: MomCardProps) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {metadata?.city}, {metadata?.state}
           </p>
+          {matchBadge && (
+            <span className="mt-1 inline-block text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+              {matchBadge}
+            </span>
+          )}
           {/* Reasons inspector */}
           {currentProfile && (
             <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
