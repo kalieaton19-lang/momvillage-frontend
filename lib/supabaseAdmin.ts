@@ -1,4 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+// Ensure envs are loaded in dev even if Next.js didn’t pick them up yet
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    // Lazy-load dotenv to avoid affecting production bundles
+    // Prefer .env.local which is standard for Next.js dev
+    // This is safe in server context only
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('dotenv').config({ path: '.env.local' });
+  } catch {}
+}
 
 let cachedAdmin: any | null = null;
 
