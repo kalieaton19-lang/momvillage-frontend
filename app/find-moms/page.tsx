@@ -65,6 +65,8 @@ export default function FindMomsPage() {
     availability: false,
   });
   const [searchRadius, setSearchRadius] = useState<number>(10); // miles
+  const [showAll, setShowAll] = useState<boolean>(false);
+  const [relaxationNote, setRelaxationNote] = useState<string>("");
 
   useEffect(() => {
     checkUser();
@@ -136,6 +138,13 @@ export default function FindMomsPage() {
 
   function applyFilters() {
     if (!currentProfile) return;
+
+    // Show all bypass
+    if (showAll) {
+      setFilteredMoms(moms);
+      setRelaxationNote("");
+      return;
+    }
 
     let filtered = [...moms];
 
@@ -245,6 +254,55 @@ export default function FindMomsPage() {
       });
     }
 
+    // Auto-relaxation flow if no results: stepwise broaden
+    if (filtered.length === 0) {
+      // Step 1: if location ON, relax to state-only match
+      let relaxed = [...moms];
+      let note = "";
+      const hasState = !!currentProfile.state;
+      const hasCity = !!currentProfile.city;
+      const otherOn = otherFiltersActive;
+
+      if (filters.location && hasState) {
+        const state = normalizeState(currentProfile.state);
+        relaxed = relaxed.filter(mom => normalizeState(mom.user_metadata?.state) === state);
+        note = "Relaxed to state-only";
+      }
+
+      // Step 2: if still none, drop services filters
+      if (relaxed.length === 0) {
+        let tmp = [...moms];
+        if (filters.location && hasState) {
+          const state = normalizeState(currentProfile.state);
+          tmp = tmp.filter(mom => normalizeState(mom.user_metadata?.state) === state);
+        }
+        note = note || "Relaxed by dropping services filters";
+        relaxed = tmp;
+      }
+
+      // Step 3: if still none, drop kids/language/style
+      if (relaxed.length === 0) {
+        let tmp = [...moms];
+        if (filters.location && hasState) {
+          const state = normalizeState(currentProfile.state);
+          tmp = tmp.filter(mom => normalizeState(mom.user_metadata?.state) === state);
+        }
+        note = note || "Relaxed by dropping kids/language/style";
+        relaxed = tmp;
+      }
+
+      // Step 4: show all
+      if (relaxed.length === 0) {
+        relaxed = moms;
+        note = note || "Showing all moms (no filters)";
+      }
+
+      setRelaxationNote(note);
+      setFilteredMoms(relaxed);
+      return;
+    }
+
+    setRelaxationNote("");
     setFilteredMoms(filtered);
   }
 
@@ -290,6 +348,12 @@ export default function FindMomsPage() {
               </p>
 
               <div className="space-y-3">
+                <FilterToggle
+                  label="👀 Show All"
+                  description="Bypass filters and show everyone"
+                  enabled={showAll}
+                  onToggle={() => setShowAll(!showAll)}
+                />
                 <FilterToggle
                   label="📍 Same Location"
                   description={currentProfile?.city && currentProfile?.state 
@@ -381,6 +445,9 @@ export default function FindMomsPage() {
                 >
                   Clear All Filters
                 </button>
+                {relaxationNote && (
+                  <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">{relaxationNote}</div>
+                )}
 
                 {/* Debug info to help diagnose empty results */}
                 <div className="mt-4 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50 dark:bg-zinc-800/40">
@@ -460,7 +527,7 @@ export default function FindMomsPage() {
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {filteredMoms.map((mom) => (
-                  <MomCard key={mom.id} mom={mom} currentUserId={user?.id} />
+                  <MomCard key={mom.id} mom={mom} currentUserId={user?.id} currentProfile={currentProfile} />
                 ))}
               </div>
             )}
@@ -510,11 +577,27 @@ function FilterToggle({ label, description, enabled, onToggle, disabled }: Filte
 interface MomCardProps {
   mom: MomProfile;
   currentUserId: string;
+  currentProfile: any;
 }
 
-function MomCard({ mom, currentUserId }: MomCardProps) {
+function MomCard({ mom, currentUserId, currentProfile }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
+  const normCity = (s: any) => String(s || '').trim().toLowerCase().replace(/\./g,'').replace(/\s+/g,' ').replace(/^st\s+/,'saint ');
+  const STATE_MAP: Record<string,string> = {
+    'alabama':'al','al':'al','alaska':'ak','ak':'ak','arizona':'az','az':'az','arkansas':'ar','ar':'ar',
+    'california':'ca','ca':'ca','colorado':'co','co':'co','connecticut':'ct','ct':'ct','delaware':'de','de':'de',
+    'florida':'fl','fl':'fl','georgia':'ga','ga':'ga','hawaii':'hi','hi':'hi','idaho':'id','id':'id','illinois':'il','il':'il',
+    'indiana':'in','in':'in','iowa':'ia','ia':'ia','kansas':'ks','ks':'ks','kentucky':'ky','ky':'ky','louisiana':'la','la':'la',
+    'maine':'me','me':'me','maryland':'md','md':'md','massachusetts':'ma','ma':'ma','michigan':'mi','mi':'mi','minnesota':'mn','mn':'mn',
+    'mississippi':'ms','ms':'ms','missouri':'mo','mo':'mo','montana':'mt','mt':'mt','nebraska':'ne','ne':'ne','nevada':'nv','nv':'nv',
+    'new hampshire':'nh','nh':'nh','new jersey':'nj','nj':'nj','new mexico':'nm','nm':'nm','new york':'ny','ny':'ny',
+    'north carolina':'nc','nc':'nc','north dakota':'nd','nd':'nd','ohio':'oh','oh':'oh','oklahoma':'ok','ok':'ok','oregon':'or','or':'or',
+    'pennsylvania':'pa','pa':'pa','rhode island':'ri','ri':'ri','south carolina':'sc','sc':'sc','south dakota':'sd','sd':'sd',
+    'tennessee':'tn','tn':'tn','texas':'tx','tx':'tx','utah':'ut','ut':'ut','vermont':'vt','vt':'vt','virginia':'va','va':'va',
+    'washington':'wa','wa':'wa','west virginia':'wv','wv':'wv','wisconsin':'wi','wi':'wi','wyoming':'wy','wy':'wy'
+  };
+  const normState = (s: any) => STATE_MAP[String(s || '').trim().toLowerCase()] || String(s || '').trim().toLowerCase();
   
   async function handleConnect() {
     try {
@@ -586,6 +669,14 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {metadata?.city}, {metadata?.state}
           </p>
+          {/* Reasons inspector */}
+          {currentProfile && (
+            <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+              <div>Your: {currentProfile?.city || '-'}, {currentProfile?.state || '-'}</div>
+              <div>Mom: {metadata?.city || '-'}, {metadata?.state || '-'}</div>
+              <div>Norm: your({normCity(currentProfile?.city)} / {normState(currentProfile?.state)}), mom({normCity(metadata?.city)} / {normState(metadata?.state)})</div>
+            </div>
+          )}
           
           <div className="mt-3 flex flex-wrap gap-2">
             {metadata?.number_of_kids && (
