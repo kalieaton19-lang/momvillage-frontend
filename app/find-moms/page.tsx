@@ -419,7 +419,7 @@ export default function FindMomsPage() {
                     className="w-full"
                   />
                   <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    ≤5mi: exact ZIP, ≤15mi: ZIP3 prefix, >15mi: state-only
+                    {"<=5mi: exact ZIP, <=15mi: ZIP3 prefix, >15mi: state-only"}
                   </div>
                 </div>
                 <FilterToggle
