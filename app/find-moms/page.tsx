@@ -23,216 +23,138 @@ interface MomProfile {
   };
 }
 
-// ...existing code...
+
+interface Filters {
+  location: boolean;
+  kidsAgeGroups: boolean;
+  numberOfKids: boolean;
+  language: boolean;
+  parentingStyle: boolean;
+  servicesOffered: boolean;
+  servicesNeeded: boolean;
+}
+
+const defaultFilters: Filters = {
+  location: true,
+  kidsAgeGroups: false,
+  numberOfKids: false,
+  language: false,
+  parentingStyle: false,
+  servicesOffered: false,
+  servicesNeeded: false,
+};
 
 export default function FindMomsPage() {
   const [moms, setMoms] = useState<MomProfile[]>([]);
   const [filteredMoms, setFilteredMoms] = useState<MomProfile[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  // Add user state if needed, or get from context/auth
-  // const [user, setUser] = useState<any>(null);
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [currentProfile, setCurrentProfile] = useState<MomProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  // TODO: Replace with actual user context/auth if available
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     async function fetchMoms() {
+      setLoading(true);
       try {
         const res = await fetch('/api/supabase/users', { cache: 'no-store' });
         const json = await res.json();
         if (!res.ok || json?.error) {
           setMoms([]);
           setFilteredMoms([]);
+          setCurrentProfile(null);
           setLoadError(json?.error || `Failed to load users (status ${res.status})`);
+          setLoading(false);
           return;
         }
         const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
-        // If you have user info, filter out current user
-        // const otherMoms: MomProfile[] = (users || [])
-        //   .filter((u: any) => u.id !== user?.id)
-        //   .map((u: any) => ({
-        //     id: u.id,
-        //     email: u.email ?? undefined,
-        //     user_metadata: (u.user_metadata || undefined) as any,
-        //   })) || [];
+        // TODO: Replace with actual user context/auth if available
+        // For now, just use the first user as currentProfile
+        const current = users[0] ? {
+          id: users[0].id,
+          email: users[0].email ?? undefined,
+          user_metadata: (users[0].user_metadata || undefined) as any,
+        } : null;
+        setCurrentProfile(current);
+        // Exclude current user from moms list if user context is available
         const otherMoms: MomProfile[] = (users || []).map((u: any) => ({
           id: u.id,
           email: u.email ?? undefined,
           user_metadata: (u.user_metadata || undefined) as any,
         })) || [];
         setMoms(otherMoms);
-        setFilteredMoms(otherMoms); // Or apply your filter logic here
+        setFilteredMoms(otherMoms);
         setLoadError(null);
       } catch (err: any) {
         setMoms([]);
         setFilteredMoms([]);
+        setCurrentProfile(null);
         setLoadError(err?.message || 'Unknown error');
       }
+      setLoading(false);
     }
     fetchMoms();
   }, []);
 
-  // ...existing code...
 
-  return (
-    <div>
-      {/* Render moms, filteredMoms, and handle loadError as needed */}
-      {loadError && <div style={{ color: 'red' }}>{loadError}</div>}
-      {/* ...existing rendering code... */}
-    </div>
-  );
-}
-      applyFilters();
-
-export default function FindMomsPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
-  const [moms, setMoms] = useState<MomProfile[]>([]);
-  const [filteredMoms, setFilteredMoms] = useState<MomProfile[]>([]);
-  const [filters, setFilters] = useState<Filters>({
-    location: true,
-    kidsAgeGroups: false,
-    numberOfKids: false,
-    language: false,
-    parentingStyle: false,
-    servicesOffered: false,
-    servicesNeeded: false,
-  });
-  const [searchRadius, setSearchRadius] = useState<number>(10); // miles
-
+  // Filtering logic
   useEffect(() => {
-    checkUser();
-  }, []);
-
-  useEffect(() => {
-    if (currentProfile && moms.length > 0) {
-      applyFilters();
-    } else if (moms.length === 0) {
-      setFilteredMoms([]);
+    if (!currentProfile) {
+      setFilteredMoms(moms);
+      return;
     }
-  }, [filters, moms, currentProfile]);
-
-  async function checkUser() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      
-      setUser(session.user);
-      
-      // Load current user profile
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser?.user_metadata) {
-        setCurrentProfile(currentUser.user_metadata);
-      }
-      
-      await loadMoms();
-    } catch (error) {
-      console.error('Error checking user:', error);
-      router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadMoms() {
-    try {
-      console.log('Loading moms from nearby areas...');
-      
-      // Fetch all users from Supabase auth
-      // Note: This uses the anon key, so we can only access public user data
-      // For a production app with many users, you'd want a backend API with pagination
-      const { data, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) {
-        // If admin API doesn't work with anon key, we'll need a backend endpoint
-        // For now, just load an empty list
-        console.log('Admin API not available with anon key, would need backend API');
-        setMoms([]);
-        setFilteredMoms([]);
-        return;
-      }
-      
-      // Filter out the current user and format the data
-        const otherMoms: MomProfile[] = (data?.users || [])
-          .filter((u: any) => u.id !== user?.id)
-          .map((u: any) => ({
-            id: u.id,
-            email: u.email ?? undefined,
-            user_metadata: (u.user_metadata || undefined) as any,
-          })) || [];
-      
-      setMoms(otherMoms);
-      applyFilters(); // Apply filters to the loaded moms
-    } catch (error) {
-      console.error('Error loading moms:', error);
-      setMoms([]);
-      setFilteredMoms([]);
-    }
-  }
-
-  function applyFilters() {
-    if (!currentProfile) return;
-
-    let filtered = [...moms];
-
-    // Filter by location (city/state match)
-    if (filters.location && currentProfile.city && currentProfile.state) {
-      filtered = filtered.filter(mom => 
-        mom.user_metadata?.city?.toLowerCase() === currentProfile.city?.toLowerCase() &&
-        mom.user_metadata?.state?.toLowerCase() === currentProfile.state?.toLowerCase()
+    let filtered = moms;
+    // Filter by location
+    if (filters.location && currentProfile.user_metadata?.city && currentProfile.user_metadata?.state) {
+      filtered = filtered.filter(mom =>
+        mom.user_metadata?.city === currentProfile.user_metadata?.city &&
+        mom.user_metadata?.state === currentProfile.user_metadata?.state
       );
     }
-
-    // Filter by kids age groups (at least one match)
-    if (filters.kidsAgeGroups && currentProfile.kids_age_groups?.length > 0) {
-      filtered = filtered.filter(mom => {
-        const momAgeGroups = mom.user_metadata?.kids_age_groups || [];
-        return momAgeGroups.some(age => currentProfile.kids_age_groups?.includes(age));
-      });
+    // Filter by kids age groups
+    if (filters.kidsAgeGroups && currentProfile.user_metadata?.kids_age_groups?.length) {
+      filtered = filtered.filter(mom =>
+        mom.user_metadata?.kids_age_groups?.some((age: string) =>
+          currentProfile.user_metadata?.kids_age_groups?.includes(age)
+        )
+      );
     }
-
-    // Filter by number of kids (within ±1)
-    if (filters.numberOfKids && currentProfile.number_of_kids) {
-      filtered = filtered.filter(mom => {
-        const momKids = mom.user_metadata?.number_of_kids || 0;
-        return Math.abs(momKids - currentProfile.number_of_kids) <= 1;
-      });
+    // Filter by number of kids (±1)
+    if (filters.numberOfKids && currentProfile.user_metadata?.number_of_kids) {
+      filtered = filtered.filter(mom =>
+        mom.user_metadata?.number_of_kids !== undefined &&
+        Math.abs((mom.user_metadata?.number_of_kids ?? 0) - (currentProfile.user_metadata?.number_of_kids ?? 0)) <= 1
+      );
     }
-
     // Filter by language
-    if (filters.language && currentProfile.preferred_language) {
-      filtered = filtered.filter(mom => 
-        mom.user_metadata?.preferred_language === currentProfile.preferred_language
+    if (filters.language && currentProfile.user_metadata?.preferred_language) {
+      filtered = filtered.filter(mom =>
+        mom.user_metadata?.preferred_language === currentProfile.user_metadata?.preferred_language
       );
     }
-
     // Filter by parenting style
-    if (filters.parentingStyle && currentProfile.parenting_style) {
-      filtered = filtered.filter(mom => 
-        mom.user_metadata?.parenting_style === currentProfile.parenting_style
+    if (filters.parentingStyle && currentProfile.user_metadata?.parenting_style) {
+      filtered = filtered.filter(mom =>
+        mom.user_metadata?.parenting_style === currentProfile.user_metadata?.parenting_style
       );
     }
-
     // Filter by services offered (other moms offer what you need)
-    if (filters.servicesOffered && currentProfile.services_needed?.length > 0) {
+    if (filters.servicesOffered && currentProfile.user_metadata?.services_needed?.length) {
       filtered = filtered.filter(mom => {
         const momServicesOffered = (mom.user_metadata?.services_offered || []) as string[];
-        return momServicesOffered.some((service: string) => currentProfile.services_needed?.includes(service));
+        return momServicesOffered.some((service: string) => currentProfile.user_metadata?.services_needed?.includes(service));
       });
     }
-
     // Filter by services needed (other moms need what you offer)
-    if (filters.servicesNeeded && currentProfile.services_offered?.length > 0) {
+    if (filters.servicesNeeded && currentProfile.user_metadata?.services_offered?.length) {
       filtered = filtered.filter(mom => {
         const momServicesNeeded = (mom.user_metadata?.services_needed || []) as string[];
-        return momServicesNeeded.some((service: string) => currentProfile.services_offered?.includes(service));
+        return momServicesNeeded.some((service: string) => currentProfile.user_metadata?.services_offered?.includes(service));
       });
     }
-
     setFilteredMoms(filtered);
-  }
+  }, [filters, moms, currentProfile]);
 
   function toggleFilter(filterKey: keyof Filters) {
     setFilters(prev => ({
