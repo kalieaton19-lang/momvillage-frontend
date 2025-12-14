@@ -500,5 +500,6 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
