@@ -16,7 +16,6 @@ interface Conversation {
   last_message_time?: string;
   created_at?: string;
 }
-
 interface Message {
   id: string;
   match_id: string;
