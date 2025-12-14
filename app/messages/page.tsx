@@ -127,6 +127,13 @@ export default function MessagesPage() {
         };
       });
       setConversations(convs);
+      // Sync conversations to localStorage for Village page
+      try {
+        const convKey = `conversations_${userId}`;
+        localStorage.setItem(convKey, JSON.stringify(convs));
+      } catch (e) {
+        console.error('Error syncing conversations to localStorage:', e);
+      }
     } catch (error) {
       console.error('Error loading conversations:', error);
       setConversations([]);
