@@ -123,9 +123,9 @@ export default function MessagesPage() {
             {/* The rest of your component's JSX should be here, wrapped in this fragment */}
           </>
         );
-          other_user_name,
-          other_user_photo,
-          last_message: '', // You can load last message if needed
+            other_user_name,
+            other_user_photo,
+            last_message: '',
           last_message_time: conv.created_at ? new Date(conv.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
           created_at: conv.created_at,
         };
