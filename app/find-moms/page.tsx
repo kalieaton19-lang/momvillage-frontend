@@ -200,32 +200,32 @@ export default function FindMomsPage() {
               <div className="space-y-3">
                 <FilterToggle
                   label="📍 Same Location"
-                  description={currentProfile?.city && currentProfile?.state 
-                    ? `${currentProfile.city}, ${currentProfile.state}` 
+                  description={currentProfile?.user_metadata?.city && currentProfile?.user_metadata?.state 
+                    ? `${currentProfile.user_metadata.city}, ${currentProfile.user_metadata.state}` 
                     : 'Set your location in profile'}
                   enabled={filters.location}
                   onToggle={() => toggleFilter('location')}
-                  disabled={!currentProfile?.city || !currentProfile?.state}
+                  disabled={!currentProfile?.user_metadata?.city || !currentProfile?.user_metadata?.state}
                 />
 
                 <FilterToggle
                   label="👶 Kids Age Groups"
-                  description={currentProfile?.kids_age_groups?.length > 0
-                    ? `${currentProfile.kids_age_groups.length} age group(s)`
+                  description={currentProfile?.user_metadata?.kids_age_groups?.length > 0
+                    ? `${currentProfile.user_metadata.kids_age_groups.length} age group(s)`
                     : 'Set ages in profile'}
                   enabled={filters.kidsAgeGroups}
                   onToggle={() => toggleFilter('kidsAgeGroups')}
-                  disabled={!currentProfile?.kids_age_groups?.length}
+                  disabled={!currentProfile?.user_metadata?.kids_age_groups?.length}
                 />
 
                 <FilterToggle
                   label="🔢 Number of Kids"
-                  description={currentProfile?.number_of_kids
-                    ? `${currentProfile.number_of_kids} kid(s) (±1)`
+                  description={currentProfile?.user_metadata?.number_of_kids
+                    ? `${currentProfile.user_metadata.number_of_kids} kid(s) (±1)`
                     : 'Set in profile'}
                   enabled={filters.numberOfKids}
                   onToggle={() => toggleFilter('numberOfKids')}
-                  disabled={!currentProfile?.number_of_kids}
+                  disabled={!currentProfile?.user_metadata?.number_of_kids}
                 />
 
                 <FilterToggle
@@ -313,7 +313,7 @@ export default function FindMomsPage() {
                 </h3>
                 <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
                   We're still building this feature. Soon you'll be able to connect with amazing moms in{' '}
-                  {currentProfile.city}, {currentProfile.state}!
+                  {currentProfile?.user_metadata?.city}, {currentProfile?.user_metadata?.state}!
                 </p>
                 <div className="flex gap-4 justify-center">
                   <Link
