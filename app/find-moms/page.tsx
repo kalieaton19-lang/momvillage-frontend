@@ -230,38 +230,38 @@ export default function FindMomsPage() {
 
                 <FilterToggle
                   label="🗣️ Language"
-                  description={currentProfile?.preferred_language || 'Set in profile'}
+                  description={currentProfile?.user_metadata?.preferred_language || 'Set in profile'}
                   enabled={filters.language}
                   onToggle={() => toggleFilter('language')}
-                  disabled={!currentProfile?.preferred_language}
+                  disabled={!currentProfile?.user_metadata?.preferred_language}
                 />
 
                 <FilterToggle
                   label="💭 Parenting Style"
-                  description={currentProfile?.parenting_style || 'Set in profile'}
+                  description={currentProfile?.user_metadata?.parenting_style || 'Set in profile'}
                   enabled={filters.parentingStyle}
                   onToggle={() => toggleFilter('parentingStyle')}
-                  disabled={!currentProfile?.parenting_style}
+                  disabled={!currentProfile?.user_metadata?.parenting_style}
                 />
 
                 <FilterToggle
                   label="🤝 Services Offered"
-                  description={currentProfile?.services_offered?.length > 0
+                  description={Array.isArray(currentProfile?.user_metadata?.services_offered) && currentProfile.user_metadata.services_offered.length > 0
                     ? `Moms offering what you need`
                     : 'Select services in profile'}
                   enabled={filters.servicesOffered}
                   onToggle={() => toggleFilter('servicesOffered')}
-                  disabled={!currentProfile?.services_needed?.length}
+                  disabled={!(Array.isArray(currentProfile?.user_metadata?.services_needed) && currentProfile.user_metadata.services_needed.length > 0)}
                 />
 
                 <FilterToggle
                   label="🙏 Services Needed"
-                  description={currentProfile?.services_needed?.length > 0
+                  description={Array.isArray(currentProfile?.user_metadata?.services_needed) && currentProfile.user_metadata.services_needed.length > 0
                     ? `Moms needing your help`
                     : 'Select services in profile'}
                   enabled={filters.servicesNeeded}
                   onToggle={() => toggleFilter('servicesNeeded')}
-                  disabled={!currentProfile?.services_offered?.length}
+                  disabled={!(Array.isArray(currentProfile?.user_metadata?.services_offered) && currentProfile.user_metadata.services_offered.length > 0)}
                 />
               </div>
 
