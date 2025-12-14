@@ -20,24 +20,65 @@ interface MomProfile {
     profile_photo_url?: string;
     services_offered?: string[];
     services_needed?: string[];
-      // Fetch from backend API route instead of direct admin call
-      const res = await fetch('/api/supabase/users', { cache: 'no-store' });
-      const json = await res.json();
-      if (!res.ok || json?.error) {
-        setMoms([]);
-        setFilteredMoms([]);
-        setLoadError(json?.error || `Failed to load users (status ${res.status})`);
-        return;
-      }
-      const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
-      const otherMoms: MomProfile[] = (users || [])
-        .filter((u: any) => u.id !== user?.id)
-        .map((u: any) => ({
+  };
+}
+
+// ...existing code...
+
+export default function FindMomsPage() {
+  const [moms, setMoms] = useState<MomProfile[]>([]);
+  const [filteredMoms, setFilteredMoms] = useState<MomProfile[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Add user state if needed, or get from context/auth
+  // const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchMoms() {
+      try {
+        const res = await fetch('/api/supabase/users', { cache: 'no-store' });
+        const json = await res.json();
+        if (!res.ok || json?.error) {
+          setMoms([]);
+          setFilteredMoms([]);
+          setLoadError(json?.error || `Failed to load users (status ${res.status})`);
+          return;
+        }
+        const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
+        // If you have user info, filter out current user
+        // const otherMoms: MomProfile[] = (users || [])
+        //   .filter((u: any) => u.id !== user?.id)
+        //   .map((u: any) => ({
+        //     id: u.id,
+        //     email: u.email ?? undefined,
+        //     user_metadata: (u.user_metadata || undefined) as any,
+        //   })) || [];
+        const otherMoms: MomProfile[] = (users || []).map((u: any) => ({
           id: u.id,
           email: u.email ?? undefined,
           user_metadata: (u.user_metadata || undefined) as any,
         })) || [];
-      setMoms(otherMoms);
+        setMoms(otherMoms);
+        setFilteredMoms(otherMoms); // Or apply your filter logic here
+        setLoadError(null);
+      } catch (err: any) {
+        setMoms([]);
+        setFilteredMoms([]);
+        setLoadError(err?.message || 'Unknown error');
+      }
+    }
+    fetchMoms();
+  }, []);
+
+  // ...existing code...
+
+  return (
+    <div>
+      {/* Render moms, filteredMoms, and handle loadError as needed */}
+      {loadError && <div style={{ color: 'red' }}>{loadError}</div>}
+      {/* ...existing rendering code... */}
+    </div>
+  );
+}
       applyFilters();
 
 export default function FindMomsPage() {
