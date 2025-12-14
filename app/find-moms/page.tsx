@@ -289,7 +289,7 @@ export default function FindMomsPage() {
 
           {/* Results Grid */}
           <div className="lg:col-span-3">
-            {!currentProfile?.city || !currentProfile?.state ? (
+            {!currentProfile?.user_metadata?.city || !currentProfile?.user_metadata?.state ? (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-8 text-center">
                 <div className="text-4xl mb-4">📍</div>
                 <h3 className="text-xl font-semibold text-blue-900 dark:text-blue-100 mb-2">
