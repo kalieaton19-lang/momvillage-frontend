@@ -116,13 +116,13 @@ export default function FindMomsPage() {
       }
       
       // Filter out the current user and format the data
-      const otherMoms: MomProfile[] = data?.users
-        ?.filter(u => u.id !== user?.id)
-        .map(u => ({
-          id: u.id,
-          email: u.email,
-          user_metadata: u.user_metadata as any
-        })) || [];
+        const otherMoms: MomProfile[] = (data?.users || [])
+          .filter((u: any) => u.id !== user?.id)
+          .map((u: any) => ({
+            id: u.id,
+            email: u.email ?? undefined,
+            user_metadata: (u.user_metadata || undefined) as any,
+          })) || [];
       
       setMoms(otherMoms);
       applyFilters(); // Apply filters to the loaded moms
