@@ -427,26 +427,22 @@ interface MomCardProps {
   currentUserId: string;
 }
 
+
 function MomCard({ mom, currentUserId }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
-  
+
   async function handleConnect() {
     try {
       // Get current user
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser) throw new Error('Not authenticated');
-      const currentUserId = currentUser.id;
-      const currentUserName = currentUser.user_metadata?.full_name || 'Mom';
-      const currentUserPhoto = currentUser.user_metadata?.profile_photo_url;
+      const myUserId = currentUser.id;
 
       // Get other mom's info
       const otherUserId = mom.id;
-      const otherUserName = metadata?.full_name || 'Mom';
-      const otherUserPhoto = metadata?.profile_photo_url;
-
       // Generate a match_id based on sorted user IDs
-      const matchId = [currentUserId, otherUserId].sort().join('_');
+      const matchId = [myUserId, otherUserId].sort().join('_');
 
       // Check if conversation already exists
       const { data: existingConv } = await supabase
@@ -462,7 +458,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           .insert([
             {
               match_id: matchId,
-              sender_id: currentUserId,
+              sender_id: myUserId,
               receiver_id: otherUserId,
               message_text: 'Conversation started',
               created_at: new Date().toISOString(),
