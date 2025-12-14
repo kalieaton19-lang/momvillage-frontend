@@ -68,6 +68,9 @@ export default function FindMomsPage() {
     async function fetchMoms() {
       setLoading(true);
       try {
+        // Get current user from Supabase auth
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        setUser(authUser);
         const res = await fetch('/api/supabase/users', { cache: 'no-store' });
         const json = await res.json();
         if (!res.ok || json?.error) {
@@ -79,16 +82,21 @@ export default function FindMomsPage() {
           return;
         }
         const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
-        // TODO: Replace with actual user context/auth if available
-        // For now, just use the first user as currentProfile
-        const current = users[0] ? {
-          id: users[0].id,
-          email: users[0].email ?? undefined,
-          user_metadata: (users[0].user_metadata || undefined) as any,
-        } : null;
+        // Find the current user in the list by id
+        let current = null;
+        if (authUser) {
+          const match = users.find((u) => u.id === authUser.id);
+          if (match) {
+            current = {
+              id: match.id,
+              email: match.email ?? undefined,
+              user_metadata: (match.user_metadata || undefined) as any,
+            };
+          }
+        }
         setCurrentProfile(current);
         // Exclude current user from moms list if user context is available
-        const otherMoms: MomProfile[] = (users || []).map((u: any) => ({
+        const otherMoms: MomProfile[] = (users || []).filter((u: any) => u.id !== authUser?.id).map((u: any) => ({
           id: u.id,
           email: u.email ?? undefined,
           user_metadata: (u.user_metadata || undefined) as any,
