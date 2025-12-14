@@ -114,15 +114,22 @@ export default function FindMomsPage() {
 
   // Filtering logic
   useEffect(() => {
+    console.log('Filter effect running', { filters, moms, currentProfile });
     if (!currentProfile) {
       setFilteredMoms(moms);
       return;
     }
     let filtered = moms;
-    // Filter by location (case-insensitive, trimmed)
+    // Debug: log currentProfile and all moms' city/state before filtering
     if (filters.location && currentProfile.user_metadata?.city && currentProfile.user_metadata?.state) {
       const myCity = currentProfile.user_metadata.city.trim().toLowerCase();
       const myState = currentProfile.user_metadata.state.trim().toLowerCase();
+      console.log('Current user city/state:', myCity, myState);
+      moms.forEach((mom) => {
+        const momCity = (mom.user_metadata?.city || '').trim().toLowerCase();
+        const momState = (mom.user_metadata?.state || '').trim().toLowerCase();
+        console.log('Mom:', mom.id, 'city:', momCity, 'state:', momState);
+      });
       filtered = filtered.filter(mom => {
         const momCity = (mom.user_metadata?.city || '').trim().toLowerCase();
         const momState = (mom.user_metadata?.state || '').trim().toLowerCase();
