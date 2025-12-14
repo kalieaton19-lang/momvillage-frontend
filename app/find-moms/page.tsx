@@ -81,8 +81,23 @@ export default function FindMomsPage() {
         }
         setCurrentProfile(current);
         // Fetch all users for the moms list (admin API)
-        const res = await fetch('/api/supabase/users', { cache: 'no-store' });
-        const json = await res.json();
+        let res, json;
+        try {
+          res = await fetch('/api/supabase/users', { cache: 'no-store' });
+          json = await res.json();
+        } catch (fetchErr) {
+          if (typeof window !== 'undefined') {
+            console.error('Error fetching /api/supabase/users:', fetchErr);
+          }
+          setMoms([]);
+          setFilteredMoms([]);
+          setLoadError('Failed to fetch users');
+          setLoading(false);
+          return;
+        }
+        if (typeof window !== 'undefined') {
+          console.log('Full /api/supabase/users response:', json);
+        }
         if (!res.ok || json?.error) {
           setMoms([]);
           setFilteredMoms([]);
@@ -91,7 +106,6 @@ export default function FindMomsPage() {
           return;
         }
         const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
-        // Debug: log all users returned from API (browser console)
         if (typeof window !== 'undefined') {
           console.log('All users from API:', users);
         }
