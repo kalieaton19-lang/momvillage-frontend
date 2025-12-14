@@ -68,34 +68,30 @@ export default function FindMomsPage() {
     async function fetchMoms() {
       setLoading(true);
       try {
-        // Get current user from Supabase auth
+        // Get current user from Supabase auth (always latest metadata)
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
+        let current = null;
+        if (authUser) {
+          current = {
+            id: authUser.id,
+            email: authUser.email ?? undefined,
+            user_metadata: (authUser.user_metadata || undefined) as any,
+          };
+        }
+        setCurrentProfile(current);
+        // Fetch all users for the moms list (admin API)
         const res = await fetch('/api/supabase/users', { cache: 'no-store' });
         const json = await res.json();
         if (!res.ok || json?.error) {
           setMoms([]);
           setFilteredMoms([]);
-          setCurrentProfile(null);
           setLoadError(json?.error || `Failed to load users (status ${res.status})`);
           setLoading(false);
           return;
         }
         const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
-        // Find the current user in the list by id
-        let current = null;
-        if (authUser) {
-          const match = users.find((u) => u.id === authUser.id);
-          if (match) {
-            current = {
-              id: match.id,
-              email: match.email ?? undefined,
-              user_metadata: (match.user_metadata || undefined) as any,
-            };
-          }
-        }
-        setCurrentProfile(current);
-        // Exclude current user from moms list if user context is available
+        // Exclude current user from moms list
         const otherMoms: MomProfile[] = (users || []).filter((u: any) => u.id !== authUser?.id).map((u: any) => ({
           id: u.id,
           email: u.email ?? undefined,
