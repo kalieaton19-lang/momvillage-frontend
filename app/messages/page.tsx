@@ -115,12 +115,18 @@ export default function MessagesPage() {
         let other_user_id = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
         let other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
         let other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
+        let other_user_email = conv.user1_id === userId ? (conv.user2_email || "") : (conv.user1_email || "");
+        let other_user_city = conv.user1_id === userId ? (conv.user2_city || "") : (conv.user1_city || "");
+        let other_user_state = conv.user1_id === userId ? (conv.user2_state || "") : (conv.user1_state || "");
         return {
           id: conv.id,
           match_id: conv.id,
           other_user_id,
           other_user_name,
           other_user_photo,
+          other_user_email,
+          other_user_city,
+          other_user_state,
           last_message: '',
           last_message_time: conv.created_at ? new Date(conv.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
           created_at: conv.created_at,
