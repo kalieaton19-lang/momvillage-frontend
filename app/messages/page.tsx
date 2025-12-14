@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useNotification } from "../components/useNotification";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
@@ -25,6 +26,7 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  const { showNotification, NotificationComponent } = useNotification();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -40,15 +42,33 @@ export default function MessagesPage() {
     checkUser();
   }, []);
 
+  // Track last message count for notification
+  const lastMessageCountRef = useRef<number>(0);
   useEffect(() => {
     if (selectedConversation) {
       loadMessages(selectedConversation);
-      const interval = setInterval(() => {
-        loadMessages(selectedConversation);
+      const interval = setInterval(async () => {
+        const prevCount = lastMessageCountRef.current;
+        const msgs = await fetchMessages(selectedConversation);
+        if (msgs.length > prevCount && msgs[msgs.length-1]?.sender_id !== user?.id) {
+          showNotification('New message from your village!');
+        }
+        lastMessageCountRef.current = msgs.length;
+        setMessages(msgs);
       }, 2000);
       return () => clearInterval(interval);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, user]);
+
+  // Helper to fetch messages for notification polling
+  async function fetchMessages(conversationId: string) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, match_id, sender_id, receiver_id, message_text, created_at')
+      .eq('match_id', conversationId)
+      .order('created_at', { ascending: true });
+    return data || [];
+  }
 
   useEffect(() => {
     scrollToBottom();
@@ -152,6 +172,16 @@ export default function MessagesPage() {
     setSendingMessage(true);
     try {
       const hasDb = typeof (supabase as any).from === 'function';
+      // Find the other user's ID from conversations
+      let otherUserId = null;
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('user1_id, user2_id')
+        .eq('id', selectedConversation)
+        .single();
+      if (conv) {
+        otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
+      }
       if (hasDb) {
         const { error } = await (supabase as any)
           .from('messages')
@@ -159,7 +189,7 @@ export default function MessagesPage() {
             {
               match_id: selectedConversation,
               sender_id: user.id,
-              receiver_id: null,
+              receiver_id: otherUserId,
               message_text: messageText,
               created_at: new Date().toISOString(),
             }
@@ -310,6 +340,8 @@ export default function MessagesPage() {
   }
 
   return (
+    <>
+      <NotificationComponent />
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
       <div className="max-w-7xl mx-auto h-screen flex flex-col">
         <header className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
