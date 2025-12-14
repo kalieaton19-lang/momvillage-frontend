@@ -119,12 +119,15 @@ export default function FindMomsPage() {
       return;
     }
     let filtered = moms;
-    // Filter by location
+    // Filter by location (case-insensitive, trimmed)
     if (filters.location && currentProfile.user_metadata?.city && currentProfile.user_metadata?.state) {
-      filtered = filtered.filter(mom =>
-        mom.user_metadata?.city === currentProfile.user_metadata?.city &&
-        mom.user_metadata?.state === currentProfile.user_metadata?.state
-      );
+      const myCity = currentProfile.user_metadata.city.trim().toLowerCase();
+      const myState = currentProfile.user_metadata.state.trim().toLowerCase();
+      filtered = filtered.filter(mom => {
+        const momCity = (mom.user_metadata?.city || '').trim().toLowerCase();
+        const momState = (mom.user_metadata?.state || '').trim().toLowerCase();
+        return momCity === myCity && momState === myState;
+      });
     }
     // Filter by kids age groups
     if (filters.kidsAgeGroups && currentProfile.user_metadata?.kids_age_groups?.length) {
