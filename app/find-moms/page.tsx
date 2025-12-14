@@ -91,8 +91,10 @@ export default function FindMomsPage() {
           return;
         }
         const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
-        // Debug: log all users returned from API
-        console.log('All users from API:', users);
+        // Debug: log all users returned from API (browser console)
+        if (typeof window !== 'undefined') {
+          console.log('All users from API:', users);
+        }
         // Exclude current user from moms list
         const otherMoms: MomProfile[] = (users || []).filter((u: any) => u.id !== authUser?.id).map((u: any) => ({
           id: u.id,
