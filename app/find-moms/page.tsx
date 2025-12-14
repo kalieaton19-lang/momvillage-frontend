@@ -1,3 +1,5 @@
+
+"use client";
 // Conversation type for localStorage chat logic
 interface Conversation {
   id: string;
@@ -7,7 +9,6 @@ interface Conversation {
   last_message: string;
   last_message_time: string;
 }
-"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
