@@ -116,16 +116,13 @@ export default function MessagesPage() {
         let other_user_id = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
         let other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
         let other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
-        return (
-          <>
-            <NotificationComponent />
-            {/* ...existing UI... */}
-            {/* The rest of your component's JSX should be here, wrapped in this fragment */}
-          </>
-        );
-            other_user_name,
-            other_user_photo,
-            last_message: '',
+        return {
+          id: conv.id,
+          match_id: conv.id,
+          other_user_id,
+          other_user_name,
+          other_user_photo,
+          last_message: '',
           last_message_time: conv.created_at ? new Date(conv.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
           created_at: conv.created_at,
         };
