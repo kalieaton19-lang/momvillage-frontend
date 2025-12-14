@@ -80,62 +80,34 @@ export default function MessagesPage() {
 
   async function loadConversations(userId: string) {
     try {
-      // Fallback if database API isn't available (local-only mode)
-      const hasDb = typeof (supabase as any).from === 'function';
-      let data: any[] | null = null;
-      if (hasDb) {
-        const { data: rows, error } = await (supabase as any)
-          .from('messages')
-          .select('*')
-          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-          .order('created_at', { ascending: false });
-        if (error) {
-          console.warn('Messages table not available; using local storage fallback.');
-          data = null;
-        } else {
-          data = rows;
-        }
+      // Load conversations from conversations table
+      const { data: convRows, error: convError } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+      if (convError) {
+        console.error('Error loading conversations:', convError);
+        setConversations([]);
+        return;
       }
-      if (!data) {
-        try {
-          const raw = (typeof window !== 'undefined') ? window.localStorage.getItem('mv_messages') : null;
-          const all = raw ? JSON.parse(raw) : [];
-          data = Array.isArray(all) ? all
-            .filter((m: any) => m.sender_id === userId || m.receiver_id === userId)
-            .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''))
-            : [];
-        } catch {
-          data = [];
-        }
-      }
-
-      // Group messages by match_id to create conversations
-      const convMap = new Map<string, Conversation>();
-      
-      if (data && data.length > 0) {
-        for (const msg of data) {
-          const matchId = msg.match_id;
-          
-          // Skip if no match_id (incomplete data)
-          if (!matchId) continue;
-          
-          if (!convMap.has(matchId)) {
-            // Determine other user ID (if msg.sender_id is not current user)
-            const otherUserId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-            
-            convMap.set(matchId, {
-              id: matchId,
-              match_id: matchId,
-              other_user_id: otherUserId,
-              last_message: msg.message_text,
-              last_message_time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
-              created_at: msg.created_at,
-            });
-          }
-        }
-      }
-
-      setConversations(Array.from(convMap.values()));
+      // For each conversation, get the other user's info
+      const convs: Conversation[] = (convRows || []).map((conv: any) => {
+        let other_user_id = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+        let other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
+        let other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
+        return {
+          id: conv.id,
+          match_id: conv.id,
+          other_user_id,
+          other_user_name,
+          other_user_photo,
+          last_message: '', // You can load last message if needed
+          last_message_time: conv.created_at ? new Date(conv.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
+          created_at: conv.created_at,
+        };
+      });
+      setConversations(convs);
     } catch (error) {
       console.error('Error loading conversations:', error);
       setConversations([]);

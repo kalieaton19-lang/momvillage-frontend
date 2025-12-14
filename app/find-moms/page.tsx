@@ -438,22 +438,42 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser) throw new Error('Not authenticated');
       const myUserId = currentUser.id;
+      const myName = currentUser.user_metadata?.full_name || 'Mom';
+      const myPhoto = currentUser.user_metadata?.profile_photo_url || '';
 
       // Get other mom's info
       const otherUserId = mom.id;
+      const otherName = mom.user_metadata?.full_name || 'Mom';
+      const otherPhoto = mom.user_metadata?.profile_photo_url || '';
+
       // Generate a match_id based on sorted user IDs
       const matchId = [myUserId, otherUserId].sort().join('_');
 
-      // Check if conversation already exists
+      // Check if conversation already exists in conversations table
       const { data: existingConv } = await supabase
-        .from('messages')
-        .select('match_id')
-        .eq('match_id', matchId)
+        .from('conversations')
+        .select('id')
+        .eq('id', matchId)
         .limit(1);
       const exists = !!(existingConv && existingConv.length > 0);
       if (!exists) {
+        // Create conversation row
+        const { error: convError } = await supabase
+          .from('conversations')
+          .insert([
+            {
+              id: matchId,
+              user1_id: myUserId,
+              user2_id: otherUserId,
+              user1_name: myName,
+              user2_name: otherName,
+              user1_photo: myPhoto,
+              user2_photo: otherPhoto,
+            }
+          ]);
+        if (convError) throw convError;
         // Create first message to start the conversation
-        const { error } = await supabase
+        const { error: msgError } = await supabase
           .from('messages')
           .insert([
             {
@@ -464,9 +484,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
               created_at: new Date().toISOString(),
             }
           ]);
-        if (error) {
-          throw error;
-        }
+        if (msgError) throw msgError;
       }
       // Redirect to messages page
       router.push('/messages');
