@@ -433,46 +433,46 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
   
   async function handleConnect() {
     try {
-      // Create conversation ID
-      const conversationId = [currentUserId, mom.id].sort().join('_');
-      
-      // Get current user's info for the other person's conversation
+      // Get current user
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const currentUserMetadata = currentUser?.user_metadata;
+      if (!currentUser) throw new Error('Not authenticated');
+      const currentUserId = currentUser.id;
+      const currentUserName = currentUser.user_metadata?.full_name || 'Mom';
+      const currentUserPhoto = currentUser.user_metadata?.profile_photo_url;
 
-      // Get or create conversations for both users
-      const currentUserKey = `conversations_${currentUserId}`;
-      const otherUserKey = `conversations_${mom.id}`;
+      // Get other mom's info
+      const otherUserId = mom.id;
+      const otherUserName = metadata?.full_name || 'Mom';
+      const otherUserPhoto = metadata?.profile_photo_url;
 
-      // Add conversation for current user
-      const currentConvs = JSON.parse(localStorage.getItem(currentUserKey) || '[]');
-      if (!currentConvs.find((c: Conversation) => c.id === conversationId)) {
-        currentConvs.unshift({
-          id: conversationId,
-          other_user_id: mom.id,
-          other_user_name: metadata?.full_name || 'Mom',
-          other_user_photo: metadata?.profile_photo_url,
-          last_message: 'Conversation started',
-          last_message_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        });
-        localStorage.setItem(currentUserKey, JSON.stringify(currentConvs));
+      // Generate a match_id based on sorted user IDs
+      const matchId = [currentUserId, otherUserId].sort().join('_');
+
+      // Check if conversation already exists
+      const { data: existingConv } = await supabase
+        .from('messages')
+        .select('match_id')
+        .eq('match_id', matchId)
+        .limit(1);
+      const exists = !!(existingConv && existingConv.length > 0);
+      if (!exists) {
+        // Create first message to start the conversation
+        const { error } = await supabase
+          .from('messages')
+          .insert([
+            {
+              match_id: matchId,
+              sender_id: currentUserId,
+              receiver_id: otherUserId,
+              message_text: 'Conversation started',
+              created_at: new Date().toISOString(),
+            }
+          ]);
+        if (error) {
+          throw error;
+        }
       }
-
-      // Add conversation for other user
-      const otherConvs = JSON.parse(localStorage.getItem(otherUserKey) || '[]');
-      if (!otherConvs.find((c: Conversation) => c.id === conversationId)) {
-        otherConvs.unshift({
-          id: conversationId,
-          other_user_id: currentUserId,
-          other_user_name: currentUserMetadata?.full_name || 'Mom',
-          other_user_photo: currentUserMetadata?.profile_photo_url,
-          last_message: 'Conversation started',
-          last_message_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        });
-        localStorage.setItem(otherUserKey, JSON.stringify(otherConvs));
-      }
-
-      // Navigate to messages page
+      // Redirect to messages page
       router.push('/messages');
     } catch (error) {
       console.error('Error connecting:', error);
