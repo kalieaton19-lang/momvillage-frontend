@@ -20,27 +20,25 @@ interface MomProfile {
     profile_photo_url?: string;
     services_offered?: string[];
     services_needed?: string[];
-  };
-}
-
-interface Conversation {
-  id: string;
-  other_user_id: string;
-  other_user_name: string;
-  other_user_photo?: string;
-  last_message?: string;
-  last_message_time?: string;
-}
-
-interface Filters {
-  location: boolean;
-  kidsAgeGroups: boolean;
-  numberOfKids: boolean;
-  language: boolean;
-  parentingStyle: boolean;
-  servicesOffered: boolean;
-  servicesNeeded: boolean;
-}
+      // Fetch from backend API route instead of direct admin call
+      const res = await fetch('/api/supabase/users', { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok || json?.error) {
+        setMoms([]);
+        setFilteredMoms([]);
+        setLoadError(json?.error || `Failed to load users (status ${res.status})`);
+        return;
+      }
+      const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
+      const otherMoms: MomProfile[] = (users || [])
+        .filter((u: any) => u.id !== user?.id)
+        .map((u: any) => ({
+          id: u.id,
+          email: u.email ?? undefined,
+          user_metadata: (u.user_metadata || undefined) as any,
+        })) || [];
+      setMoms(otherMoms);
+      applyFilters();
 
 export default function FindMomsPage() {
   const router = useRouter();
