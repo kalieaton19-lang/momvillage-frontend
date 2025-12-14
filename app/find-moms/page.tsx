@@ -210,12 +210,12 @@ export default function FindMomsPage() {
 
                 <FilterToggle
                   label="👶 Kids Age Groups"
-                  description={currentProfile?.user_metadata?.kids_age_groups?.length > 0
+                  description={Array.isArray(currentProfile?.user_metadata?.kids_age_groups) && currentProfile.user_metadata.kids_age_groups.length > 0
                     ? `${currentProfile.user_metadata.kids_age_groups.length} age group(s)`
                     : 'Set ages in profile'}
                   enabled={filters.kidsAgeGroups}
                   onToggle={() => toggleFilter('kidsAgeGroups')}
-                  disabled={!currentProfile?.user_metadata?.kids_age_groups?.length}
+                  disabled={!(Array.isArray(currentProfile?.user_metadata?.kids_age_groups) && currentProfile.user_metadata.kids_age_groups.length > 0)}
                 />
 
                 <FilterToggle
