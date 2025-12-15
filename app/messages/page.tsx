@@ -122,7 +122,7 @@ export default function MessagesPage() {
         let other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
         let other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
 
-        // Fetch other user's profile from Supabase
+        // Try to fetch other user's profile from Supabase admin API (will fail on client)
         let other_user_email = '';
         let other_user_city = '';
         let other_user_state = '';
@@ -134,9 +134,10 @@ export default function MessagesPage() {
             other_user_state = userProfile.user_metadata.state || '';
           }
         } catch (e) {
-          // Ignore profile fetch errors, fallback to empty strings
+          // Fallback: leave as empty strings, but still save the conversation
         }
 
+        // Always push the conversation, even if city/state/email are missing
         convs.push({
           id: conv.id,
           match_id: conv.id,
