@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { AsyncPendingInvites } from "./AsyncPendingInvites";
 
 interface VillageMember {
   id: string;
@@ -30,6 +31,8 @@ type VillageInvitationWithRecipient = VillageInvitation & {
   to_user_id?: string;
   to_user_name?: string;
   to_user_email?: string;
+  to_user_city?: string;
+  to_user_state?: string;
 };
 
 interface MomProfile {
@@ -477,9 +480,8 @@ export default function VillagePage() {
   }
 
   // Helper: enrich pending invites with info from conversations/availableMoms
-  function enrichPendingInvites(invites: VillageInvitationWithRecipient[]) {
-    const enrichedInvites = invites.map((inv) => {
-      // ...existing code...
+  async function enrichPendingInvites(invites: VillageInvitationWithRecipient[]) {
+    const enrichedInvites = await Promise.all(invites.map(async (inv) => {
       let enriched = { ...inv };
       // Try to fill missing name/email from conversations
       if ((!enriched.to_user_name || !enriched.to_user_email) && Array.isArray(conversations)) {
@@ -489,16 +491,28 @@ export default function VillagePage() {
           if (!enriched.to_user_email && conv.other_user_email) enriched.to_user_email = conv.other_user_email;
         }
       }
-      // Try to fill missing name/email from availableMoms
-      if ((!enriched.to_user_name || !enriched.to_user_email) && Array.isArray(availableMoms)) {
+      // Try to fill missing name/email/city/state from availableMoms
+      if ((!enriched.to_user_name || !enriched.to_user_email || !enriched.to_user_city || !enriched.to_user_state) && Array.isArray(availableMoms)) {
         const mom = availableMoms.find(m => m.id === inv.to_user_id || m.email === inv.to_user_email);
         if (mom) {
           if (!enriched.to_user_name && mom.user_metadata?.full_name) enriched.to_user_name = mom.user_metadata.full_name;
           if (!enriched.to_user_email && mom.email) enriched.to_user_email = mom.email;
+          if (!enriched.to_user_city && mom.user_metadata?.city) enriched.to_user_city = mom.user_metadata.city;
+          if (!enriched.to_user_state && mom.user_metadata?.state) enriched.to_user_state = mom.user_metadata.state;
         }
       }
+      // If still missing city/state, fetch from Supabase
+      if ((!enriched.to_user_city || !enriched.to_user_state) && enriched.to_user_id) {
+        try {
+          const { data: { user: supaUser }, error } = await supabase.auth.admin.getUserById(enriched.to_user_id);
+          if (!error && supaUser?.user_metadata) {
+            if (!enriched.to_user_city && supaUser.user_metadata.city) enriched.to_user_city = supaUser.user_metadata.city;
+            if (!enriched.to_user_state && supaUser.user_metadata.state) enriched.to_user_state = supaUser.user_metadata.state;
+          }
+        } catch (e) { /* ignore */ }
+      }
       return enriched;
-    });
+    }));
     console.log('[Village Debug] enrichPendingInvites input:', invites);
     console.log('[Village Debug] enrichPendingInvites output:', enrichedInvites);
     return enrichedInvites;
@@ -998,22 +1012,7 @@ export default function VillagePage() {
               <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
                 <ul className="space-y-3">
-                  {enrichPendingInvites(pendingSentInvitations).map((inv) => {
-                    let displayName = inv.to_user_name || inv.to_user_email;
-                    if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
-                    // Use from_user_photo as fallback if to_user_photo is not present
-                    const photo = (inv as any).to_user_photo || (inv as any).from_user_photo || "/placeholder.png";
-                    return (
-                      <li key={inv.id} className="flex items-center gap-3 text-sm text-yellow-900 dark:text-yellow-100">
-                        <img
-                          src={photo}
-                          alt={displayName || 'Mom'}
-                          className="h-8 w-8 rounded-full object-cover border border-yellow-300 dark:border-yellow-700"
-                        />
-                        <span className="font-medium">{displayName || 'Unknown Mom'}</span>
-                      </li>
-                    );
-                  })}
+                  <AsyncPendingInvites invites={pendingSentInvitations} />
                 </ul>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">These moms have not yet accepted or declined your invitation.</p>
               </div>
