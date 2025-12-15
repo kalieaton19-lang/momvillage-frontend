@@ -138,7 +138,24 @@ export default function MessagesPage() {
           // Fallback: leave as empty strings, but still save the conversation
         }
 
-        // Always push the conversation, even if city/state/email are missing
+        // Fetch the latest message for this conversation
+        let last_message = '';
+        let last_message_time = '';
+        try {
+          const { data: lastMsgRows, error: lastMsgError } = await supabase
+            .from('messages')
+            .select('message_text, created_at')
+            .eq('match_id', conv.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (!lastMsgError && lastMsgRows && lastMsgRows.length > 0) {
+            last_message = lastMsgRows[0].message_text || '';
+            last_message_time = lastMsgRows[0].created_at ? new Date(lastMsgRows[0].created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+          }
+        } catch (e) {
+          // Fallback: leave as empty strings
+        }
+
         convs.push({
           id: conv.id,
           match_id: conv.id,
@@ -148,8 +165,8 @@ export default function MessagesPage() {
           other_user_email,
           other_user_city,
           other_user_state,
-          last_message: '',
-          last_message_time: conv.created_at ? new Date(conv.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
+          last_message,
+          last_message_time,
           created_at: conv.created_at,
         });
       }
@@ -525,16 +542,7 @@ export default function MessagesPage() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center bg-white dark:bg-black">
-              <div className="text-center">
-                <div className="text-6xl mb-4">💭</div>
-                <p className="text-zinc-600 dark:text-zinc-400 text-lg">
-                  Select a conversation to start chatting
-                </p>
-              </div>
-            </div>
-          )}
+          ) : null
 
         </div>
       </div>
