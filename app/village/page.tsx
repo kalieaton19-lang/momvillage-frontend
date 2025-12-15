@@ -800,46 +800,56 @@ export default function VillagePage() {
                     ) : (
                       <div className="space-y-2">
                         {conversations.map((conv) => (
-                          <div
-                            key={conv.id || conv.match_id}
-                            onClick={() => {
-                              setSelectedMomId(conv.other_user_id);
-                              setSelectedMom({
-                                id: conv.other_user_id,
-                                email: conv.other_user_email || "",
-                                user_metadata: {
-                                  full_name: conv.other_user_name || "Mom",
-                                  profile_photo_url: conv.other_user_photo,
-                                  city: conv.other_user_city,
-                                  state: conv.other_user_state,
-                                },
-                              });
-                            }}
-                            className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                              selectedMomId === conv.other_user_id
-                                ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
-                                : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:border-pink-300 dark:hover:border-pink-600'
-                            }`}
-                          >
-                            <img
-                              src={conv.other_user_photo || "/placeholder.png"}
-                              alt={conv.other_user_name || "Mom"}
-                              className="h-12 w-12 rounded-full object-cover"
-                            />
-                            <div className="flex-1">
-                              <p className="font-semibold text-zinc-900 dark:text-zinc-50">
-                                {conv.other_user_name || "Unknown Mom"}
-                              </p>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                {conv.other_user_city && conv.other_user_state
-                                  ? `${conv.other_user_city}, ${conv.other_user_state}`
-                                  : "Location not set"}
-                              </p>
-                            </div>
-                            {selectedMomId === conv.other_user_id && (
-                              <div className="text-pink-500">✓</div>
-                            )}
-                          </div>
+                          (() => {
+                            const alreadyInvited = pendingSentInvitations.some(
+                              (inv) => inv.to_user_id === conv.other_user_id || inv.to_user_email === conv.other_user_email
+                            );
+                            return (
+                              <div
+                                key={conv.id || conv.match_id}
+                                onClick={alreadyInvited ? undefined : () => {
+                                  setSelectedMomId(conv.other_user_id);
+                                  setSelectedMom({
+                                    id: conv.other_user_id,
+                                    email: conv.other_user_email || "",
+                                    user_metadata: {
+                                      full_name: conv.other_user_name || "Mom",
+                                      profile_photo_url: conv.other_user_photo,
+                                      city: conv.other_user_city,
+                                      state: conv.other_user_state,
+                                    },
+                                  });
+                                }}
+                                className={`flex items-center gap-3 p-3 rounded-lg border-2 ${alreadyInvited ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-pink-300 dark:hover:border-pink-600'} transition-colors ${
+                                  selectedMomId === conv.other_user_id
+                                    ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
+                                }`}
+                              >
+                                <img
+                                  src={conv.other_user_photo || "/placeholder.png"}
+                                  alt={conv.other_user_name || "Mom"}
+                                  className="h-12 w-12 rounded-full object-cover"
+                                />
+                                <div className="flex-1">
+                                  <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                                    {conv.other_user_name || "Unknown Mom"}
+                                  </p>
+                                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    {(conv.other_user_city || conv.other_user_state)
+                                      ? `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`
+                                      : "Location not set"}
+                                  </p>
+                                  {alreadyInvited && (
+                                    <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 rounded">Already Invited</span>
+                                  )}
+                                </div>
+                                {!alreadyInvited && selectedMomId === conv.other_user_id && (
+                                  <div className="text-pink-500">✓</div>
+                                )}
+                              </div>
+                            );
+                          })()
                         ))}
                       </div>
                     )}
@@ -913,8 +923,8 @@ export default function VillagePage() {
                                   {mom.user_metadata?.full_name || "Unknown"}
                                 </p>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  {mom.user_metadata?.city && mom.user_metadata?.state
-                                    ? `${mom.user_metadata.city}, ${mom.user_metadata.state}`
+                                  {(mom.user_metadata?.city || mom.user_metadata?.state)
+                                    ? `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`
                                     : "Location not set"}
                                 </p>
                                 {alreadyInvited && (
