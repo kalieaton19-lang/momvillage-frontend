@@ -28,14 +28,16 @@ export function AsyncPendingInvites({ invites }: Props) {
     async function enrich() {
       const enrichedInvites = await Promise.all(invites.map(async (inv) => {
         let enriched = { ...inv };
-        // Try to fill missing city/state from Supabase
-        if ((!enriched.to_user_city || !enriched.to_user_state) && enriched.to_user_id) {
+        // Always fetch latest user info from Supabase Auth for recipient
+        if (enriched.to_user_id) {
           try {
             const { data: { user: supaUser }, error } = await supabase.auth.admin.getUserById(enriched.to_user_id);
             if (!error && supaUser?.user_metadata) {
-              if (!enriched.to_user_city && supaUser.user_metadata.city) enriched.to_user_city = supaUser.user_metadata.city;
-              if (!enriched.to_user_state && supaUser.user_metadata.state) enriched.to_user_state = supaUser.user_metadata.state;
-              if (!enriched.to_user_photo && supaUser.user_metadata.profile_photo_url) enriched.to_user_photo = supaUser.user_metadata.profile_photo_url;
+              // Overwrite with latest info from Auth
+              enriched.to_user_name = supaUser.user_metadata.full_name || enriched.to_user_name;
+              enriched.to_user_city = supaUser.user_metadata.city || enriched.to_user_city;
+              enriched.to_user_state = supaUser.user_metadata.state || enriched.to_user_state;
+              enriched.to_user_photo = supaUser.user_metadata.profile_photo_url || enriched.to_user_photo;
             }
           } catch (e) { /* ignore */ }
         }
