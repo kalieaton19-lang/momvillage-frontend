@@ -73,6 +73,17 @@ export default function VillagePage() {
   }, []);
 
   async function checkUser() {
+          // Debug: log conversations and pending invites
+          setTimeout(() => {
+            try {
+              const sentKey = `village_invitations_sent_${session.user.id}`;
+              const sentInvs = JSON.parse(localStorage.getItem(sentKey) || '[]');
+              console.log('[Village Debug] Pending invites:', sentInvs);
+              const convKey = `conversations_${session.user.id}`;
+              const convs = JSON.parse(localStorage.getItem(convKey) || '[]');
+              console.log('[Village Debug] Conversations:', convs);
+            } catch (e) { console.error('[Village Debug] Error logging:', e); }
+          }, 1000);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -979,7 +990,20 @@ export default function VillagePage() {
                 <div>
                   <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Location</p>
                   <p className="text-zinc-900 dark:text-zinc-50 mt-1">
-                    {selectedMemberProfile.city}, {selectedMemberProfile.state}
+                    {selectedMemberProfile.city && selectedMemberProfile.state && (selectedMemberProfile.city + ', ' + selectedMemberProfile.state)}
+                    {!(selectedMemberProfile.city && selectedMemberProfile.state) && (() => {
+                      // Try to get from conversations
+                      const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
+                      if (conv && (conv.other_user_city || conv.other_user_state)) {
+                        return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
+                      }
+                      // Try to get from invitations
+                      const inv = pendingSentInvitations.find(i => i.to_user_id === selectedMemberProfile.id);
+                      if (inv && (inv.to_user_city || inv.to_user_state)) {
+                        return `${inv.to_user_city || ''}${inv.to_user_city && inv.to_user_state ? ', ' : ''}${inv.to_user_state || ''}`;
+                      }
+                      return 'Location not set';
+                    })()}
                   </p>
                 </div>
                 <div>
