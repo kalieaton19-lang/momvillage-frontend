@@ -38,9 +38,15 @@ export function AsyncPendingInvites({ invites }: Props) {
               enriched.to_user_city = supaUser.user_metadata.city || enriched.to_user_city;
               enriched.to_user_state = supaUser.user_metadata.state || enriched.to_user_state;
               enriched.to_user_photo = supaUser.user_metadata.profile_photo_url || enriched.to_user_photo;
+              console.log('[AsyncPendingInvites] Supabase Auth user_metadata for', enriched.to_user_id, supaUser.user_metadata);
+            } else {
+              console.warn('[AsyncPendingInvites] No user_metadata found for', enriched.to_user_id, error);
             }
-          } catch (e) { /* ignore */ }
+          } catch (e) {
+            console.error('[AsyncPendingInvites] Error fetching user by id', enriched.to_user_id, e);
+          }
         }
+        console.log('[AsyncPendingInvites] Final enriched invite:', enriched);
         return enriched;
       }));
       if (!cancelled) setEnriched(enrichedInvites);
