@@ -138,28 +138,33 @@ export default function VillagePage() {
 
   async function loadAvailableMoms() {
     try {
-      // Fetch all users from Supabase (excluding current user)
+      // Fetch all public profiles from Supabase (excluding current user)
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) {
         setAvailableMoms([]);
         return;
       }
-      // Use Supabase admin API to get all users (requires service role key in production)
-      const { data, error } = await supabase.auth.admin.listUsers();
+      const { data, error } = await supabase
+        .from('user_public_profiles')
+        .select('*');
       if (error) {
-        console.error('Error fetching users:', error);
+        console.error('Error fetching user_public_profiles:', error);
         setAvailableMoms([]);
         return;
       }
-      type SupabaseUser = { id: string; email?: string | null; user_metadata?: Record<string, any> };
-      const users = (data?.users || []) as SupabaseUser[];
       // Exclude current user and map to MomProfile
-      const moms = users
-        .filter((u: SupabaseUser) => u.id !== authUser.id)
-        .map((u: SupabaseUser) => ({
-          id: u.id,
-          email: u.email ?? undefined,
-          user_metadata: u.user_metadata || {},
+      const moms = (data || [])
+        .filter((profile: any) => profile.id !== authUser.id)
+        .map((profile: any) => ({
+          id: profile.id,
+          email: profile.email ?? undefined,
+          user_metadata: {
+            full_name: profile.full_name,
+            profile_photo_url: profile.profile_photo_url,
+            city: profile.city,
+            state: profile.state,
+            // add other fields as needed
+          },
         }));
       setAvailableMoms(moms);
     } catch (error) {
