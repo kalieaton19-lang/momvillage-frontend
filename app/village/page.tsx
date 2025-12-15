@@ -138,12 +138,32 @@ export default function VillagePage() {
 
   async function loadAvailableMoms() {
     try {
-      // In a real app, you'd fetch from Supabase
-      // For now, we'll simulate by loading from mock data if available
-      // This would typically come from Find Moms or other sources
-      setAvailableMoms([]);
+      // Fetch all users from Supabase (excluding current user)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        setAvailableMoms([]);
+        return;
+      }
+      // Use Supabase admin API to get all users (requires service role key in production)
+      const { data, error } = await supabase.auth.admin.listUsers();
+      if (error) {
+        console.error('Error fetching users:', error);
+        setAvailableMoms([]);
+        return;
+      }
+      const users = (data?.users || []);
+      // Exclude current user and map to MomProfile
+      const moms = users
+        .filter((u) => u.id !== authUser.id)
+        .map((u) => ({
+          id: u.id,
+          email: u.email ?? undefined,
+          user_metadata: u.user_metadata || {},
+        }));
+      setAvailableMoms(moms);
     } catch (error) {
       console.error('Error loading available moms:', error);
+      setAvailableMoms([]);
     }
   }
 
