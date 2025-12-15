@@ -109,7 +109,10 @@ export default function VillagePage() {
         });
         // Save migrated invites back to localStorage
         localStorage.setItem(sentKey, JSON.stringify(sentInvs));
-        setPendingSentInvitations(sentInvs.filter((inv: any) => inv.status === 'pending'));
+        const pending = sentInvs.filter((inv: any) => inv.status === 'pending');
+        setPendingSentInvitations(pending);
+        console.log('[Village Debug] After migration: sentInvs', sentInvs);
+        console.log('[Village Debug] After migration: pendingSentInvitations', pending);
       } catch (e) {
         setPendingSentInvitations([]);
       }
@@ -182,15 +185,25 @@ export default function VillagePage() {
             });
             localStorage.setItem(convKey, JSON.stringify(convs));
             setConversations(convs);
+            console.log('[Village Debug] Loaded conversations from Supabase:', convs);
           } else {
             setConversations([]);
+            console.warn('[Village Debug] No conversations found in Supabase or error:', convError);
           }
         } catch (e) {
           setConversations([]);
+          console.error('[Village Debug] Error fetching conversations from Supabase:', e);
         }
       } else {
         setConversations(JSON.parse(storedConvs));
+        console.log('[Village Debug] Loaded conversations from localStorage:', storedConvs);
       }
+      // Warn if conversations are still empty
+      setTimeout(() => {
+        if (Array.isArray(conversations) && conversations.length === 0) {
+          console.warn('[Village Debug] Conversations are empty after all attempts. Pending invites may not enrich correctly.');
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error loading village data:', error);
     }
@@ -296,7 +309,10 @@ export default function VillagePage() {
       localStorage.setItem(sentKey, JSON.stringify(sentInvitations));
 
       // Update pendingSentInvitations state immediately
-      setPendingSentInvitations(sentInvitations.filter((inv: any) => inv.status === 'pending'));
+      const pending = sentInvitations.filter((inv: any) => inv.status === 'pending');
+      setPendingSentInvitations(pending);
+      console.log('[Village Debug] After send: sentInvitations', sentInvitations);
+      console.log('[Village Debug] After send: pendingSentInvitations', pending);
 
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
@@ -446,7 +462,8 @@ export default function VillagePage() {
 
   // Helper: enrich pending invites with info from conversations/availableMoms
   function enrichPendingInvites(invites: VillageInvitationWithRecipient[]) {
-    return invites.map((inv) => {
+    const enrichedInvites = invites.map((inv) => {
+      // ...existing code...
       let enriched = { ...inv };
       // Try to fill missing name/email from conversations
       if ((!enriched.to_user_name || !enriched.to_user_email) && Array.isArray(conversations)) {
@@ -466,6 +483,9 @@ export default function VillagePage() {
       }
       return enriched;
     });
+    console.log('[Village Debug] enrichPendingInvites input:', invites);
+    console.log('[Village Debug] enrichPendingInvites output:', enrichedInvites);
+    return enrichedInvites;
   }
 
   if (loading) {
