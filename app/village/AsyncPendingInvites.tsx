@@ -50,22 +50,28 @@ export function AsyncPendingInvites({ invites }: Props) {
   return (
     <>
       {enriched.map((inv) => {
-        let displayName = inv.to_user_name || inv.to_user_email;
-        if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
+        // Try all possible sources for name
+        let displayName = inv.to_user_name || inv.to_user_email || inv.from_user_name || inv.from_user_email || inv.to_user_id || inv.from_user_id;
+        if (!displayName) displayName = 'Unknown Mom';
         const photo = inv.to_user_photo || inv.from_user_photo || "/placeholder.png";
+        // Try all possible sources for city/state
+        let city = inv.to_user_city || inv.from_user_city || '';
+        let state = inv.to_user_state || inv.from_user_state || '';
+        let location = '';
+        if (city || state) {
+          location = `${city}${city && state ? ', ' : ''}${state}`;
+        } else {
+          location = 'Location not set';
+        }
         return (
           <li key={inv.id} className="flex items-center gap-3 text-sm text-yellow-900 dark:text-yellow-100">
             <img
               src={photo}
-              alt={displayName || 'Mom'}
+              alt={displayName}
               className="h-8 w-8 rounded-full object-cover border border-yellow-300 dark:border-yellow-700"
             />
-            <span className="font-medium">{displayName || 'Unknown Mom'}</span>
-            <span className="ml-2 text-xs text-yellow-700 dark:text-yellow-300">
-              {(inv.to_user_city || inv.to_user_state)
-                ? `${inv.to_user_city || ''}${inv.to_user_city && inv.to_user_state ? ', ' : ''}${inv.to_user_state || ''}`
-                : 'Location not set'}
-            </span>
+            <span className="font-medium">{displayName}</span>
+            <span className="ml-2 text-xs text-yellow-700 dark:text-yellow-300">{location}</span>
           </li>
         );
       })}

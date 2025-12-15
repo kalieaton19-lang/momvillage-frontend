@@ -928,7 +928,8 @@ export default function VillagePage() {
                   </div>
                 )}
                 <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                  {selectedMemberProfile.name}
+                  {/* Try all possible sources for name */}
+                  {selectedMemberProfile.name || selectedMemberProfile.email || selectedMemberProfile.id || 'Unknown Mom'}
                 </h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
                   {selectedMemberProfile.email}
@@ -940,28 +941,27 @@ export default function VillagePage() {
                 <div>
                   <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Location</p>
                   <p className="text-zinc-900 dark:text-zinc-50 mt-1">
-                    {selectedMemberProfile.city && selectedMemberProfile.state && (selectedMemberProfile.city + ', ' + selectedMemberProfile.state)}
-                    {!(selectedMemberProfile.city && selectedMemberProfile.state) && (() => {
-                      console.log('[Village Debug] Fallback: selectedMemberProfile:', selectedMemberProfile);
-                      // Try to get from conversations
-                      const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
-                      console.log('[Village Debug] Fallback: matching conversation:', conv);
-                      if (conv) {
-                        console.log('[Village Debug] Fallback: conv.other_user_city:', conv.other_user_city, 'conv.other_user_state:', conv.other_user_state);
-                        if (conv.other_user_city || conv.other_user_state) {
-                          return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
+                    {/* Try all possible sources for city/state */}
+                    {(() => {
+                      let city = selectedMemberProfile.city || '';
+                      let state = selectedMemberProfile.state || '';
+                      if (!city || !state) {
+                        // Try to get from conversations
+                        const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
+                        if (conv) {
+                          city = city || conv.other_user_city || '';
+                          state = state || conv.other_user_state || '';
+                        }
+                        // Try to get from availableMoms by id or email
+                        const mom = availableMoms.find(m => m.id === selectedMemberProfile.id || m.email === selectedMemberProfile.email);
+                        if (mom) {
+                          city = city || mom.user_metadata?.city || '';
+                          state = state || mom.user_metadata?.state || '';
                         }
                       }
-                      // Try to get from availableMoms by id or email
-                      const mom = availableMoms.find(m => m.id === selectedMemberProfile.id || m.email === selectedMemberProfile.email);
-                      console.log('[Village Debug] Fallback: matching mom from availableMoms:', mom);
-                      if (mom) {
-                        console.log('[Village Debug] Fallback: mom.user_metadata.city:', mom.user_metadata?.city, 'mom.user_metadata.state:', mom.user_metadata?.state);
-                        if (mom.user_metadata?.city || mom.user_metadata?.state) {
-                          return `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`;
-                        }
+                      if (city || state) {
+                        return `${city}${city && state ? ', ' : ''}${state}`;
                       }
-                      console.log('[Village Debug] Fallback: Location not set for', selectedMemberProfile.id);
                       return 'Location not set';
                     })()}
                   </p>
