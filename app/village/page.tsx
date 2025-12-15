@@ -441,6 +441,30 @@ export default function VillagePage() {
     }
   }
 
+  // Helper: enrich pending invites with info from conversations/availableMoms
+  function enrichPendingInvites(invites: VillageInvitationWithRecipient[]) {
+    return invites.map((inv) => {
+      let enriched = { ...inv };
+      // Try to fill missing name/email from conversations
+      if ((!enriched.to_user_name || !enriched.to_user_email) && Array.isArray(conversations)) {
+        const conv = conversations.find(c => c.other_user_id === inv.to_user_id || c.other_user_email === inv.to_user_email);
+        if (conv) {
+          if (!enriched.to_user_name && conv.other_user_name) enriched.to_user_name = conv.other_user_name;
+          if (!enriched.to_user_email && conv.other_user_email) enriched.to_user_email = conv.other_user_email;
+        }
+      }
+      // Try to fill missing name/email from availableMoms
+      if ((!enriched.to_user_name || !enriched.to_user_email) && Array.isArray(availableMoms)) {
+        const mom = availableMoms.find(m => m.id === inv.to_user_id || m.email === inv.to_user_email);
+        if (mom) {
+          if (!enriched.to_user_name && mom.user_metadata?.full_name) enriched.to_user_name = mom.user_metadata.full_name;
+          if (!enriched.to_user_email && mom.email) enriched.to_user_email = mom.email;
+        }
+      }
+      return enriched;
+    });
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -682,14 +706,8 @@ export default function VillagePage() {
                   <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                     <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
                     <ul className="space-y-1">
-                      {pendingSentInvitations.map((inv) => {
+                      {enrichPendingInvites(pendingSentInvitations).map((inv) => {
                         let displayName = inv.to_user_name || inv.to_user_email;
-                        if (!displayName && inv.to_user_id && Array.isArray(conversations)) {
-                          const conv = conversations.find(c => c.other_user_id === inv.to_user_id);
-                          displayName = conv?.other_user_name || conv?.other_user_email;
-                        }
-                        // If still no displayName, but we have an email, show that
-                        if (!displayName && inv.to_user_email) displayName = inv.to_user_email;
                         if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
                         return (
                           <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
@@ -985,6 +1003,11 @@ export default function VillagePage() {
                       const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
                       if (conv && (conv.other_user_city || conv.other_user_state)) {
                         return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
+                      }
+                      // Try to get from availableMoms by id or email
+                      const mom = availableMoms.find(m => m.id === selectedMemberProfile.id || m.email === selectedMemberProfile.email);
+                      if (mom && (mom.user_metadata?.city || mom.user_metadata?.state)) {
+                        return `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`;
                       }
                       return 'Location not set';
                     })()}
