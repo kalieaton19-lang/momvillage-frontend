@@ -165,12 +165,13 @@ export default function ProfilePage() {
 
   async function handleSave() {
     if (!user) return;
-    
+
     setSaving(true);
     setMessage("");
     setError("");
-    
+
     try {
+      // 1. Update Auth user_metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           full_name: profile.full_name,
@@ -188,14 +189,35 @@ export default function ProfilePage() {
         }
       });
 
-      if (updateError) {
-        console.error('Save error:', updateError);
-        setError(`Failed to update profile: ${updateError.message}`);
+      // 2. Upsert into user_public_profiles
+      const { error: upsertError } = await supabase
+        .from('user_public_profiles')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          full_name: profile.full_name,
+          phone: profile.phone,
+          address: profile.address,
+          city: profile.city,
+          state: profile.state,
+          zip_code: profile.zip_code,
+          number_of_kids: profile.number_of_kids,
+          kids_age_groups: profile.kids_age_groups,
+          preferred_language: profile.preferred_language,
+          parenting_style: profile.parenting_style,
+          other_info: profile.other_info,
+          profile_photo_url: profile.profile_photo_url,
+        });
+
+      if (updateError || upsertError) {
+        if (updateError) console.error('Save error (auth):', updateError);
+        if (upsertError) console.error('Save error (public_profiles):', upsertError);
+        setError(`Failed to update profile: ${updateError?.message || upsertError?.message}`);
       } else {
         // Check if this is first time setup (no availability set yet)
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         const hasAvailability = currentUser?.user_metadata?.availability || currentUser?.user_metadata?.weeklyAvailability;
-        
+
         if (!hasAvailability) {
           setMessage("Profile updated successfully! Redirecting to availability...");
           setEditing(false);
