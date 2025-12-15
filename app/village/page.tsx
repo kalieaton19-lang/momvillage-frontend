@@ -991,10 +991,12 @@ export default function VillagePage() {
                   {enrichPendingInvites(pendingSentInvitations).map((inv) => {
                     let displayName = inv.to_user_name || inv.to_user_email;
                     if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
+                    // Use from_user_photo as fallback if to_user_photo is not present
+                    const photo = (inv as any).to_user_photo || (inv as any).from_user_photo || "/placeholder.png";
                     return (
                       <li key={inv.id} className="flex items-center gap-3 text-sm text-yellow-900 dark:text-yellow-100">
                         <img
-                          src={inv.to_user_photo || "/placeholder.png"}
+                          src={photo}
                           alt={displayName || 'Mom'}
                           className="h-8 w-8 rounded-full object-cover border border-yellow-300 dark:border-yellow-700"
                         />
