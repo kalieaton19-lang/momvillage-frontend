@@ -25,6 +25,13 @@ interface VillageInvitation {
   message?: string;
 }
 
+// For UI/state, allow recipient fields
+type VillageInvitationWithRecipient = VillageInvitation & {
+  to_user_id?: string;
+  to_user_name?: string;
+  to_user_email?: string;
+};
+
 interface MomProfile {
   id: string;
   email?: string;
@@ -38,7 +45,7 @@ interface MomProfile {
 
 export default function VillagePage() {
     // Track pending sent invitations for the current user
-    const [pendingSentInvitations, setPendingSentInvitations] = useState<VillageInvitation[]>([]);
+    const [pendingSentInvitations, setPendingSentInvitations] = useState<VillageInvitationWithRecipient[]>([]);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
