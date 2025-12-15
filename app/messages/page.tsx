@@ -103,6 +103,7 @@ export default function MessagesPage() {
   }
 
   async function loadConversations(userId: string) {
+      console.log('[Village Debug] loadConversations called for user:', userId);
     try {
       // Load conversations from conversations table
       const { data: convRows, error: convError } = await supabase
