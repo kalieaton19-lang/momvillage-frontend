@@ -135,7 +135,14 @@ export default function MessagesPage() {
             other_user_state = userProfile.user_metadata.state || '';
           }
         } catch (e) {
-          // Fallback: leave as empty strings, but still save the conversation
+          // Fallback: use values from conversation row if available
+          if (conv.user1_id === userId) {
+            other_user_city = conv.user2_city || '';
+            other_user_state = conv.user2_state || '';
+          } else {
+            other_user_city = conv.user1_city || '';
+            other_user_state = conv.user1_state || '';
+          }
         }
 
         // Fetch the latest message for this conversation
