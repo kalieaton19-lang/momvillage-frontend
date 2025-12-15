@@ -157,8 +157,11 @@ export default function MessagesPage() {
       try {
         const convKey = `conversations_${userId}`;
         localStorage.setItem(convKey, JSON.stringify(convs));
-        // Debug: log what is being saved
-        console.log('[Village Debug] Synced conversations to localStorage:', convKey, convs);
+        if (convs.length === 0) {
+          console.warn('[Village Debug] No conversations to sync to localStorage:', convKey, convs);
+        } else {
+          console.log('[Village Debug] Synced conversations to localStorage:', convKey, convs);
+        }
       } catch (e) {
         console.error('Error syncing conversations to localStorage:', e);
       }
