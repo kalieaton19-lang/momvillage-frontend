@@ -986,11 +986,6 @@ export default function VillagePage() {
                       if (conv && (conv.other_user_city || conv.other_user_state)) {
                         return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
                       }
-                      // Try to get from invitations
-                      const inv = pendingSentInvitations.find(i => i.to_user_id === selectedMemberProfile.id);
-                      if (inv && (inv.to_user_city || inv.to_user_state)) {
-                        return `${inv.to_user_city || ''}${inv.to_user_city && inv.to_user_state ? ', ' : ''}${inv.to_user_state || ''}`;
-                      }
                       return 'Location not set';
                     })()}
                   </p>
