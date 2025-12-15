@@ -295,6 +295,9 @@ export default function VillagePage() {
       sentInvitations.unshift(invitation);
       localStorage.setItem(sentKey, JSON.stringify(sentInvitations));
 
+      // Update pendingSentInvitations state immediately
+      setPendingSentInvitations(sentInvitations.filter((inv: any) => inv.status === 'pending'));
+
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
       setSelectedMom(null);
