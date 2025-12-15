@@ -73,17 +73,6 @@ export default function VillagePage() {
   }, []);
 
   async function checkUser() {
-          // Debug: log conversations and pending invites
-          setTimeout(() => {
-            try {
-              const sentKey = `village_invitations_sent_${session.user.id}`;
-              const sentInvs = JSON.parse(localStorage.getItem(sentKey) || '[]');
-              console.log('[Village Debug] Pending invites:', sentInvs);
-              const convKey = `conversations_${session.user.id}`;
-              const convs = JSON.parse(localStorage.getItem(convKey) || '[]');
-              console.log('[Village Debug] Conversations:', convs);
-            } catch (e) { console.error('[Village Debug] Error logging:', e); }
-          }, 1000);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
