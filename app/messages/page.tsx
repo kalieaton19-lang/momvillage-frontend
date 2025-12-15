@@ -542,8 +542,7 @@ export default function MessagesPage() {
                 </div>
               </div>
             </div>
-          ) : null
-
+          ) : null}
         </div>
       </div>
     </div>
