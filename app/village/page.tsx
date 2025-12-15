@@ -90,10 +90,25 @@ export default function VillagePage() {
       await loadVillageData(session.user.id);
       await loadAvailableMoms();
 
-      // Load pending sent invitations
+      // Load and migrate pending sent invitations
       try {
         const sentKey = `village_invitations_sent_${session.user.id}`;
-        const sentInvs = JSON.parse(localStorage.getItem(sentKey) || '[]');
+        let sentInvs = JSON.parse(localStorage.getItem(sentKey) || '[]');
+        // Migrate: if any invite is missing to_user_id, try to infer from conversations
+        sentInvs = sentInvs.map((inv: any) => {
+          if (!inv.to_user_id) {
+            // Try to match by email to a conversation
+            if (Array.isArray(conversations) && inv.to_user_email) {
+              const matchConv = conversations.find(c => c.other_user_email === inv.to_user_email);
+              if (matchConv) {
+                return { ...inv, to_user_id: matchConv.other_user_id };
+              }
+            }
+          }
+          return inv;
+        });
+        // Save migrated invites back to localStorage
+        localStorage.setItem(sentKey, JSON.stringify(sentInvs));
         setPendingSentInvitations(sentInvs.filter((inv: any) => inv.status === 'pending'));
       } catch (e) {
         setPendingSentInvitations([]);
@@ -673,6 +688,8 @@ export default function VillagePage() {
                           const conv = conversations.find(c => c.other_user_id === inv.to_user_id);
                           displayName = conv?.other_user_name || conv?.other_user_email;
                         }
+                        // If still no displayName, but we have an email, show that
+                        if (!displayName && inv.to_user_email) displayName = inv.to_user_email;
                         if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
                         return (
                           <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
