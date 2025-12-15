@@ -210,7 +210,7 @@ export default function VillagePage() {
         return;
       }
 
-      const invitation: VillageInvitation & { to_user_id: string; to_user_name?: string; to_user_email?: string } = {
+      const invitation: VillageInvitation & { to_user_id: string; to_user_name?: string; to_user_email?: string; to_user_city?: string; to_user_state?: string } = {
         id: `vinv_${Date.now()}`,
         from_user_id: currentUserId,
         from_user_name: currentProfile?.full_name || 'A Mom',
@@ -221,7 +221,15 @@ export default function VillagePage() {
         to_user_id: selectedMom.id,
         to_user_name: selectedMom.user_metadata?.full_name,
         to_user_email: selectedMom.email,
+        to_user_city: selectedMom.user_metadata?.city || '',
+        to_user_state: selectedMom.user_metadata?.state || '',
       };
+
+      // Save invitation to Supabase
+      const { error } = await supabase
+        .from('village_invitations')
+        .insert([invitation]);
+      if (error) throw error;
 
       // (localStorage logic removed, now using Supabase only)
 
@@ -258,11 +266,11 @@ export default function VillagePage() {
         if (!error && inviterUser?.user_metadata) {
           const newMember: VillageMember = {
             id: invitation.from_user_id,
-            name: inviterUser.user_metadata.full_name || 'Mom',
-            photo: inviterUser.user_metadata.profile_photo_url,
+            name: inviterUser.user_metadata.full_name || invitation.from_user_name || 'Mom',
+            photo: inviterUser.user_metadata.profile_photo_url || invitation.from_user_photo,
             email: inviterUser.email,
-            city: inviterUser.user_metadata.city,
-            state: inviterUser.user_metadata.state,
+            city: inviterUser.user_metadata.city || '',
+            state: inviterUser.user_metadata.state || '',
             joined_date: new Date().toISOString(),
           };
           setVillageMembers((prev) => {
@@ -271,6 +279,8 @@ export default function VillagePage() {
             }
             return prev;
           });
+          // Optionally, insert into Supabase village_members table
+          await supabase.from('village_members').insert([newMember]);
         }
       }
 
