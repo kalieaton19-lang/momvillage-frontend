@@ -37,6 +37,8 @@ interface MomProfile {
 }
 
 export default function VillagePage() {
+    // Track pending sent invitations for the current user
+    const [pendingSentInvitations, setPendingSentInvitations] = useState<VillageInvitation[]>([]);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -80,6 +82,15 @@ export default function VillagePage() {
       
       await loadVillageData(session.user.id);
       await loadAvailableMoms();
+
+      // Load pending sent invitations
+      try {
+        const sentKey = `village_invitations_sent_${session.user.id}`;
+        const sentInvs = JSON.parse(localStorage.getItem(sentKey) || '[]');
+        setPendingSentInvitations(sentInvs.filter((inv: any) => inv.status === 'pending'));
+      } catch (e) {
+        setPendingSentInvitations([]);
+      }
     } catch (error) {
       console.error('Error checking user:', error);
       router.push('/login');
@@ -89,6 +100,14 @@ export default function VillagePage() {
   }
 
   async function loadVillageData(userId: string) {
+        // Debug: log what is being read from localStorage for conversations
+        try {
+          const convKey = `conversations_${userId}`;
+          const storedConvs = localStorage.getItem(convKey);
+          console.log('[Village Debug] Read conversations from localStorage:', convKey, storedConvs);
+        } catch (e) {
+          console.error('[Village Debug] Error reading conversations from localStorage:', e);
+        }
     try {
       // Load village members
       const villageKey = `village_${userId}`;
@@ -595,6 +614,19 @@ export default function VillagePage() {
                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                   Build your support circle by inviting moms you've connected with. You can invite moms from your conversations or search for specific moms.
                 </p>
+                {pendingSentInvitations.length > 0 && (
+                  <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
+                    <ul className="space-y-1">
+                      {pendingSentInvitations.map((inv) => (
+                        <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
+                          {inv.to_user_name || inv.to_user_email || 'Unknown Mom'}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">These moms have not yet accepted or declined your invitation.</p>
+                  </div>
+                )}
                 <button
                   onClick={() => setShowInviteForm(true)}
                   className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg transition-all"
