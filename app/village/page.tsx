@@ -93,32 +93,7 @@ export default function VillagePage() {
       await loadVillageData(session.user.id);
       await loadAvailableMoms();
 
-      // Load and migrate pending sent invitations
-      try {
-        const sentKey = `village_invitations_sent_${session.user.id}`;
-        let sentInvs = JSON.parse(localStorage.getItem(sentKey) || '[]');
-        // Migrate: if any invite is missing to_user_id, try to infer from conversations
-        sentInvs = sentInvs.map((inv: any) => {
-          if (!inv.to_user_id) {
-            // Try to match by email to a conversation
-            if (Array.isArray(conversations) && inv.to_user_email) {
-              const matchConv = conversations.find(c => c.other_user_email === inv.to_user_email);
-              if (matchConv) {
-                return { ...inv, to_user_id: matchConv.other_user_id };
-              }
-            }
-          }
-          return inv;
-        });
-        // Save migrated invites back to localStorage
-        localStorage.setItem(sentKey, JSON.stringify(sentInvs));
-        const pending = sentInvs.filter((inv: any) => inv.status === 'pending');
-        setPendingSentInvitations(pending);
-        console.log('[Village Debug] After migration: sentInvs', sentInvs);
-        console.log('[Village Debug] After migration: pendingSentInvitations', pending);
-      } catch (e) {
-        setPendingSentInvitations([]);
-      }
+      // (localStorage migration removed, now using Supabase only)
     } catch (error) {
       console.error('Error checking user:', error);
       router.push('/login');
@@ -128,103 +103,36 @@ export default function VillagePage() {
   }
 
   async function loadVillageData(userId: string) {
-        // Debug: log what is being read from localStorage for conversations
-        try {
-          const convKey = `conversations_${userId}`;
-          const storedConvs = localStorage.getItem(convKey);
-          console.log('[Village Debug] Read conversations from localStorage:', convKey, storedConvs);
-        } catch (e) {
-          console.error('[Village Debug] Error reading conversations from localStorage:', e);
-        }
     try {
-      // Load village members
-      const villageKey = `village_${userId}`;
-      const storedVillage = localStorage.getItem(villageKey);
-      if (storedVillage) {
-        setVillageMembers(JSON.parse(storedVillage));
+      // Load village members from Supabase
+      const { data: members, error: membersError } = await supabase
+        .from('village_members')
+        .select('*')
+        .eq('user_id', userId);
+      if (!membersError && members) {
+        setVillageMembers(members);
       }
-
-      // Load village invitations
-      const invKey = `village_invitations_${userId}`;
-      const storedInv = localStorage.getItem(invKey);
-      if (storedInv) {
-        const invs: VillageInvitation[] = JSON.parse(storedInv);
-        setVillageInvitations(invs);
+      // Load invitations from Supabase
+      const { data: invitations, error: invError } = await supabase
+        .from('village_invitations')
+        .select('*')
+        .eq('to_user_id', userId)
+        .order('created_at', { ascending: false });
+      if (!invError && invitations) {
+        setVillageInvitations(invitations);
       }
-
-      // Load conversations from localStorage if available, else fetch from Supabase
-      const convKey = `conversations_${userId}`;
-      let storedConvs = localStorage.getItem(convKey);
-      if (!storedConvs) {
-        try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-          const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-          const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-          const { data: convRows, error: convError } = await supabaseClient
-            .from('conversations')
-            .select('*')
-            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-            .order('created_at', { ascending: false });
-          if (!convError && convRows) {
-            const convs = convRows.map((conv) => {
-              const other_user_id = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
-              const other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
-              const other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
-              const other_user_email = conv.user1_id === userId ? conv.user2_email : conv.user1_email;
-              const other_user_city = conv.user1_id === userId ? conv.user2_city : conv.user1_city;
-              const other_user_state = conv.user1_id === userId ? conv.user2_state : conv.user1_state;
-              return {
-                id: conv.id,
-                match_id: conv.id,
-                other_user_id,
-                other_user_name,
-                other_user_photo,
-                other_user_email,
-                other_user_city,
-                other_user_state,
-                last_message: '',
-                last_message_time: '',
-                created_at: conv.created_at,
-              };
-            });
-            localStorage.setItem(convKey, JSON.stringify(convs));
-            setConversations(convs);
-            console.log('[Village Debug] Loaded conversations from Supabase:', convs);
-          } else {
-            setConversations([]);
-            console.warn('[Village Debug] No conversations found in Supabase or error:', convError);
-          }
-        } catch (e) {
-          setConversations([]);
-          console.error('[Village Debug] Error fetching conversations from Supabase:', e);
-        }
-      } else {
-        // Patch: ensure city/state are present if missing in stored conversations
-        let convs = JSON.parse(storedConvs);
-        convs = convs.map((conv: any) => {
-          if (typeof conv.other_user_city === 'undefined' || typeof conv.other_user_state === 'undefined') {
-            // Try to infer from mom profile if available
-            const mom = availableMoms.find(m => m.id === conv.other_user_id || m.email === conv.other_user_email);
-            return {
-              ...conv,
-              other_user_city: mom?.user_metadata?.city || '',
-              other_user_state: mom?.user_metadata?.state || '',
-            };
-          }
-          return conv;
-        });
+      // Load conversations from Supabase
+      const { data: convs, error: convError } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+        .order('updated_at', { ascending: false });
+      if (!convError && convs) {
         setConversations(convs);
-        console.log('[Village Debug] Loaded conversations from localStorage:', convs);
       }
-      // Warn if conversations are still empty
-      setTimeout(() => {
-        if (Array.isArray(conversations) && conversations.length === 0) {
-          console.warn('[Village Debug] Conversations are empty after all attempts. Pending invites may not enrich correctly.');
-        }
-      }, 1000);
-    } catch (error) {
-      console.error('Error loading village data:', error);
+      console.log('[Village Debug] Loaded conversations from Supabase:', convs);
+    } catch (e) {
+      console.error('[Village Debug] Error loading village data:', e);
     }
   }
 
@@ -315,23 +223,7 @@ export default function VillagePage() {
         to_user_email: selectedMom.email,
       };
 
-      // Save to the invited mom's village invitations
-      const invKey = `village_invitations_${selectedMom.id}`;
-      const invitations = JSON.parse(localStorage.getItem(invKey) || '[]');
-      invitations.unshift(invitation);
-      localStorage.setItem(invKey, JSON.stringify(invitations));
-
-      // Also save to current user's sent invitations
-      const sentKey = `village_invitations_sent_${currentUserId}`;
-      const sentInvitations = JSON.parse(localStorage.getItem(sentKey) || '[]');
-      sentInvitations.unshift(invitation);
-      localStorage.setItem(sentKey, JSON.stringify(sentInvitations));
-
-      // Update pendingSentInvitations state immediately
-      const pending = sentInvitations.filter((inv: any) => inv.status === 'pending');
-      setPendingSentInvitations(pending);
-      console.log('[Village Debug] After send: sentInvitations', sentInvitations);
-      console.log('[Village Debug] After send: pendingSentInvitations', pending);
+      // (localStorage logic removed, now using Supabase only)
 
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
@@ -357,15 +249,12 @@ export default function VillagePage() {
           : inv
       );
 
-      const invKey = `village_invitations_${currentUserId}`;
-      localStorage.setItem(invKey, JSON.stringify(updatedInvitations));
       setVillageInvitations(updatedInvitations);
 
       // If accepted, add to village members
       if (accept) {
         // Fetch the user's info from Supabase
         const { data: { user: inviterUser }, error } = await supabase.auth.admin.getUserById(invitation.from_user_id);
-        
         if (!error && inviterUser?.user_metadata) {
           const newMember: VillageMember = {
             id: invitation.from_user_id,
@@ -376,31 +265,12 @@ export default function VillagePage() {
             state: inviterUser.user_metadata.state,
             joined_date: new Date().toISOString(),
           };
-
-          const villageKey = `village_${currentUserId}`;
-          const villageMembers = JSON.parse(localStorage.getItem(villageKey) || '[]');
-          if (!villageMembers.find((m: VillageMember) => m.id === newMember.id)) {
-            villageMembers.unshift(newMember);
-            localStorage.setItem(villageKey, JSON.stringify(villageMembers));
-            setVillageMembers(villageMembers);
-
-            // Also add current user to inviter's village
-            const inviterVillageKey = `village_${invitation.from_user_id}`;
-            const inviterVillage = JSON.parse(localStorage.getItem(inviterVillageKey) || '[]');
-            const currentMember: VillageMember = {
-              id: currentUserId,
-              name: currentProfile?.full_name || 'A Mom',
-              photo: currentProfile?.profile_photo_url,
-              email: user?.email,
-              city: currentProfile?.city,
-              state: currentProfile?.state,
-              joined_date: new Date().toISOString(),
-            };
-            if (!inviterVillage.find((m: VillageMember) => m.id === currentMember.id)) {
-              inviterVillage.unshift(currentMember);
-              localStorage.setItem(inviterVillageKey, JSON.stringify(inviterVillage));
+          setVillageMembers((prev) => {
+            if (!prev.find((m) => m.id === newMember.id)) {
+              return [newMember, ...prev];
             }
-          }
+            return prev;
+          });
         }
       }
 
@@ -436,15 +306,13 @@ export default function VillagePage() {
             last_message_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
           };
 
-          // Save conversation
-          const convKey = `conversations_${currentUserId}`;
-          const convs = JSON.parse(localStorage.getItem(convKey) || '[]');
-          if (!convs.find((c: any) => c.id === conversationId)) {
-            convs.unshift(newConv);
-            localStorage.setItem(convKey, JSON.stringify(convs));
-          }
-
-          setConversations(convs);
+          // Save conversation (should be persisted to Supabase in a real app)
+          setConversations((prev) => {
+            if (!prev.find((c) => c.id === conversationId)) {
+              return [newConv, ...prev];
+            }
+            return prev;
+          });
           router.push(`/messages?conversation=${conversationId}`);
         }
       }
