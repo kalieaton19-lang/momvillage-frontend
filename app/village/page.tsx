@@ -628,13 +628,18 @@ export default function VillagePage() {
                   <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                     <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
                     <ul className="space-y-1">
-                      {pendingSentInvitations.map((inv) => (
-                        <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
-                          {(inv.to_user_name && typeof inv.to_user_name === 'string' && inv.to_user_name.trim())
-                            || (inv.to_user_email && typeof inv.to_user_email === 'string' && inv.to_user_email.trim())
-                            || 'Unknown Mom'}
-                        </li>
-                      ))}
+                      {pendingSentInvitations.map((inv) => {
+                        let displayName = inv.to_user_name || inv.to_user_email;
+                        if (!displayName && inv.to_user_id && Array.isArray(conversations)) {
+                          const conv = conversations.find(c => c.other_user_id === inv.to_user_id);
+                          displayName = conv?.other_user_name || conv?.other_user_email;
+                        }
+                        return (
+                          <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
+                            {displayName || 'Unknown Mom'}
+                          </li>
+                        );
+                      })}
                     </ul>
                     <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">These moms have not yet accepted or declined your invitation.</p>
                   </div>
