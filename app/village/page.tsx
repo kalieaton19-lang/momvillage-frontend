@@ -209,7 +209,7 @@ export default function VillagePage() {
         return;
       }
 
-      const invitation: VillageInvitation = {
+      const invitation: VillageInvitation & { to_user_id: string; to_user_name?: string; to_user_email?: string } = {
         id: `vinv_${Date.now()}`,
         from_user_id: currentUserId,
         from_user_name: currentProfile?.full_name || 'A Mom',
@@ -217,6 +217,9 @@ export default function VillagePage() {
         status: 'pending',
         created_at: new Date().toISOString(),
         message: inviteMessage,
+        to_user_id: selectedMom.id,
+        to_user_name: selectedMom.user_metadata?.full_name,
+        to_user_email: selectedMom.email,
       };
 
       // Save to the invited mom's village invitations
@@ -620,7 +623,9 @@ export default function VillagePage() {
                     <ul className="space-y-1">
                       {pendingSentInvitations.map((inv) => (
                         <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
-                          {inv.to_user_name || inv.to_user_email || 'Unknown Mom'}
+                          {(inv.to_user_name && typeof inv.to_user_name === 'string' && inv.to_user_name.trim())
+                            || (inv.to_user_email && typeof inv.to_user_email === 'string' && inv.to_user_email.trim())
+                            || 'Unknown Mom'}
                         </li>
                       ))}
                     </ul>
