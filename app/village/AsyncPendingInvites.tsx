@@ -51,7 +51,7 @@ export function AsyncPendingInvites({ invites }: Props) {
     <>
       {enriched.map((inv) => {
         // Try all possible sources for name
-        let displayName = inv.to_user_name || inv.to_user_email || inv.from_user_name || inv.from_user_email || inv.to_user_id || inv.from_user_id;
+        let displayName = inv.to_user_name || inv.to_user_email || inv.from_user_name || inv.to_user_id || inv.from_user_id;
         if (!displayName) displayName = 'Unknown Mom';
         const photo = inv.to_user_photo || inv.from_user_photo || "/placeholder.png";
         // Try all possible sources for city/state
