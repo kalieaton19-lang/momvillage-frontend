@@ -55,8 +55,8 @@ export function AsyncPendingInvites({ invites }: Props) {
         if (!displayName) displayName = 'Unknown Mom';
         const photo = inv.to_user_photo || inv.from_user_photo || "/placeholder.png";
         // Try all possible sources for city/state
-        let city = inv.to_user_city || inv.from_user_city || '';
-        let state = inv.to_user_state || inv.from_user_state || '';
+        let city = inv.to_user_city || '';
+        let state = inv.to_user_state || '';
         let location = '';
         if (city || state) {
           location = `${city}${city && state ? ', ' : ''}${state}`;
