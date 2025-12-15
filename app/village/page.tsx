@@ -131,10 +131,49 @@ export default function VillagePage() {
         setVillageInvitations(invs);
       }
 
-      // Load conversations
+      // Load conversations from localStorage if available, else fetch from Supabase
       const convKey = `conversations_${userId}`;
-      const storedConvs = localStorage.getItem(convKey);
-      if (storedConvs) {
+      let storedConvs = localStorage.getItem(convKey);
+      if (!storedConvs) {
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+          const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+          const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+          const { data: convRows, error: convError } = await supabaseClient
+            .from('conversations')
+            .select('*')
+            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+            .order('created_at', { ascending: false });
+          if (!convError && convRows) {
+            const convs = convRows.map((conv) => {
+              const other_user_id = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+              const other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
+              const other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
+              const other_user_email = conv.user1_id === userId ? conv.user2_email : conv.user1_email;
+              return {
+                id: conv.id,
+                match_id: conv.id,
+                other_user_id,
+                other_user_name,
+                other_user_photo,
+                other_user_email,
+                other_user_city: conv.user1_id === userId ? conv.user2_city : conv.user1_city,
+                other_user_state: conv.user1_id === userId ? conv.user2_state : conv.user1_state,
+                last_message: '',
+                last_message_time: '',
+                created_at: conv.created_at,
+              };
+            });
+            localStorage.setItem(convKey, JSON.stringify(convs));
+            setConversations(convs);
+          } else {
+            setConversations([]);
+          }
+        } catch (e) {
+          setConversations([]);
+        }
+      } else {
         setConversations(JSON.parse(storedConvs));
       }
     } catch (error) {
@@ -634,6 +673,7 @@ export default function VillagePage() {
                           const conv = conversations.find(c => c.other_user_id === inv.to_user_id);
                           displayName = conv?.other_user_name || conv?.other_user_email;
                         }
+                        if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
                         return (
                           <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
                             {displayName || 'Unknown Mom'}
