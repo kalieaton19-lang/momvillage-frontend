@@ -169,6 +169,8 @@ export default function VillagePage() {
               const other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
               const other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
               const other_user_email = conv.user1_id === userId ? conv.user2_email : conv.user1_email;
+              const other_user_city = conv.user1_id === userId ? conv.user2_city : conv.user1_city;
+              const other_user_state = conv.user1_id === userId ? conv.user2_state : conv.user1_state;
               return {
                 id: conv.id,
                 match_id: conv.id,
@@ -176,8 +178,8 @@ export default function VillagePage() {
                 other_user_name,
                 other_user_photo,
                 other_user_email,
-                other_user_city: conv.user1_id === userId ? conv.user2_city : conv.user1_city,
-                other_user_state: conv.user1_id === userId ? conv.user2_state : conv.user1_state,
+                other_user_city,
+                other_user_state,
                 last_message: '',
                 last_message_time: '',
                 created_at: conv.created_at,
@@ -195,8 +197,22 @@ export default function VillagePage() {
           console.error('[Village Debug] Error fetching conversations from Supabase:', e);
         }
       } else {
-        setConversations(JSON.parse(storedConvs));
-        console.log('[Village Debug] Loaded conversations from localStorage:', storedConvs);
+        // Patch: ensure city/state are present if missing in stored conversations
+        let convs = JSON.parse(storedConvs);
+        convs = convs.map((conv) => {
+          if (typeof conv.other_user_city === 'undefined' || typeof conv.other_user_state === 'undefined') {
+            // Try to infer from mom profile if available
+            const mom = availableMoms.find(m => m.id === conv.other_user_id || m.email === conv.other_user_email);
+            return {
+              ...conv,
+              other_user_city: mom?.user_metadata?.city || '',
+              other_user_state: mom?.user_metadata?.state || '',
+            };
+          }
+          return conv;
+        });
+        setConversations(convs);
+        console.log('[Village Debug] Loaded conversations from localStorage:', convs);
       }
       // Warn if conversations are still empty
       setTimeout(() => {
@@ -717,6 +733,7 @@ export default function VillagePage() {
         {/* Invite Tab */}
         {activeTab === 'invite' && (
           <div className="max-w-2xl">
+            {/* Invite Box */}
             {!showInviteForm ? (
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">
@@ -725,23 +742,6 @@ export default function VillagePage() {
                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                   Build your support circle by inviting moms you've connected with. You can invite moms from your conversations or search for specific moms.
                 </p>
-                {pendingSentInvitations.length > 0 && (
-                  <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
-                    <ul className="space-y-1">
-                      {enrichPendingInvites(pendingSentInvitations).map((inv) => {
-                        let displayName = inv.to_user_name || inv.to_user_email;
-                        if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
-                        return (
-                          <li key={inv.id} className="text-sm text-yellow-900 dark:text-yellow-100">
-                            {displayName || 'Unknown Mom'}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">These moms have not yet accepted or declined your invitation.</p>
-                  </div>
-                )}
                 <button
                   onClick={() => setShowInviteForm(true)}
                   className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg transition-all"
@@ -887,36 +887,44 @@ export default function VillagePage() {
                     {/* Search Results */}
                     {searchResults.length > 0 && (
                       <div className="mt-4 space-y-2">
-                        {searchResults.map((mom) => (
-                          <div
-                            key={mom.id}
-                            onClick={() => {
-                              setSelectedMomId(mom.id);
-                              setSelectedMom(mom);
-                              setSearchQuery("");
-                              setSearchResults([]);
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
-                          >
-                            {/* Profile Photo */}
-                            <img
-                              src={mom.user_metadata?.profile_photo_url || "/placeholder.png"}
-                              alt={mom.user_metadata?.full_name || "Mom"}
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                            <div className="flex-1">
-                              <p className="font-semibold text-zinc-900 dark:text-zinc-50">
-                                {mom.user_metadata?.full_name || "Unknown"}
-                              </p>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                {mom.user_metadata?.city && mom.user_metadata?.state
-                                  ? `${mom.user_metadata.city}, ${mom.user_metadata.state}`
-                                  : "Location not set"}
-                              </p>
+                        {searchResults.map((mom) => {
+                          const alreadyInvited = pendingSentInvitations.some(
+                            (inv) => inv.to_user_id === mom.id || inv.to_user_email === mom.email
+                          );
+                          return (
+                            <div
+                              key={mom.id}
+                              onClick={alreadyInvited ? undefined : () => {
+                                setSelectedMomId(mom.id);
+                                setSelectedMom(mom);
+                                setSearchQuery("");
+                                setSearchResults([]);
+                              }}
+                              className={`flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 ${alreadyInvited ? 'opacity-60 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer'} transition-colors`}
+                            >
+                              {/* Profile Photo */}
+                              <img
+                                src={mom.user_metadata?.profile_photo_url || "/placeholder.png"}
+                                alt={mom.user_metadata?.full_name || "Mom"}
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
+                              <div className="flex-1">
+                                <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                                  {mom.user_metadata?.full_name || "Unknown"}
+                                </p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                  {mom.user_metadata?.city && mom.user_metadata?.state
+                                    ? `${mom.user_metadata.city}, ${mom.user_metadata.state}`
+                                    : "Location not set"}
+                                </p>
+                                {alreadyInvited && (
+                                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 rounded">Already Invited</span>
+                                )}
+                              </div>
+                              {!alreadyInvited && <div className="text-pink-500 font-semibold">Select</div>}
                             </div>
-                            <div className="text-pink-500 font-semibold">Select</div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
@@ -975,6 +983,29 @@ export default function VillagePage() {
                 </div>
               </div>
             )}
+            {/* Pending Invitations List (below invite box) */}
+            {pendingSentInvitations.length > 0 && (
+              <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
+                <ul className="space-y-3">
+                  {enrichPendingInvites(pendingSentInvitations).map((inv) => {
+                    let displayName = inv.to_user_name || inv.to_user_email;
+                    if (!displayName && inv.to_user_id) displayName = inv.to_user_id;
+                    return (
+                      <li key={inv.id} className="flex items-center gap-3 text-sm text-yellow-900 dark:text-yellow-100">
+                        <img
+                          src={inv.to_user_photo || "/placeholder.png"}
+                          alt={displayName || 'Mom'}
+                          className="h-8 w-8 rounded-full object-cover border border-yellow-300 dark:border-yellow-700"
+                        />
+                        <span className="font-medium">{displayName || 'Unknown Mom'}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">These moms have not yet accepted or declined your invitation.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1022,20 +1053,26 @@ export default function VillagePage() {
                   <p className="text-zinc-900 dark:text-zinc-50 mt-1">
                     {selectedMemberProfile.city && selectedMemberProfile.state && (selectedMemberProfile.city + ', ' + selectedMemberProfile.state)}
                     {!(selectedMemberProfile.city && selectedMemberProfile.state) && (() => {
-                      // Debug: log selectedMemberProfile
-                      console.log('[Village Debug] selectedMemberProfile:', selectedMemberProfile);
+                      console.log('[Village Debug] Fallback: selectedMemberProfile:', selectedMemberProfile);
                       // Try to get from conversations
                       const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
-                      console.log('[Village Debug] matching conversation:', conv);
-                      if (conv && (conv.other_user_city || conv.other_user_state)) {
-                        return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
+                      console.log('[Village Debug] Fallback: matching conversation:', conv);
+                      if (conv) {
+                        console.log('[Village Debug] Fallback: conv.other_user_city:', conv.other_user_city, 'conv.other_user_state:', conv.other_user_state);
+                        if (conv.other_user_city || conv.other_user_state) {
+                          return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
+                        }
                       }
                       // Try to get from availableMoms by id or email
                       const mom = availableMoms.find(m => m.id === selectedMemberProfile.id || m.email === selectedMemberProfile.email);
-                      console.log('[Village Debug] matching mom from availableMoms:', mom);
-                      if (mom && (mom.user_metadata?.city || mom.user_metadata?.state)) {
-                        return `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`;
+                      console.log('[Village Debug] Fallback: matching mom from availableMoms:', mom);
+                      if (mom) {
+                        console.log('[Village Debug] Fallback: mom.user_metadata.city:', mom.user_metadata?.city, 'mom.user_metadata.state:', mom.user_metadata?.state);
+                        if (mom.user_metadata?.city || mom.user_metadata?.state) {
+                          return `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`;
+                        }
                       }
+                      console.log('[Village Debug] Fallback: Location not set for', selectedMemberProfile.id);
                       return 'Location not set';
                     })()}
                   </p>
