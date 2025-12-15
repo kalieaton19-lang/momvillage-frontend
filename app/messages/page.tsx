@@ -110,15 +110,29 @@ export default function MessagesPage() {
         setConversations([]);
         return;
       }
-      // For each conversation, get the other user's info
-      const convs: Conversation[] = (convRows || []).map((conv: any) => {
+      // For each conversation, get the other user's info and profile
+      const convs: Conversation[] = [];
+      for (const conv of convRows || []) {
         let other_user_id = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
         let other_user_name = conv.user1_id === userId ? conv.user2_name : conv.user1_name;
         let other_user_photo = conv.user1_id === userId ? conv.user2_photo : conv.user1_photo;
-        let other_user_email = conv.user1_id === userId ? (conv.user2_email || "") : (conv.user1_email || "");
-        let other_user_city = conv.user1_id === userId ? (conv.user2_city || "") : (conv.user1_city || "");
-        let other_user_state = conv.user1_id === userId ? (conv.user2_state || "") : (conv.user1_state || "");
-        return {
+
+        // Fetch other user's profile from Supabase
+        let other_user_email = '';
+        let other_user_city = '';
+        let other_user_state = '';
+        try {
+          const { data: userProfile, error: userError } = await supabase.auth.admin.getUserById(other_user_id);
+          if (!userError && userProfile && userProfile.user_metadata) {
+            other_user_email = userProfile.email || '';
+            other_user_city = userProfile.user_metadata.city || '';
+            other_user_state = userProfile.user_metadata.state || '';
+          }
+        } catch (e) {
+          // Ignore profile fetch errors, fallback to empty strings
+        }
+
+        convs.push({
           id: conv.id,
           match_id: conv.id,
           other_user_id,
@@ -130,8 +144,8 @@ export default function MessagesPage() {
           last_message: '',
           last_message_time: conv.created_at ? new Date(conv.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
           created_at: conv.created_at,
-        };
-      });
+        });
+      }
       setConversations(convs);
       // Sync conversations to localStorage for Village page
       try {
