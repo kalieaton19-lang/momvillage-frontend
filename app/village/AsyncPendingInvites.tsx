@@ -50,13 +50,20 @@ export function AsyncPendingInvites({ invites }: Props) {
   return (
     <>
       {enriched.map((inv) => {
-        // Try all possible sources for name
-        let displayName = inv.to_user_name || inv.to_user_email || inv.from_user_name || inv.to_user_id || inv.from_user_id;
-        if (!displayName) displayName = 'Unknown Mom';
+        // Try all possible sources for name, ignoring placeholder values
+        function isMissingName(val?: string) {
+          return !val || val.trim() === '' || val === 'Unknown Mom';
+        }
+        let displayName = !isMissingName(inv.to_user_name) ? inv.to_user_name
+          : inv.to_user_email || (!isMissingName(inv.from_user_name) ? inv.from_user_name : undefined) || inv.to_user_id || inv.from_user_id;
+        if (isMissingName(displayName)) displayName = 'Unknown Mom';
         const photo = inv.to_user_photo || inv.from_user_photo || "/placeholder.png";
-        // Try all possible sources for city/state
-        let city = inv.to_user_city || '';
-        let state = inv.to_user_state || '';
+        // Try all possible sources for city/state, ignoring placeholder values
+        function isMissingLocation(val?: string) {
+          return !val || val.trim() === '' || val === 'Unknown City' || val === 'Unknown State';
+        }
+        let city = !isMissingLocation(inv.to_user_city) ? inv.to_user_city : '';
+        let state = !isMissingLocation(inv.to_user_state) ? inv.to_user_state : '';
         let location = '';
         if (city || state) {
           location = `${city}${city && state ? ', ' : ''}${state}`;
