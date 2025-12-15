@@ -151,11 +151,12 @@ export default function VillagePage() {
         setAvailableMoms([]);
         return;
       }
-      const users = (data?.users || []);
+      type SupabaseUser = { id: string; email?: string | null; user_metadata?: Record<string, any> };
+      const users = (data?.users || []) as SupabaseUser[];
       // Exclude current user and map to MomProfile
       const moms = users
-        .filter((u) => u.id !== authUser.id)
-        .map((u) => ({
+        .filter((u: SupabaseUser) => u.id !== authUser.id)
+        .map((u: SupabaseUser) => ({
           id: u.id,
           email: u.email ?? undefined,
           user_metadata: u.user_metadata || {},
