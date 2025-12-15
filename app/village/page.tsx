@@ -860,6 +860,12 @@ export default function VillagePage() {
                   />
                 </div>
 
+                {/* Debug: Show why Send Invitation is not enabled */}
+                {(!selectedMomId || !selectedMom?.user_metadata) && (
+                  <div className="mb-2 p-2 bg-yellow-100 text-yellow-800 rounded text-xs">
+                    Debug: { !selectedMomId ? 'No mom selected.' : 'Selected mom is missing user_metadata.' }
+                  </div>
+                )}
                 {/* Buttons */}
                 <div className="flex gap-3">
                   <button
