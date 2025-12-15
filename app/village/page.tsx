@@ -1002,13 +1002,17 @@ export default function VillagePage() {
                   <p className="text-zinc-900 dark:text-zinc-50 mt-1">
                     {selectedMemberProfile.city && selectedMemberProfile.state && (selectedMemberProfile.city + ', ' + selectedMemberProfile.state)}
                     {!(selectedMemberProfile.city && selectedMemberProfile.state) && (() => {
+                      // Debug: log selectedMemberProfile
+                      console.log('[Village Debug] selectedMemberProfile:', selectedMemberProfile);
                       // Try to get from conversations
                       const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
+                      console.log('[Village Debug] matching conversation:', conv);
                       if (conv && (conv.other_user_city || conv.other_user_state)) {
                         return `${conv.other_user_city || ''}${conv.other_user_city && conv.other_user_state ? ', ' : ''}${conv.other_user_state || ''}`;
                       }
                       // Try to get from availableMoms by id or email
                       const mom = availableMoms.find(m => m.id === selectedMemberProfile.id || m.email === selectedMemberProfile.email);
+                      console.log('[Village Debug] matching mom from availableMoms:', mom);
                       if (mom && (mom.user_metadata?.city || mom.user_metadata?.state)) {
                         return `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`;
                       }
