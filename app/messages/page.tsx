@@ -12,6 +12,9 @@ interface Conversation {
   other_user_id?: string;
   other_user_name?: string;
   other_user_photo?: string;
+  other_user_email?: string;
+  other_user_city?: string;
+  other_user_state?: string;
   last_message?: string;
   last_message_time?: string;
   created_at?: string;
