@@ -199,7 +199,7 @@ export default function VillagePage() {
       } else {
         // Patch: ensure city/state are present if missing in stored conversations
         let convs = JSON.parse(storedConvs);
-        convs = convs.map((conv) => {
+        convs = convs.map((conv: any) => {
           if (typeof conv.other_user_city === 'undefined' || typeof conv.other_user_state === 'undefined') {
             // Try to infer from mom profile if available
             const mom = availableMoms.find(m => m.id === conv.other_user_id || m.email === conv.other_user_email);
