@@ -212,7 +212,9 @@ export default function ProfilePage() {
       if (updateError || upsertError) {
         if (updateError) console.error('Save error (auth):', updateError);
         if (upsertError) console.error('Save error (public_profiles):', upsertError);
-        setError(`Failed to update profile: ${updateError?.message || upsertError?.message}`);
+        // Show full error details in UI for debugging
+        setError(`Failed to update profile: ${updateError?.message || ''} ${upsertError?.message || ''}`);
+        setMessage(`Debug: upsert error: ${JSON.stringify(upsertError, null, 2)}`);
       } else {
         // Check if this is first time setup (no availability set yet)
         const { data: { user: currentUser } } = await supabase.auth.getUser();
