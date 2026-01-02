@@ -1,10 +1,21 @@
 import React from "react";
 
-export function AsyncPendingInvites() {
-  // Placeholder: Replace with real async logic as needed
+// You can replace 'any' with the actual type for VillageInvitationWithRecipient if available
+export function AsyncPendingInvites({ invites }: { invites: any[] }) {
+  if (!invites || invites.length === 0) {
+    return (
+      <div className="p-4 bg-yellow-100 text-yellow-800 rounded-lg">
+        No pending invites.
+      </div>
+    );
+  }
   return (
-    <div className="p-4 bg-yellow-100 text-yellow-800 rounded-lg">
-      Loading pending invites...
-    </div>
+    <ul className="p-4 bg-yellow-100 text-yellow-800 rounded-lg">
+      {invites.map((invite, idx) => (
+        <li key={invite.id || idx} className="mb-2">
+          Pending invite: {invite.recipient_name || JSON.stringify(invite)}
+        </li>
+      ))}
+    </ul>
   );
 }
