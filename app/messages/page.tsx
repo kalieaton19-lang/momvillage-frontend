@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNotification } from "../components/useNotification";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 
@@ -29,9 +29,9 @@ interface Message {
   created_at: string;
 }
 
-export default function MessagesPage() {
   const { showNotification, NotificationComponent } = useNotification();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
@@ -45,6 +45,14 @@ export default function MessagesPage() {
   useEffect(() => {
     checkUser();
   }, []);
+
+  // Auto-select conversation if ?conversation=matchId is present
+  useEffect(() => {
+    const conversationId = searchParams?.get('conversation');
+    if (conversationId) {
+      setSelectedConversation(conversationId);
+    }
+  }, [searchParams]);
 
   // Track last message count for notification
   const lastMessageCountRef = useRef<number>(0);

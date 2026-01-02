@@ -486,8 +486,8 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           ]);
         if (msgError) throw msgError;
       }
-      // Redirect to messages page
-      router.push('/messages');
+      // Redirect to messages page with conversation param
+      router.push(`/messages?conversation=${encodeURIComponent(matchId)}`);
     } catch (error) {
       console.error('Error connecting:', error);
     }
@@ -507,7 +507,6 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
             {metadata?.full_name?.[0]?.toUpperCase() || '?'}
           </div>
         )}
-        
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             {metadata?.full_name || 'Mom'}
@@ -515,7 +514,6 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {metadata?.city}, {metadata?.state}
           </p>
-          
           <div className="mt-3 flex flex-wrap gap-2">
             {metadata?.number_of_kids && (
               <span className="text-xs px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full">
@@ -533,13 +531,20 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
               </span>
             )}
           </div>
-          
-          <button
-            onClick={handleConnect}
-            className="mt-4 w-full px-4 py-2 bg-pink-600 text-white rounded-full text-sm font-medium hover:bg-pink-700 transition-colors"
-          >
-            Connect 💬
-          </button>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={handleConnect}
+              className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-full text-sm font-medium hover:bg-pink-700 transition-colors"
+            >
+              Connect 💬
+            </button>
+            <button
+              onClick={() => router.push(`/mom-profile?id=${encodeURIComponent(mom.id)}`)}
+              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700 transition-colors"
+            >
+              View Profile
+            </button>
+          </div>
         </div>
       </div>
     </div>
