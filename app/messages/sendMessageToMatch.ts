@@ -29,7 +29,7 @@ export async function sendMessageToMatch({
   createdAt?: string;
 }) {
   // Simple UUID validator (RFC4122 v1-5-ish)
-  const isUuid = (s) =>
+  const isUuid = (s: string) =>
     typeof s === 'string' &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
   // Basic validations
