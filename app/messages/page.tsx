@@ -143,7 +143,7 @@ function MessagesPageInner() {
         setMessageText("");
         await loadMessages(selectedConversation);
       } catch (error) {
-        if (!error?.message) showNotification("Failed to send message");
+        if (error && !(error as any).message) showNotification("Failed to send message");
         console.error('Send message error:', error);
       } finally {
         setSendingMessage(false);
