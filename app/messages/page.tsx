@@ -127,6 +127,7 @@ function MessagesPageInner() {
       if (!messageText.trim() || !selectedConversation || !user) return;
       setSendingMessage(true);
       try {
+        console.log('Sending message to conversation:', selectedConversation);
         const { error } = await supabase.from("messages").insert([
           {
             match_id: selectedConversation,
@@ -135,11 +136,15 @@ function MessagesPageInner() {
             created_at: new Date().toISOString(),
           },
         ]);
-        if (error) throw error;
+        if (error) {
+          showNotification(error.message || "Failed to send message");
+          throw error;
+        }
         setMessageText("");
         await loadMessages(selectedConversation);
       } catch (error) {
-        showNotification("Failed to send message");
+        if (!error?.message) showNotification("Failed to send message");
+        console.error('Send message error:', error);
       } finally {
         setSendingMessage(false);
       }
