@@ -7,6 +7,7 @@ import { useNotification } from "../components/useNotification";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { sendMessageToMatch } from "./sendMessageToMatch";
 
 interface Conversation {
   id: string;
@@ -128,14 +129,12 @@ function MessagesPageInner() {
       setSendingMessage(true);
       try {
         console.log('Sending message to conversation:', selectedConversation);
-        const { error } = await supabase.from("messages").insert([
-          {
-            match_uuid: selectedConversation,
-            sender_id: user.id,
-            message_text: messageText.trim(),
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        const { data, error } = await sendMessageToMatch({
+          supabase,
+          selectedConversation,
+          userId: user.id,
+          messageText: messageText.trim(),
+        });
         if (error) {
           showNotification(error.message || "Failed to send message");
           throw error;
