@@ -556,7 +556,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
               View Profile
             </button>
           </div>
-          <NotificationComponent />
+          {NotificationComponent}
         </div>
       </div>
     </div>
