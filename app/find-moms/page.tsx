@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { useNotification } from "../components/useNotification";
+import { v4 as uuidv4 } from "uuid";
 
 interface MomProfile {
   id: string;
@@ -451,24 +452,24 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
       const otherName = mom.user_metadata?.full_name || 'Mom';
       const otherPhoto = mom.user_metadata?.profile_photo_url || '';
 
-      // Generate a match_id based on sorted user IDs
-      const matchId = [myUserId, otherUserId].sort().join('_');
-
-      // Check if conversation already exists in conversations table
+      // Check if conversation already exists (regardless of user order)
       const { data: existingConv, error: checkError } = await supabase
         .from('conversations')
         .select('id')
-        .eq('id', matchId)
+        .or(`and(user1_id.eq.${myUserId},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${myUserId})`)
         .limit(1);
       if (checkError) throw checkError;
-      const exists = !!(existingConv && existingConv.length > 0);
-      if (!exists) {
-        // Create conversation row
+      let conversationId;
+      if (existingConv && existingConv.length > 0) {
+        conversationId = existingConv[0].id;
+      } else {
+        // Create conversation row with a real UUID
+        conversationId = uuidv4();
         const { error: convError } = await supabase
           .from('conversations')
           .insert([
             {
-              id: matchId,
+              id: conversationId,
               user1_id: myUserId,
               user2_id: otherUserId,
               user1_name: myName,
@@ -483,7 +484,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           .from('messages')
           .insert([
             {
-              match_id: matchId,
+              match_id: conversationId,
               sender_id: myUserId,
               receiver_id: otherUserId,
               message_text: 'Conversation started',
@@ -493,7 +494,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
         if (msgError) throw msgError;
       }
       // Redirect to messages page with conversation param
-      router.push(`/messages?conversation=${encodeURIComponent(matchId)}`);
+      router.push(`/messages?conversation=${encodeURIComponent(conversationId)}`);
     } catch (error: any) {
       showNotification(error?.message || 'Error connecting. Please try again.');
       console.error('Error connecting:', error);
