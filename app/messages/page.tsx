@@ -17,9 +17,8 @@ interface Conversation {
   last_message_time: string;
 }
 
+
 function MessagesPageInner() {
-    // ...existing code from MessagesPage (all hooks, logic, and return JSX)...
-    // Copied from above, minus the Suspense wrapper
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showNotification, NotificationComponent } = useNotification();
@@ -31,15 +30,21 @@ function MessagesPageInner() {
     const [sendingMessage, setSendingMessage] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // On mount, check for conversation param and set selectedConversation
     useEffect(() => {
       checkUser();
     }, []);
 
+    // When user loads, load conversations and select from param if present
     useEffect(() => {
       if (user) {
         loadConversations(user.id);
+        const conversationParam = searchParams.get("conversation");
+        if (conversationParam) {
+          setSelectedConversation(conversationParam);
+        }
       }
-    }, [user]);
+    }, [user, searchParams]);
 
     useEffect(() => {
       if (selectedConversation) {

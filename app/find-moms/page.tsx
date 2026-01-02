@@ -14,6 +14,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { useNotification } from "../components/useNotification";
 
 interface MomProfile {
   id: string;
@@ -428,11 +429,15 @@ interface MomCardProps {
 }
 
 
+
 function MomCard({ mom, currentUserId }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
+  const { showNotification, NotificationComponent } = useNotification();
+  const [connecting, setConnecting] = useState(false);
 
   async function handleConnect() {
+    setConnecting(true);
     try {
       // Get current user
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -450,11 +455,12 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
       const matchId = [myUserId, otherUserId].sort().join('_');
 
       // Check if conversation already exists in conversations table
-      const { data: existingConv } = await supabase
+      const { data: existingConv, error: checkError } = await supabase
         .from('conversations')
         .select('id')
         .eq('id', matchId)
         .limit(1);
+      if (checkError) throw checkError;
       const exists = !!(existingConv && existingConv.length > 0);
       if (!exists) {
         // Create conversation row
@@ -488,8 +494,11 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
       }
       // Redirect to messages page with conversation param
       router.push(`/messages?conversation=${encodeURIComponent(matchId)}`);
-    } catch (error) {
+    } catch (error: any) {
+      showNotification(error?.message || 'Error connecting. Please try again.');
       console.error('Error connecting:', error);
+    } finally {
+      setConnecting(false);
     }
   }
 
@@ -534,9 +543,10 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           <div className="mt-4 flex gap-2">
             <button
               onClick={handleConnect}
-              className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-full text-sm font-medium hover:bg-pink-700 transition-colors"
+              disabled={connecting}
+              className={`flex-1 px-4 py-2 bg-pink-600 text-white rounded-full text-sm font-medium hover:bg-pink-700 transition-colors ${connecting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Connect 💬
+              {connecting ? 'Connecting...' : 'Connect 💬'}
             </button>
             <button
               onClick={() => router.push(`/mom-profile?id=${encodeURIComponent(mom.id)}`)}
@@ -545,6 +555,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
               View Profile
             </button>
           </div>
+          <NotificationComponent />
         </div>
       </div>
     </div>
