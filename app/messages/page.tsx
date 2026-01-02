@@ -129,20 +129,16 @@ function MessagesPageInner() {
       setSendingMessage(true);
       try {
         console.log('Sending message to conversation:', selectedConversation);
-        const { data, error } = await sendMessageToMatch({
+        const { data } = await sendMessageToMatch({
           supabase,
           selectedConversation,
           userId: user.id,
           messageText: messageText.trim(),
         });
-        if (error) {
-          showNotification(error.message || "Failed to send message");
-          throw error;
-        }
         setMessageText("");
         await loadMessages(selectedConversation);
       } catch (error) {
-        if (error && !(error as any).message) showNotification("Failed to send message");
+        showNotification("Failed to send message");
         console.error('Send message error:', error);
       } finally {
         setSendingMessage(false);
