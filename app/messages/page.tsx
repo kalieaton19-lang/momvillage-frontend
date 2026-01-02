@@ -93,7 +93,7 @@ function MessagesPageInner() {
         const { data, error } = await supabase
           .from("messages")
           .select("*")
-          .eq("match_id", conversationId)
+          .eq("match_uuid", conversationId)
           .order("created_at", { ascending: true });
         if (error) throw error;
         setMessages(data || []);
@@ -130,7 +130,7 @@ function MessagesPageInner() {
         console.log('Sending message to conversation:', selectedConversation);
         const { error } = await supabase.from("messages").insert([
           {
-            match_id: selectedConversation,
+            match_uuid: selectedConversation,
             sender_id: user.id,
             message_text: messageText.trim(),
             created_at: new Date().toISOString(),
