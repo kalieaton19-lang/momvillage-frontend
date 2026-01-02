@@ -13,12 +13,20 @@
  * - { data, error } from Supabase insert (or throws for validation errors)
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 export async function sendMessageToMatch({
   supabase,
   selectedConversation,
   userId,
   messageText,
   createdAt = new Date().toISOString(),
+}: {
+  supabase: SupabaseClient;
+  selectedConversation: string;
+  userId: string;
+  messageText: string;
+  createdAt?: string;
 }) {
   // Simple UUID validator (RFC4122 v1-5-ish)
   const isUuid = (s) =>
