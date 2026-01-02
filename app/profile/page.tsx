@@ -189,7 +189,7 @@ export default function ProfilePage() {
         }
       });
 
-      // 2. Upsert into user_public_profiles
+      // 2. Upsert into user_public_profiles (remove address field)
       const { error: upsertError } = await supabase
         .from('user_public_profiles')
         .upsert({
@@ -197,7 +197,6 @@ export default function ProfilePage() {
           email: user.email,
           full_name: profile.full_name,
           phone: profile.phone,
-          address: profile.address,
           city: profile.city,
           state: profile.state,
           zip_code: profile.zip_code,
