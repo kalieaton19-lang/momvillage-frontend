@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "../../lib/supabase";
 
-export default function MomProfilePage() {
+function MomProfilePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const momId = searchParams.get("id");
@@ -43,30 +43,38 @@ export default function MomProfilePage() {
         <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">{mom.full_name || "Mom"}</h2>
         <p className="text-zinc-600 dark:text-zinc-400 mb-2">{mom.city}, {mom.state}</p>
         {mom.number_of_kids && (
-          <p className="mb-2 text-pink-700 dark:text-pink-300">{mom.number_of_kids} kid{mom.number_of_kids !== 1 ? "s" : ""}</p>
-        )}
-        {mom.kids_age_groups && (
-          <div className="mb-2 flex flex-wrap gap-2">
-            {mom.kids_age_groups.split(",").map((age: string) => (
-              <span key={age} className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-                {age}
-              </span>
-            ))}
+                <p className="mb-2 text-pink-700 dark:text-pink-300">{mom.number_of_kids} kid{mom.number_of_kids !== 1 ? "s" : ""}</p>
+              )}
+              {mom.kids_age_groups && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {mom.kids_age_groups.split(",").map((age: string) => (
+                    <span key={age} className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                      {age}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {mom.parenting_style && (
+                <p className="mb-2 text-blue-700 dark:text-blue-300">Parenting style: {mom.parenting_style}</p>
+              )}
+              {mom.other_info && (
+                <p className="mb-2 text-zinc-700 dark:text-zinc-300">{mom.other_info}</p>
+              )}
+              <button
+                className="mt-6 px-6 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 transition-colors"
+                onClick={() => router.back()}
+              >
+                Back
+              </button>
+            </div>
           </div>
-        )}
-        {mom.parenting_style && (
-          <p className="mb-2 text-blue-700 dark:text-blue-300">Parenting style: {mom.parenting_style}</p>
-        )}
-        {mom.other_info && (
-          <p className="mb-2 text-zinc-700 dark:text-zinc-300">{mom.other_info}</p>
-        )}
-        <button
-          className="mt-6 px-6 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 transition-colors"
-          onClick={() => router.back()}
-        >
-          Back
-        </button>
-      </div>
-    </div>
+        );
+      }
+
+export default function MomProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <MomProfilePageInner />
+    </Suspense>
   );
 }
