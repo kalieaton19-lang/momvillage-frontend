@@ -1,5 +1,11 @@
+
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../../../lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +14,8 @@ export async function POST(request: Request) {
       return new NextResponse(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
     }
 
-    // Sign in via Supabase using the service role key on the server
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+    // Sign in via Supabase using the anon key (public client)
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       return new NextResponse(JSON.stringify({ error: error.message }), { status: 401 });
     }
