@@ -11,11 +11,14 @@ import { sendMessageToMatch } from "./sendMessageToMatch";
 
 interface Conversation {
   id: string;
-  other_user_id: string;
-  other_user_name: string;
+  user1_id: string;
+  user2_id: string;
+  other_user_id?: string;
+  other_user_name?: string;
   other_user_photo?: string;
   last_message: string;
   last_message_time: string;
+  // Add any other fields your table returns
 }
 
 
