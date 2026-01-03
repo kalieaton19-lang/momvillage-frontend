@@ -80,7 +80,7 @@ function MessagesPageInner() {
           .from("conversations")
           .select("*")
           .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-          .order("last_message_time", { ascending: false });
+          .order("updated_at", { ascending: false });
         console.log('DEBUG: Supabase conversations response:', convosRes);
         if (convosRes.error) throw convosRes.error;
         setConversations(convosRes.data || []);
