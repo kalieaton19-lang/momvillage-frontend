@@ -150,7 +150,13 @@ function MessagesPageInner() {
           throw new Error('Conversation not found');
         }
         const matchId = conv.id; // Assuming id is the match_id (text)
-        const receiverId = conv.other_user_id; // Assuming other_user_id is the receiver
+        // Determine the receiverId as the other participant in the conversation
+        const receiverId =
+          conv && user && user.id
+            ? (conv.user1_id === user.id
+                ? conv.user2_id
+                : (conv.user2_id === user.id ? conv.user1_id : null))
+            : null;
         // Validate receiverId and senderId
         // Strict UUID validation
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
