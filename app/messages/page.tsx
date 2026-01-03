@@ -128,9 +128,13 @@ function MessagesPageInner() {
     }
 
     async function sendMessage() {
-      if (!messageText.trim() || !selectedConversation || !user) return;
+      if (!messageText.trim() || !selectedConversation || !user) {
+        showNotification("Cannot send: missing message, conversation, or user.");
+        return;
+      }
       setSendingMessage(true);
       try {
+        console.log('DEBUG: sendMessage called');
         if (!selectedConversation) throw new Error('No conversation selected');
         // Debug: log selectedConversation and conversations
         console.log('DEBUG selectedConversation:', selectedConversation);
@@ -138,7 +142,9 @@ function MessagesPageInner() {
         // Find the selected conversation object
         const conv = conversations.find(c => c.id === selectedConversation);
         if (!conv) {
-          console.error('DEBUG: Conversation not found for selectedConversation:', selectedConversation);
+          const errMsg = `Conversation not found for selectedConversation: ${selectedConversation}`;
+          showNotification(errMsg);
+          console.error('DEBUG:', errMsg);
           throw new Error('Conversation not found');
         }
         const matchId = conv.id; // Assuming id is the match_id (text)
@@ -154,8 +160,8 @@ function MessagesPageInner() {
         });
         setMessageText("");
         await loadMessages(selectedConversation);
-      } catch (error) {
-        showNotification("Failed to send message");
+      } catch (error: any) {
+        showNotification(error?.message || "Failed to send message");
         console.error('Send message error:', error);
       } finally {
         setSendingMessage(false);
