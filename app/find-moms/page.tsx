@@ -493,8 +493,9 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           ]);
         if (msgError) throw msgError;
       }
-      // Redirect to messages page with conversation param
+      // Force reload of conversations by navigating to messages page, then reloading
       router.push(`/messages?conversation=${encodeURIComponent(conversationId)}`);
+      // Optionally, you can trigger a reload in the messages page via a query param or state
     } catch (error: any) {
       showNotification(error?.message || 'Error connecting. Please try again.');
       console.error('Error connecting:', error);
