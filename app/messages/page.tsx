@@ -75,25 +75,40 @@ function MessagesPageInner() {
     async function loadConversations(userId: string) {
       try {
         console.log('DEBUG: loadConversations received userId:', userId);
-        // Fetch all conversations where the user is either user1 or user2 from both tables
-        const [convosRes, enrichedRes] = await Promise.all([
+        // Query conversations table as before
+        const convosRes = await supabase
+          .from("conversations")
+          .select("*")
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+          .order("last_message_time", { ascending: false });
+        if (convosRes.error) throw convosRes.error;
+
+        // Query village_conversations_enriched twice (user1_id and user2_id), then merge
+        const [enriched1, enriched2] = await Promise.all([
           supabase
-            .from("conversations")
+            .from("village_conversations_enriched")
             .select("*")
-            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+            .eq("user1_id", userId)
             .order("last_message_time", { ascending: false }),
           supabase
             .from("village_conversations_enriched")
             .select("*")
-            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+            .eq("user2_id", userId)
             .order("last_message_time", { ascending: false })
         ]);
-        if (convosRes.error) throw convosRes.error;
-        if (enrichedRes.error) throw enrichedRes.error;
-        // Merge or use both datasets as needed. Here, we prefer enriched if available, fallback to conversations.
+        if (enriched1.error) throw enriched1.error;
+        if (enriched2.error) throw enriched2.error;
+        // Merge enriched results, removing duplicates by id
+        const enrichedMap = new Map();
+        for (const row of [...(enriched1.data || []), ...(enriched2.data || [])]) {
+          enrichedMap.set(row.id, row);
+        }
+        const enrichedMerged = Array.from(enrichedMap.values());
+
+        // Prefer enriched if available, fallback to conversations
         let merged = [];
-        if (enrichedRes.data && enrichedRes.data.length > 0) {
-          merged = enrichedRes.data;
+        if (enrichedMerged.length > 0) {
+          merged = enrichedMerged;
         } else if (convosRes.data) {
           merged = convosRes.data;
         }
