@@ -230,6 +230,15 @@ function MessagesPageInner() {
               ) : (
                 <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                   {conversations.map(conv => {
+                    // Determine the other user's name
+                    let otherUserName = "";
+                    if (user && conv.user1_id && conv.user2_id) {
+                      if (conv.user1_id === user.id) {
+                        otherUserName = conv.user2_name || "";
+                      } else if (conv.user2_id === user.id) {
+                        otherUserName = conv.user1_name || "";
+                      }
+                    }
                     const otherUser = getOtherUserInfo(conv);
                     return (
                       <Link
@@ -247,14 +256,18 @@ function MessagesPageInner() {
                           {otherUser.photo ? (
                             <img
                               src={otherUser.photo}
-                              alt={otherUser.name}
+                              alt={otherUserName}
                               className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                              {otherUser.name?.[0]?.toUpperCase() || '?'}
+                              {otherUserName?.[0]?.toUpperCase() || '?'}
                             </div>
                           )}
+                          <div className="flex flex-col justify-center">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[140px]">{conv.last_message}</div>
+                          </div>
                         </div>
                       </Link>
                     );
@@ -277,29 +290,52 @@ function MessagesPageInner() {
                     </div>
                   ) : (
                     <>
-                      {messages.map(msg => (
-                        <div
-                          key={msg.id}
-                          className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                        >
+                      {messages.map(msg => {
+                        // Determine sender name
+                        let senderName = "You";
+                        if (msg.sender_id !== user?.id) {
+                          // Find the conversation object
+                          const conv = conversations.find(c => c.id === selectedConversation);
+                          if (conv) {
+                            if (msg.sender_id === conv.user1_id) {
+                              senderName = conv.user1_name || "";
+                            } else if (msg.sender_id === conv.user2_id) {
+                              senderName = conv.user2_name || "";
+                            } else {
+                              senderName = "Other";
+                            }
+                          } else {
+                            senderName = "Other";
+                          }
+                        }
+                        return (
                           <div
-                            className={`max-w-xs px-4 py-2 rounded-2xl ${
-                              msg.sender_id === user?.id
-                                ? 'bg-pink-600 text-white rounded-br-none'
-                                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none'
-                            }`}
+                            key={msg.id}
+                            className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                           >
-                            <p className="break-words">{msg.message_text}</p>
-                            <p className={`text-xs mt-1 ${
-                              msg.sender_id === user?.id
-                                ? 'text-pink-100'
-                                : 'text-zinc-500 dark:text-zinc-400'
-                            }`}>
-                              {formatTime(msg.created_at)}
-                            </p>
+                            <div
+                              className={`max-w-xs px-4 py-2 rounded-2xl ${
+                                msg.sender_id === user?.id
+                                  ? 'bg-pink-600 text-white rounded-br-none'
+                                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none'
+                              }`}
+                            >
+                              {/* Show sender name above message if not you */}
+                              {msg.sender_id !== user?.id && (
+                                <div className="text-xs font-semibold mb-1 text-zinc-700 dark:text-zinc-200">{senderName}</div>
+                              )}
+                              <p className="break-words">{msg.message_text}</p>
+                              <p className={`text-xs mt-1 ${
+                                msg.sender_id === user?.id
+                                  ? 'text-pink-100'
+                                  : 'text-zinc-500 dark:text-zinc-400'
+                              }`}>
+                                {formatTime(msg.created_at)}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div ref={messagesEndRef} />
                     </>
                   )}
