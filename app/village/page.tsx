@@ -382,10 +382,10 @@ export default function VillagePage() {
       // 1. Insert into matches table first (to satisfy FK constraint for messages)
       const newMatch = {
         id: conversationId,
-        user1_id: currentUserId < memberId ? currentUserId : memberId,
-        user2_id: currentUserId < memberId ? memberId : currentUserId,
+        requestor_id: currentUserId,
+        provider_id: memberId,
         created_at: new Date().toISOString(),
-        // Add any other required fields for your schema
+        // status, service_id, service_offered are nullable and omitted
       };
       const { data: matchData, error: matchError } = await supabase.from('matches').insert([newMatch]);
       console.log('[Village Debug] Attempted to insert into matches:', newMatch);
