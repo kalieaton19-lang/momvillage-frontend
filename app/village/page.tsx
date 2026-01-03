@@ -387,11 +387,13 @@ export default function VillagePage() {
         created_at: new Date().toISOString(),
         // Add any other required fields for your schema
       };
-      const { error: matchError } = await supabase.from('matches').insert([newMatch]);
+      const { data: matchData, error: matchError } = await supabase.from('matches').insert([newMatch]);
+      console.log('[Village Debug] Attempted to insert into matches:', newMatch);
+      console.log('[Village Debug] Supabase matches insert result:', matchData);
       if (matchError) {
+        console.error('[Village Debug] Error inserting new match into Supabase:', matchError);
         // If already exists, ignore error  (unique violation)
         if (matchError.code !== '23505') { // 23505 = unique_violation
-          console.error('Error inserting new match into Supabase:', matchError);
           setMessage('Failed to create match for conversation');
           setTimeout(() => setMessage(''), 3000);
           return;
