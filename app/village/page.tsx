@@ -133,20 +133,28 @@ export default function VillagePage() {
           let other_user_id = null;
           let other_user_name = null;
           let other_user_photo = null;
+          let other_user_city = null;
+          let other_user_state = null;
           if (conv.user1_id === userId) {
             other_user_id = conv.user2_id;
             other_user_name = conv.user2_name || '';
             other_user_photo = conv.user2_photo || '';
+            other_user_city = conv.user2_city || '';
+            other_user_state = conv.user2_state || '';
           } else if (conv.user2_id === userId) {
             other_user_id = conv.user1_id;
             other_user_name = conv.user1_name || '';
             other_user_photo = conv.user1_photo || '';
+            other_user_city = conv.user1_city || '';
+            other_user_state = conv.user1_state || '';
           }
           return {
             ...conv,
             other_user_id,
             other_user_name,
             other_user_photo,
+            other_user_city,
+            other_user_state,
           };
         });
         setConversations(enrichedConvs);
@@ -272,13 +280,21 @@ export default function VillagePage() {
         to_user_state: selectedMom.user_metadata?.state || '',
       };
 
+      // Debug: log the invitation payload
+      console.log('[Village Debug] Invitation payload:', invitation);
+
       // Save invitation to Supabase
       const { error } = await supabase
         .from('village_invitations')
         .insert([invitation]);
-      if (error) throw error;
-
-      // (localStorage logic removed, now using Supabase only)
+      if (error) {
+        // Log full error details
+        console.error('[Village Debug] Supabase error:', error);
+        if (error.details) console.error('[Village Debug] Error details:', error.details);
+        if (error.hint) console.error('[Village Debug] Error hint:', error.hint);
+        if (error.code) console.error('[Village Debug] Error code:', error.code);
+        throw error;
+      }
 
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
@@ -287,7 +303,6 @@ export default function VillagePage() {
       setShowInviteForm(false);
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
-      console.error('Error sending invitation:', error);
       setMessage("Failed to send invitation");
       setTimeout(() => setMessage(""), 3000);
     }
