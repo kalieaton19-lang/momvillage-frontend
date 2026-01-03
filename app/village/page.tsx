@@ -379,7 +379,26 @@ export default function VillagePage() {
       const member = villageMembers.find(m => m.id === memberId);
       if (!member) throw new Error('Member not found');
 
-      // Prepare conversation object for Supabase
+      // 1. Insert into matches table first (to satisfy FK constraint for messages)
+      const newMatch = {
+        id: conversationId,
+        user1_id: currentUserId < memberId ? currentUserId : memberId,
+        user2_id: currentUserId < memberId ? memberId : currentUserId,
+        created_at: new Date().toISOString(),
+        // Add any other required fields for your schema
+      };
+      const { error: matchError } = await supabase.from('matches').insert([newMatch]);
+      if (matchError) {
+        // If already exists, ignore error  (unique violation)
+        if (matchError.code !== '23505') { // 23505 = unique_violation
+          console.error('Error inserting new match into Supabase:', matchError);
+          setMessage('Failed to create match for conversation');
+          setTimeout(() => setMessage(''), 3000);
+          return;
+        }
+      }
+
+      // 2. Prepare conversation object for Supabase
       const newConv = {
         id: conversationId,
         user1_id: currentUserId < memberId ? currentUserId : memberId,
@@ -393,7 +412,7 @@ export default function VillagePage() {
         // Add any other required fields for your schema
       };
 
-      // Insert into Supabase
+      // 3. Insert into conversations table
       const { data, error } = await supabase.from('conversations').insert([newConv]);
       if (error) {
         console.error('Error inserting new conversation into Supabase:', error);
@@ -402,7 +421,7 @@ export default function VillagePage() {
         return;
       }
 
-      // Update local state
+      // 4. Update local state
       setConversations((prev) => {
         if (!prev.find((c) => c.id === conversationId)) {
           return [newConv, ...prev];
