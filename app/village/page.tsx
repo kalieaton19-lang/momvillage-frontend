@@ -128,7 +128,15 @@ export default function VillagePage() {
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
         .order('updated_at', { ascending: false });
       if (!convError && convs) {
-        // Enrich each conversation with other_user_id, other_user_name, other_user_photo
+        // Fetch all user profiles for city/state lookup
+        const { data: profiles, error: profilesError } = await supabase
+          .from('user_public_profiles')
+          .select('id, city, state');
+        const profileMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+          acc[p.id] = p;
+          return acc;
+        }, {});
+        // Enrich each conversation with other_user_id, other_user_name, other_user_photo, other_user_city, other_user_state
         const enrichedConvs = convs.map((conv: any) => {
           let other_user_id = null;
           let other_user_name = null;
@@ -139,14 +147,15 @@ export default function VillagePage() {
             other_user_id = conv.user2_id;
             other_user_name = conv.user2_name || '';
             other_user_photo = conv.user2_photo || '';
-            other_user_city = conv.user2_city || '';
-            other_user_state = conv.user2_state || '';
           } else if (conv.user2_id === userId) {
             other_user_id = conv.user1_id;
             other_user_name = conv.user1_name || '';
             other_user_photo = conv.user1_photo || '';
-            other_user_city = conv.user1_city || '';
-            other_user_state = conv.user1_state || '';
+          }
+          // Lookup city/state from user_public_profiles
+          if (other_user_id && profileMap[other_user_id]) {
+            other_user_city = profileMap[other_user_id].city || '';
+            other_user_state = profileMap[other_user_id].state || '';
           }
           return {
             ...conv,
