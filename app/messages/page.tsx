@@ -129,9 +129,15 @@ function MessagesPageInner() {
       setSendingMessage(true);
       try {
         if (!selectedConversation) throw new Error('No conversation selected');
+        // Debug: log selectedConversation and conversations
+        console.log('DEBUG selectedConversation:', selectedConversation);
+        console.log('DEBUG conversations:', conversations);
         // Find the selected conversation object
         const conv = conversations.find(c => c.id === selectedConversation);
-        if (!conv) throw new Error('Conversation not found');
+        if (!conv) {
+          console.error('DEBUG: Conversation not found for selectedConversation:', selectedConversation);
+          throw new Error('Conversation not found');
+        }
         const matchId = conv.id; // Assuming id is the match_id (text)
         const receiverId = conv.other_user_id; // Assuming other_user_id is the receiver
         console.log('Sending message to conversation:', selectedConversation, 'matchId:', matchId, 'receiverId:', receiverId);
