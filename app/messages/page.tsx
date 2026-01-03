@@ -13,6 +13,8 @@ interface Conversation {
   id: string;
   user1_id: string;
   user2_id: string;
+  user1_name?: string;
+  user2_name?: string;
   other_user_id?: string;
   other_user_name?: string;
   other_user_photo?: string;
