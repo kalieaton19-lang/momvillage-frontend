@@ -39,6 +39,7 @@ function MessagesPageInner() {
     // When user loads, load conversations and select from param if present
     useEffect(() => {
       if (user) {
+        console.log('DEBUG: Calling loadConversations with user.id:', user.id);
         loadConversations(user.id);
         const conversationParam = searchParams.get("conversation");
         if (conversationParam) {
@@ -73,6 +74,7 @@ function MessagesPageInner() {
 
     async function loadConversations(userId: string) {
       try {
+        console.log('DEBUG: loadConversations received userId:', userId);
         // Fetch all conversations where the user is either user1 or user2 from both tables
         const [convosRes, enrichedRes] = await Promise.all([
           supabase
