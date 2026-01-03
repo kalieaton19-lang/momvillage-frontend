@@ -81,6 +81,7 @@ function MessagesPageInner() {
           .select("*")
           .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
           .order("last_message_time", { ascending: false });
+        console.log('DEBUG: Supabase conversations response:', convosRes);
         if (convosRes.error) throw convosRes.error;
         setConversations(convosRes.data || []);
         // Auto-select first conversation if none selected
@@ -89,6 +90,7 @@ function MessagesPageInner() {
         }
       } catch (error) {
         showNotification("Failed to load conversations");
+        console.error('DEBUG: loadConversations error:', error);
       }
     }
 
