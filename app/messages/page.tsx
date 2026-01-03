@@ -71,13 +71,16 @@ function MessagesPageInner() {
     }
 
     async function loadConversations(userId: string) {
-      // Example: fetch from Supabase or localStorage
       try {
+        // Fetch all conversations where the user is either user1 or user2
+        // This uses the correct PostgREST or syntax for two-user conversations
         const { data, error } = await supabase
           .from("conversations")
           .select("*")
           .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
           .order("last_message_time", { ascending: false });
+        // If you want to fetch only conversations between two specific users, use:
+        // .or(`and(user1_id.eq.${userId},user2_id.eq.OTHER_ID),and(user1_id.eq.OTHER_ID,user2_id.eq.${userId})`)
         if (error) throw error;
         setConversations(data || []);
         // Auto-select first conversation if none selected
