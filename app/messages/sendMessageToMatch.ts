@@ -60,6 +60,8 @@ export async function sendMessageToMatch({
     message_text: messageText,
     created_at: createdAt,
   };
+  // Debug: log the full payload before insert
+  console.log('DEBUG: Message insert payload:', payload);
   try {
     const { data, error } = await supabase.from('messages').insert(payload).select();
     if (error) {
