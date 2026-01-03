@@ -64,6 +64,7 @@ function MessagesPageInner() {
           router.push("/login");
           return;
         }
+        console.log('DEBUG: Authenticated user.id:', session.user.id);
         setUser(session.user);
       } catch (error) {
         router.push("/login");
@@ -206,14 +207,16 @@ function MessagesPageInner() {
                   {conversations.map(conv => {
                     const otherUser = getOtherUserInfo(conv);
                     return (
-                      <button
+                      <Link
                         key={conv.id}
-                        onClick={() => setSelectedConversation(conv.id)}
-                        className={`w-full text-left p-4 transition-colors ${
+                        href={`?conversation=${conv.id}`}
+                        scroll={false}
+                        className={`block w-full text-left p-4 transition-colors no-underline ${
                           selectedConversation === conv.id
                             ? 'bg-pink-50 dark:bg-pink-900/20 border-l-2 border-pink-600'
                             : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'
                         }`}
+                        onClick={() => setSelectedConversation(conv.id)}
                       >
                         <div className="flex items-start gap-3">
                           {otherUser.photo ? (
@@ -228,7 +231,7 @@ function MessagesPageInner() {
                             </div>
                           )}
                         </div>
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
