@@ -128,7 +128,28 @@ export default function VillagePage() {
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
         .order('updated_at', { ascending: false });
       if (!convError && convs) {
-        setConversations(convs);
+        // Enrich each conversation with other_user_id, other_user_name, other_user_photo
+        const enrichedConvs = convs.map((conv: any) => {
+          let other_user_id = null;
+          let other_user_name = null;
+          let other_user_photo = null;
+          if (conv.user1_id === userId) {
+            other_user_id = conv.user2_id;
+            other_user_name = conv.user2_name || '';
+            other_user_photo = conv.user2_photo || '';
+          } else if (conv.user2_id === userId) {
+            other_user_id = conv.user1_id;
+            other_user_name = conv.user1_name || '';
+            other_user_photo = conv.user1_photo || '';
+          }
+          return {
+            ...conv,
+            other_user_id,
+            other_user_name,
+            other_user_photo,
+          };
+        });
+        setConversations(enrichedConvs);
       }
       console.log('[Village Debug] Loaded conversations from Supabase:', convs);
     } catch (e) {
