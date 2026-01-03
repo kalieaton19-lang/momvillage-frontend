@@ -57,25 +57,35 @@ export async function sendMessageToMatch({
     match_id: matchId,
     sender_id: String(userId),
     receiver_id: receiverId,
-    message_text: messageText,
+    content: messageText,
     created_at: createdAt,
+    metadata: {},
   };
   // Debug: log the full payload before insert
   console.log('DEBUG: Message insert payload:', payload);
   try {
-    const { data, error } = await supabase.from('messages').insert(payload).select();
-    if (error) {
-      // Log full error object for debugging
-      console.error('Supabase insert error object:', error);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
-      console.error('Error code:', error.code);
-      // For better troubleshooting you can also log the payload (without secrets)
-      console.error('Insert payload:', payload);
-      // Throw to let caller handle UI / retry
-      throw error;
+    // Get the user's JWT
+    const session = await supabase.auth.getSession();
+    const userJwt = session?.data?.session?.access_token;
+    if (!userJwt) throw new Error('No user JWT found for Edge Function call');
+
+    const res = await fetch('https://tsnnpeddaydwrfhwjicu.functions.supabase.co/send_message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userJwt}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      console.log('Message created', data);
+      return { data, error: null };
+    } else {
+      const err = await res.json().catch(async () => ({ message: await res.text() }));
+      console.error('Send message failed', res.status, err);
+      throw new Error(err.message || 'Send message failed');
     }
-    return { data, error: null };
   } catch (err) {
     // This catches network or unexpected errors
     console.error('Unexpected error during sendMessageToMatch:', err);
