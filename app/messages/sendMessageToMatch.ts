@@ -20,12 +20,16 @@ export async function sendMessageToMatch({
   selectedConversation,
   userId,
   messageText,
+  matchId,
+  receiverId,
   createdAt = new Date().toISOString(),
 }: {
   supabase: SupabaseClient;
   selectedConversation: string;
   userId: string;
   messageText: string;
+  matchId: string;
+  receiverId: string;
   createdAt?: string;
 }) {
   // Simple UUID validator (RFC4122 v1-5-ish)
@@ -50,7 +54,9 @@ export async function sendMessageToMatch({
   }
   const payload = {
     match_uuid: String(selectedConversation),
+    match_id: matchId,
     sender_id: String(userId),
+    receiver_id: receiverId,
     message_text: messageText,
     created_at: createdAt,
   };

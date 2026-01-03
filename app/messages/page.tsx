@@ -128,12 +128,20 @@ function MessagesPageInner() {
       if (!messageText.trim() || !selectedConversation || !user) return;
       setSendingMessage(true);
       try {
-        console.log('Sending message to conversation:', selectedConversation);
+        if (!selectedConversation) throw new Error('No conversation selected');
+        // Find the selected conversation object
+        const conv = conversations.find(c => c.id === selectedConversation);
+        if (!conv) throw new Error('Conversation not found');
+        const matchId = conv.id; // Assuming id is the match_id (text)
+        const receiverId = conv.other_user_id; // Assuming other_user_id is the receiver
+        console.log('Sending message to conversation:', selectedConversation, 'matchId:', matchId, 'receiverId:', receiverId);
         const { data } = await sendMessageToMatch({
           supabase,
           selectedConversation,
           userId: user.id,
           messageText: messageText.trim(),
+          matchId,
+          receiverId,
         });
         setMessageText("");
         await loadMessages(selectedConversation);
