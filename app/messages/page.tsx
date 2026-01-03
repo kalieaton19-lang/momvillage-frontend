@@ -151,7 +151,28 @@ function MessagesPageInner() {
         }
         const matchId = conv.id; // Assuming id is the match_id (text)
         const receiverId = conv.other_user_id; // Assuming other_user_id is the receiver
-        console.log('Sending message to conversation:', selectedConversation, 'matchId:', matchId, 'receiverId:', receiverId);
+        // Validate receiverId and senderId
+        // Strict UUID validation
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!receiverId || typeof receiverId !== 'string' || !uuidRegex.test(receiverId)) {
+          showNotification('Cannot send: missing or invalid receiverId (must be a valid UUID).');
+          console.error('DEBUG: Invalid receiverId:', receiverId);
+          setSendingMessage(false);
+          return;
+        }
+        if (!user.id || typeof user.id !== 'string' || !uuidRegex.test(user.id)) {
+          showNotification('Cannot send: missing or invalid senderId (must be a valid UUID).');
+          console.error('DEBUG: Invalid senderId:', user.id);
+          setSendingMessage(false);
+          return;
+        }
+        console.log('DEBUG: About to send message with:', {
+          selectedConversation,
+          matchId,
+          senderId: user.id,
+          receiverId,
+          messageText: messageText.trim(),
+        });
         const { data } = await sendMessageToMatch({
           supabase,
           selectedConversation,
