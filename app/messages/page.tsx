@@ -72,20 +72,32 @@ function MessagesPageInner() {
 
     async function loadConversations(userId: string) {
       try {
-        // Fetch all conversations where the user is either user1 or user2
-        // This uses the correct PostgREST or syntax for two-user conversations
-        const { data, error } = await supabase
-          .from("conversations")
-          .select("*")
-          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-          .order("last_message_time", { ascending: false });
-        // If you want to fetch only conversations between two specific users, use:
-        // .or(`and(user1_id.eq.${userId},user2_id.eq.OTHER_ID),and(user1_id.eq.OTHER_ID,user2_id.eq.${userId})`)
-        if (error) throw error;
-        setConversations(data || []);
+        // Fetch all conversations where the user is either user1 or user2 from both tables
+        const [convosRes, enrichedRes] = await Promise.all([
+          supabase
+            .from("conversations")
+            .select("*")
+            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+            .order("last_message_time", { ascending: false }),
+          supabase
+            .from("village_conversations_enriched")
+            .select("*")
+            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+            .order("last_message_time", { ascending: false })
+        ]);
+        if (convosRes.error) throw convosRes.error;
+        if (enrichedRes.error) throw enrichedRes.error;
+        // Merge or use both datasets as needed. Here, we prefer enriched if available, fallback to conversations.
+        let merged = [];
+        if (enrichedRes.data && enrichedRes.data.length > 0) {
+          merged = enrichedRes.data;
+        } else if (convosRes.data) {
+          merged = convosRes.data;
+        }
+        setConversations(merged || []);
         // Auto-select first conversation if none selected
-        if (!selectedConversation && data && data.length > 0) {
-          setSelectedConversation(data[0].id);
+        if (!selectedConversation && merged && merged.length > 0) {
+          setSelectedConversation(merged[0].id);
         }
       } catch (error) {
         showNotification("Failed to load conversations");
