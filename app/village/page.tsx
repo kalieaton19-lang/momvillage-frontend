@@ -368,39 +368,52 @@ export default function VillagePage() {
     try {
       // Check if conversation already exists
       const existingConv = conversations.find(c => c.other_user_id === memberId);
-      
       if (existingConv) {
         // Go to existing conversation
         router.push(`/messages?conversation=${existingConv.id}`);
-      } else {
-        // Create new conversation
-        const conversationId = [currentUserId, memberId].sort().join('_');
-        const member = villageMembers.find(m => m.id === memberId);
-        
-        if (member) {
-          const newConv = {
-            id: conversationId,
-            other_user_id: memberId,
-            other_user_name: member.name,
-            other_user_photo: member.photo,
-            last_message: 'Conversation started',
-            last_message_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          };
-
-          // Save conversation (should be persisted to Supabase in a real app)
-          setConversations((prev) => {
-            if (!prev.find((c) => c.id === conversationId)) {
-              return [newConv, ...prev];
-            }
-            return prev;
-          });
-          router.push(`/messages?conversation=${conversationId}`);
-        }
+        return;
       }
+
+      // Create new conversation and persist to Supabase
+      const conversationId = [currentUserId, memberId].sort().join('_');
+      const member = villageMembers.find(m => m.id === memberId);
+      if (!member) throw new Error('Member not found');
+
+      // Prepare conversation object for Supabase
+      const newConv = {
+        id: conversationId,
+        user1_id: currentUserId < memberId ? currentUserId : memberId,
+        user2_id: currentUserId < memberId ? memberId : currentUserId,
+        user1_name: currentUserId < memberId ? currentUserName : member.name,
+        user2_name: currentUserId < memberId ? member.name : currentUserName,
+        user1_photo: currentUserId < memberId ? currentUserPhoto : member.photo,
+        user2_photo: currentUserId < memberId ? member.photo : currentUserPhoto,
+        last_message: 'Conversation started',
+        last_message_time: new Date().toISOString(),
+        // Add any other required fields for your schema
+      };
+
+      // Insert into Supabase
+      const { data, error } = await supabase.from('conversations').insert([newConv]);
+      if (error) {
+        console.error('Error inserting new conversation into Supabase:', error);
+        setMessage('Failed to create conversation');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+
+      // Update local state
+      setConversations((prev) => {
+        if (!prev.find((c) => c.id === conversationId)) {
+          return [newConv, ...prev];
+        }
+        return prev;
+      });
+      router.push(`/messages?conversation=${conversationId}`);
     } catch (error) {
       console.error('Error starting conversation:', error);
-      setMessage("Failed to start conversation");
-      setTimeout(() => setMessage(""), 3000);
+      setMessage('Failed to start conversation');
+      setTimeout(() => setMessage(''), 3000);
     }
   }
 
