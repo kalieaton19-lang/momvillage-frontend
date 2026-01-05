@@ -193,7 +193,12 @@ function MessagesPageInner() {
           receiverId,
         });
         setMessageText("");
-        await loadMessages(selectedConversation);
+        // Optimistically add the new message to the chat UI
+        if (data && data.message) {
+          setMessages((prev) => [...prev, data.message]);
+        } else if (data && Array.isArray(data) && data.length > 0) {
+          setMessages((prev) => [...prev, data[0]]);
+        }
       } catch (error: any) {
         showNotification(error?.message || "Failed to send message");
         console.error('Send message error:', error);
