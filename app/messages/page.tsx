@@ -198,7 +198,8 @@ function MessagesPageInner() {
           setMessages((prev) => [...prev, data]);
         }
       } catch (error) {
-        showNotification(error?.message || "Failed to send message");
+        const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Failed to send message';
+        showNotification(errMsg);
         console.error('Send message error:', error);
       } finally {
         setSendingMessage(false);
