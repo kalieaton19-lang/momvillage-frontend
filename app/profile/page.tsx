@@ -149,9 +149,10 @@ export default function ProfilePage() {
 
       setProfile({ ...profile, profile_photo_url: publicUrl });
       setMessage('Photo uploaded successfully!');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Photo upload error:', error);
-      setError(`Failed to upload photo: ${error.message || 'Unknown error'}`);
+      const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as Error).message : 'Unknown error';
+      setError(`Failed to upload photo: ${errMsg}`);
       setPreviewUrl("");
     } finally {
       setUploading(false);
@@ -233,9 +234,10 @@ export default function ProfilePage() {
           await loadUserProfile(user.id);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving profile:', error);
-      setError(`Failed to update profile: ${error.message || 'Unknown error'}`);
+      const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as Error).message : 'Unknown error';
+      setError(`Failed to update profile: ${errMsg}`);
     } finally {
       setSaving(false);
     }

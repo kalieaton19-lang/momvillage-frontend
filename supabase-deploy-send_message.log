@@ -1,0 +1,5 @@
+WARNING: Docker is not running
+Uploading asset (send_message): supabase/functions/send_message/deno.json
+Uploading asset (send_message): supabase/functions/send_message/index.ts
+Deployed Functions on project tsnnpeddaydwrfhwjicu: send_message
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/tsnnpeddaydwrfhwjicu/functions

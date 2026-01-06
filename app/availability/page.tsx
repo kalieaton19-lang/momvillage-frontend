@@ -102,9 +102,10 @@ export default function AvailabilityPage() {
         setViewMode('specific');
         setTimeout(() => setMessage(""), 3000);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving:', error);
-      setMessage(`Error: ${error.message || 'Unknown error'}`);
+      const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as Error).message : 'Unknown error';
+      setMessage(`Error: ${errMsg}`);
     } finally {
       setSaving(false);
     }
