@@ -69,7 +69,7 @@ export async function sendMessageToMatch({
     const userJwt = session?.data?.session?.access_token;
     if (!userJwt) throw new Error('No user JWT found for Edge Function call');
 
-    const res = await fetch('https://tsnnpeddaydwrfhwjicu.functions.supabase.co/send_message', {
+    const res = await fetch('/api/proxy-send-message', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
