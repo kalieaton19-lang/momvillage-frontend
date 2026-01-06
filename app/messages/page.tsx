@@ -194,9 +194,9 @@ function MessagesPageInner() {
         });
         setMessageText("");
         // Optimistically add the new message to the chat UI
-        if (data && data.message) {
-          setMessages((prev) => [...prev, data.message]);
-        } else if (data && Array.isArray(data) && data.length > 0) {
+        if (data) {
+          setMessages((prev) => [...prev, data]);
+        } else if (Array.isArray(data) && data.length > 0) {
           setMessages((prev) => [...prev, data[0]]);
         }
       } catch (error: any) {
