@@ -197,8 +197,7 @@ function MessagesPageInner() {
         if (data) {
           setMessages((prev) => [...prev, data]);
         }
-        }
-      } catch (error: any) {
+      } catch (error) {
         showNotification(error?.message || "Failed to send message");
         console.error('Send message error:', error);
       } finally {
