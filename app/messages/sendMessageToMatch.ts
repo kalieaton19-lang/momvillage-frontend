@@ -90,7 +90,6 @@ export async function sendMessageToMatch({
         error: {
           message: parsed?.message || `Request failed ${res.status}`,
           status: res.status,
-          details: typeof parsed === 'object' ? JSON.stringify(parsed) : String(parsed),
         },
         status: res.status,
       };
@@ -102,7 +101,6 @@ export async function sendMessageToMatch({
       data: null,
       error: {
         message: err?.message || 'Unexpected',
-        details: typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err),
       },
       status: 0,
     };
