@@ -196,8 +196,7 @@ function MessagesPageInner() {
         // Optimistically add the new message to the chat UI
         if (data) {
           setMessages((prev) => [...prev, data]);
-        } else if (Array.isArray(data) && data.length > 0) {
-          setMessages((prev) => [...prev, data[0]]);
+        }
         }
       } catch (error: any) {
         showNotification(error?.message || "Failed to send message");
