@@ -13,7 +13,9 @@
  * - { data, error } from Supabase insert (or throws for validation errors)
  */
 
+
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { MessageRow } from '../types/message';
 
 export async function sendMessageToMatch({
   supabase,
@@ -28,67 +30,65 @@ export async function sendMessageToMatch({
   selectedConversation: string;
   userId: string;
   messageText: string;
-  matchId: string;
-  receiverId: string;
+  matchId?: string;
+  receiverId?: string;
   createdAt?: string;
-}) {
-  // Simple UUID validator (RFC4122 v1-5-ish)
-  const isUuid = (s: string) =>
+}): Promise<{ data: MessageRow | null; error: { message: string; status?: number } | null; status: number }> {
+  const isUuid = (s: unknown) =>
     typeof s === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-  // Basic validations
-  if (!supabase || typeof supabase.from !== 'function') {
-    throw new Error('supabase client is required and must be initialized');
-  }
-  if (!isUuid(selectedConversation)) {
-    throw new Error('selectedConversation must be a valid UUID string');
-  }
-  if (!isUuid(userId)) {
-    throw new Error('userId must be a valid UUID string');
-  }
-  if (typeof messageText !== 'string' || messageText.trim() === '') {
-    throw new Error('messageText must be a non-empty string');
-  }
-  if (typeof createdAt !== 'string' || isNaN(new Date(createdAt).getTime())) {
-    throw new Error('createdAt must be a valid ISO datetime string');
-  }
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s as string);
+
+  if (!supabase || typeof supabase.from !== 'function') throw new Error('supabase client required');
+  if (!isUuid(selectedConversation)) throw new Error('selectedConversation must be a UUID');
+  if (!isUuid(userId)) throw new Error('userId must be a UUID');
+  if (typeof messageText !== 'string' || messageText.trim() === '') throw new Error('messageText required');
+  if (createdAt && isNaN(new Date(createdAt).getTime())) throw new Error('createdAt invalid');
+  if (matchId && !isUuid(matchId)) throw new Error('matchId invalid');
+  if (receiverId && !isUuid(receiverId)) throw new Error('receiverId invalid');
+
   const payload = {
-    match_uuid: String(selectedConversation),
-    match_id: matchId,
-    sender_id: String(userId),
-    receiver_id: receiverId,
-    content: messageText,
+    match_uuid: selectedConversation,
+    match_id: matchId ?? null,
+    sender_id: userId,
+    receiver_id: receiverId ?? null,
+    message_text: messageText,
     created_at: createdAt,
     metadata: {},
   };
-  // Debug: log the full payload before insert
-  console.log('DEBUG: Message insert payload:', payload);
+
+  if (process.env.NODE_ENV !== 'production') console.debug('Message payload', payload);
+
   try {
-    // Get the user's JWT
-    const session = await supabase.auth.getSession();
-    const userJwt = session?.data?.session?.access_token;
-    if (!userJwt) throw new Error('No user JWT found for Edge Function call');
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    const userJwt = session?.access_token;
+    if (!userJwt) return { data: null, error: { message: 'Not authenticated' }, status: 401 };
 
     const res = await fetch('/api/proxy-send-message', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userJwt}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userJwt}` },
       body: JSON.stringify(payload),
     });
-    if (res.ok) {
-      const data = await res.json();
-      console.log('Message created', data);
-      return { data, error: null };
-    } else {
-      const err = await res.json().catch(async () => ({ message: await res.text() }));
-      console.error('Send message failed', res.status, err);
-      throw new Error(err.message || 'Send message failed');
+
+    const text = await res.text();
+    let parsed: any = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = text;
     }
-  } catch (err) {
-    // This catches network or unexpected errors
-    console.error('Unexpected error during sendMessageToMatch:', err);
-    throw err;
+
+    if (res.ok) {
+      return { data: parsed as MessageRow, error: null, status: res.status };
+    } else {
+      const msg = parsed?.message || parsed || `Request failed ${res.status}`;
+      return { data: null, error: { message: msg, status: res.status }, status: res.status };
+    }
+  } catch (err: any) {
+    console.error('sendMessageToMatch error', err);
+    return { data: null, error: { message: err?.message || 'Unexpected' }, status: 0 };
   }
 }
