@@ -3,21 +3,40 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
-console.log("Hello from Functions!")
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
-  }
+  try {
+    const { match_uuid, match_id, sender_id, receiver_id, message_text, created_at, metadata } = await req.json();
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})
+    // Basic validation
+    if (!match_uuid || !sender_id || !message_text) {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+
+    // Insert into public.messages
+    const { data, error } = await Deno.supabase.from("messages").insert([
+      {
+        match_uuid,
+        match_id: match_id ?? null,
+        sender_id,
+        receiver_id: receiver_id ?? null,
+        message_text,
+        created_at: created_at ?? new Date().toISOString(),
+        metadata: metadata ?? {},
+      },
+    ]).select().single();
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+
+    return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err?.message || "Unexpected error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
+});
 
 /* To invoke locally:
 
