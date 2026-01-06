@@ -84,11 +84,27 @@ export async function sendMessageToMatch({
     if (res.ok) {
       return { data: parsed as MessageRow, error: null, status: res.status };
     } else {
-      const msg = parsed?.message || parsed || `Request failed ${res.status}`;
-      return { data: null, error: { message: msg, status: res.status }, status: res.status };
+      // Include full error details for debugging
+      return {
+        data: null,
+        error: {
+          message: parsed?.message || `Request failed ${res.status}`,
+          status: res.status,
+          details: typeof parsed === 'object' ? JSON.stringify(parsed) : String(parsed),
+        },
+        status: res.status,
+      };
     }
   } catch (err: any) {
     console.error('sendMessageToMatch error', err);
-    return { data: null, error: { message: err?.message || 'Unexpected' }, status: 0 };
+    // Return full error object for debugging
+    return {
+      data: null,
+      error: {
+        message: err?.message || 'Unexpected',
+        details: typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err),
+      },
+      status: 0,
+    };
   }
 }
