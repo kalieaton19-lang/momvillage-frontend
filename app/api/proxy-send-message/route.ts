@@ -6,10 +6,12 @@ const EDGE_FUNCTION_URL = process.env.SUPABASE_EDGE_FUNCTION_URL || "https://YOU
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
+    const body = await req.json();
+    // Debug log incoming request
+    console.log("Proxy received:", { authHeader, body });
     if (!authHeader) {
       return NextResponse.json({ error: "Missing Authorization header" }, { status: 401 });
     }
-    const body = await req.json();
     const edgeRes = await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
       headers: {
@@ -27,6 +29,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json(data, { status: edgeRes.status });
   } catch (err: any) {
+    console.error("Proxy error:", err);
     return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
   }
 }
