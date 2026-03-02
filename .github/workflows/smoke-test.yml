@@ -1,0 +1,64 @@
+name: Edge Function Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    env:
+      FUNCTION_URL: ${{ secrets.FUNCTION_URL }}
+      TEST_JWT: ${{ secrets.TEST_JWT }}
+      DB_URL: ${{ secrets.DB_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq postgresql-client
+
+      - name: Run Edge Function smoke test
+        run: |
+          set -euo pipefail
+          CONVERSATION_ID="ci-smoke-test-$(date +%s)"
+          BODY=$(cat <<EOF
+{
+  "match_uuid": "$CONVERSATION_ID",
+  "match_id": "$CONVERSATION_ID",
+  "sender_id": "11111111-1111-1111-1111-111111111111",
+  "receiver_id": "22222222-2222-2222-2222-222222222222",
+  "message_text": "CI smoke test message",
+  "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "metadata": { "ci": true }
+}
+EOF
+)
+          echo "Calling function at $FUNCTION_URL ..."
+          HTTP_RESPONSE_FILE="$(mktemp)"
+          HTTP_STATUS=$(curl -sS -w "%{http_code}" -o "$HTTP_RESPONSE_FILE" \
+            -X POST "$FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${TEST_JWT}" \
+            -d "$BODY")
+          echo "HTTP status: $HTTP_STATUS"
+          RESP_BODY="$(cat "$HTTP_RESPONSE_FILE")"
+          echo "Response body:"
+          echo "$RESP_BODY"
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Function returned non-200 status. Failing."
+            exit 1
+          fi
+          echo "$RESP_BODY" | jq -e '.id != null or .message != null' >/dev/null 2>&1 || {
+            echo "Unexpected response structure. Expected inserted message."
+            exit 1
+          }
+          MSG_ID=$(echo "$RESP_BODY" | jq -r '.id // .message.id // .message[0].id // empty')
+          echo "Inserted message id: $MSG_ID"
+          if [ -n "$DB_URL" ]; then
+            echo "Optional DB check: querying database for inserted message..."
+            psql "$DB_URL" -t -c "SELECT id, sender_id, message_text FROM public.messages WHERE match_uuid = '$CONVERSATION_ID' ORDER BY created_at DESC LIMIT 1;" | sed '/^\s*$/d' || true
+          fi
+          echo "Smoke test succeeded."
