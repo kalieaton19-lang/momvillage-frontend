@@ -957,6 +957,8 @@ export default function VillagePage() {
                     Personal Message (optional)
                   </label>
                   <textarea
+                    id="inviteMessage"
+                    name="inviteMessage"
                     value={inviteMessage}
                     onChange={(e) => setInviteMessage(e.target.value)}
                     placeholder="Tell her why you'd like her in your village..."

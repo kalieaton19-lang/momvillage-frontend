@@ -350,6 +350,8 @@ function MessagesPageInner() {
                   <div className="flex gap-3">
                     <input
                       type="text"
+                      id="messageText"
+                      name="messageText"
                       value={messageText}
                       onChange={(e) => setMessageText(e.target.value)}
                       onKeyPress={(e) => {

@@ -65,7 +65,10 @@ export async function sendMessageToMatch({
     } = await supabase.auth.getSession();
     if (sessionError) throw sessionError;
     const userJwt = session?.access_token;
-    if (!userJwt) return { data: null, error: { message: 'Not authenticated' }, status: 401 };
+    if (!userJwt) {
+      console.error('[sendMessageToMatch] Not authenticated');
+      return { data: null, error: { message: 'Not authenticated' }, status: 401 };
+    }
 
     const res = await fetch('/api/proxy-send-message', {
       method: 'POST',
@@ -79,6 +82,18 @@ export async function sendMessageToMatch({
       parsed = text ? JSON.parse(text) : null;
     } catch {
       parsed = text;
+    }
+
+    // Log full response for debugging
+    console.debug('[sendMessageToMatch] API response:', {
+      status: res.status,
+      ok: res.ok,
+      parsed,
+      raw: text,
+    });
+
+    if (!res.ok) {
+      console.error('[sendMessageToMatch] API error:', parsed);
     }
 
     if (res.ok) {
@@ -95,7 +110,7 @@ export async function sendMessageToMatch({
       };
     }
   } catch (err: any) {
-    console.error('sendMessageToMatch error', err);
+    console.error('[sendMessageToMatch] Exception:', err);
     // Return full error object for debugging
     return {
       data: null,
