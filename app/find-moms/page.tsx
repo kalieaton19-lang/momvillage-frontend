@@ -548,7 +548,7 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
                 {metadata.number_of_kids} kid{metadata.number_of_kids !== 1 ? 's' : ''}
               </span>
             )}
-            {metadata?.kids_age_groups?.map(age => (
+            {Array.isArray(metadata?.kids_age_groups) && metadata.kids_age_groups.map(age => (
               <span key={age} className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
                 {age}
               </span>
