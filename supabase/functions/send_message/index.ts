@@ -4,7 +4,30 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { jwtVerify, createRemoteJWKSet } from "jsr:@panva/jose@6";
+
+Deno.serve(async (req) => {
+  // JWT/JWKS verification
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+  const JWKS_URL = SUPABASE_URL.replace(/\/$/, "") + "/auth/v1/.well-known/jwks.json";
+  const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
+  const authHeader = req.headers.get("authorization") || "";
+  let jwtPayload;
+  if (!authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Missing or invalid Authorization header" }), { status: 401 });
+  }
+  const token = authHeader.replace("Bearer ", "");
+  try {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: SUPABASE_URL.replace(/\/$/, "") + "/auth/v1",
+      audience: undefined // Optionally set audience
+    });
+    jwtPayload = payload;
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "JWT verification failed", details: err?.message }), { status: 401 });
+  }
 
 Deno.serve(async (req) => {
   try {
