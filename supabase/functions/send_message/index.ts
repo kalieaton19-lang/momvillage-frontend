@@ -12,7 +12,18 @@ Deno.serve(async (req) => {
 
     // Basic validation
     if (!match_uuid || !sender_id || !message_text) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields",
+          details: {
+            match_uuid,
+            sender_id,
+            message_text,
+            request_body: { match_uuid, match_id, sender_id, receiver_id, message_text, created_at, metadata }
+          }
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // Insert into public.messages
