@@ -93,7 +93,7 @@ export async function sendMessageToMatch({
     });
 
     if (!res.ok) {
-      console.error('[sendMessageToMatch] API error:', parsed);
+      console.error('[sendMessageToMatch] API error:', JSON.stringify(parsed, null, 2));
     }
 
     if (res.ok) {
