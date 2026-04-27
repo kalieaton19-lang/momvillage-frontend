@@ -29,7 +29,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "JWT verification failed", details: err?.message }), { status: 401 });
   }
 
-Deno.serve(async (req) => {
   try {
     const { match_uuid, match_id, sender_id, receiver_id, message_text, created_at, metadata } = await req.json();
 
