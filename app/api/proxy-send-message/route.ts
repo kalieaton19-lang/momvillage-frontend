@@ -7,8 +7,8 @@ export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
     const body = await req.json();
-    // Debug log incoming request
-    console.log("Proxy received:", { authHeader, body });
+    // Debug log incoming request and body type
+    console.log("Proxy received:", { authHeader, body, bodyType: typeof body, isArray: Array.isArray(body) });
     if (!authHeader) {
       return NextResponse.json({ error: "Missing Authorization header" }, { status: 401 });
     }
