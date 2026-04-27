@@ -104,7 +104,7 @@ function MessagesPageInner() {
         const { data, error } = await supabase
           .from("messages")
           .select("*")
-          .eq("match_uuid", conversationId)
+          .eq("conversation_id", conversationId)
           .order("created_at", { ascending: true });
         if (error) throw error;
         setMessages(data || []);
