@@ -9,12 +9,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
-    // Debug: Log presence of critical env vars
-    const supabaseUrlPresent = !!Deno.env.get("SUPABASE_URL");
-    const supabaseServiceRoleKeyPresent = !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    console.log("[send_message] SUPABASE_URL present:", supabaseUrlPresent);
-    console.log("[send_message] SUPABASE_SERVICE_ROLE_KEY present:", supabaseServiceRoleKeyPresent);
-  // Public function: no JWT/Authorization required
+  // Log presence of critical env vars at the very top
+  const supabaseUrlPresent = !!Deno.env.get("SUPABASE_URL");
+  const supabaseServiceRoleKeyPresent = !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  console.log("[send_message] SUPABASE_URL present:", supabaseUrlPresent);
+  console.log("[send_message] SUPABASE_SERVICE_ROLE_KEY present:", supabaseServiceRoleKeyPresent);
+  // ...existing code...
 
   try {
     const parsedBody = await req.json();
