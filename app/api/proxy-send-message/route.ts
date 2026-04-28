@@ -25,8 +25,18 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify(body),
     });
+    const contentType = edgeRes.headers.get("content-type") || "";
     const text = await edgeRes.text();
-    // Always return the raw text as plain text for debugging
+    // Try to parse as JSON if possible
+    if (contentType.includes("application/json")) {
+      try {
+        const json = JSON.parse(text);
+        return NextResponse.json(json, { status: edgeRes.status });
+      } catch (e) {
+        // Fall through to plain text
+      }
+    }
+    // Fallback: return as plain text
     return new Response(text, {
       status: edgeRes.status,
       headers: { "Content-Type": "text/plain" },
