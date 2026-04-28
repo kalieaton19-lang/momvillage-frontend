@@ -23,7 +23,10 @@ Deno.serve(async (req) => {
 
 
     const parsedBody = await req.json();
-    const { id, sender_id, receiver_id, message_text, created_at, metadata } = parsedBody;
+
+    const { match_uuid, id, sender_id, receiver_id, message_text, created_at, metadata } = parsedBody;
+    // Debug: log what is being sent
+    console.log({ match_uuid, id, sender_id, receiver_id });
     // treat `id` as conversation uuid
     const conversation_id = id;
 
