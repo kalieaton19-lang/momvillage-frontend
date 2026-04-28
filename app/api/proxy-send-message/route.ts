@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Update this to your deployed Supabase Edge Function URL
-const EDGE_FUNCTION_URL = process.env.SUPABASE_EDGE_FUNCTION_URL || "https://YOUR_PROJECT.functions.supabase.co/send_message";
+const EDGE_FUNCTION_URL = process.env.SUPABASE_EDGE_FUNCTION_URL || "https://tsnnpeddaydwrfhwjicu.functions.supabase.co/send_message_new";
 
 export async function POST(req: Request) {
   try {
