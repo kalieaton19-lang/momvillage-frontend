@@ -1,3 +1,4 @@
+import { supabase } from '../../lib/supabase';
 /**
  * sendMessageToMatch
  * Validates inputs, inserts a message into public.messages, and logs full errors.
@@ -14,7 +15,10 @@
  */
 
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+console.log(
+  'session',
+  (await supabase.auth.getSession()).data.session
+);import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MessageRow } from '../types/message';
 
 export async function sendMessageToMatch({
@@ -70,9 +74,13 @@ export async function sendMessageToMatch({
       return { data: null, error: { message: 'Not authenticated' }, status: 401 };
     }
 
+    console.log('[sendMessageToMatch] payload:', payload);
     const res = await fetch('/api/proxy-send-message', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userJwt}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${userJwt}`,
+      },
       body: JSON.stringify(payload),
     });
 

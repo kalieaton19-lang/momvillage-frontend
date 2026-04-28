@@ -6,7 +6,11 @@ const EDGE_FUNCTION_URL = process.env.SUPABASE_EDGE_FUNCTION_URL || "https://YOU
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
+    // TEMP: Log the Authorization header for debugging
+    console.log("[proxy-send-message] Authorization header:", authHeader);
     const body = await req.json();
+    // Log the incoming body
+    console.log("[proxy-send-message] Incoming body:", body);
     // Debug log incoming request and body type
     console.log("Proxy received:", { authHeader, body, bodyType: typeof body, isArray: Array.isArray(body) });
     console.log("Calling:", EDGE_FUNCTION_URL);
