@@ -9,6 +9,25 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { sendMessageToMatch } from "./sendMessageToMatch";
 
+// Helper: fetch village members and invitations for the current user
+async function fetchVillageStatus(userId, otherUserId) {
+  // Fetch village members
+  const { data: members } = await supabase
+    .from('village_members')
+    .select('id')
+    .eq('user_id', userId);
+  const isInVillage = Array.isArray(members) && members.some(m => m.id === otherUserId);
+  // Fetch pending invitations sent by user
+  const { data: invites } = await supabase
+    .from('village_invitations')
+    .select('to_user_id,status')
+    .eq('from_user_id', userId)
+    .eq('to_user_id', otherUserId)
+    .order('created_at', { ascending: false });
+  const hasPendingInvite = Array.isArray(invites) && invites.some(i => i.status === 'pending');
+  return { isInVillage, hasPendingInvite };
+}
+
 interface Conversation {
   id: string;
   user1_id: string;
@@ -34,6 +53,9 @@ function MessagesPageInner() {
     const [messages, setMessages] = useState<any[]>([]);
     const [messageText, setMessageText] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
+    const [villageStatus, setVillageStatus] = useState<{isInVillage: boolean, hasPendingInvite: boolean} | null>(null);
+    const [inviteBanner, setInviteBanner] = useState("");
+    const [inviteLoading, setInviteLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // On mount, check for conversation param and set selectedConversation
@@ -56,8 +78,47 @@ function MessagesPageInner() {
     useEffect(() => {
       if (selectedConversation) {
         loadMessages(selectedConversation);
+        // Check village status for the other user in this conversation
+        const conv = conversations.find(c => c.id === selectedConversation);
+        if (conv && user) {
+          const otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
+          fetchVillageStatus(user.id, otherUserId).then(setVillageStatus);
+        } else {
+          setVillageStatus(null);
+        }
       }
-    }, [selectedConversation]);
+    }, [selectedConversation, conversations, user]);
+    // Handler to send a village invitation
+    async function handleSendVillageInvitation() {
+      if (!user || !selectedConversation) return;
+      const conv = conversations.find(c => c.id === selectedConversation);
+      if (!conv) return;
+      const otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
+      setInviteLoading(true);
+      setInviteBanner("");
+      try {
+        // Insert invitation into village_invitations
+        const invitation = {
+          id: `vinv_${Date.now()}`,
+          from_user_id: user.id,
+          from_user_name: user.user_metadata?.full_name || 'A Mom',
+          from_user_photo: user.user_metadata?.profile_photo_url || '',
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          to_user_id: otherUserId,
+        };
+        const { error } = await supabase.from('village_invitations').insert([invitation]);
+        if (error) throw error;
+        setInviteBanner('Village invitation sent!');
+        setVillageStatus({ isInVillage: false, hasPendingInvite: true });
+        setTimeout(() => setInviteBanner(""), 4000);
+      } catch (e) {
+        setInviteBanner('Failed to send invitation.');
+        setTimeout(() => setInviteBanner(""), 4000);
+      } finally {
+        setInviteLoading(false);
+      }
+    }
 
     useEffect(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -286,7 +347,7 @@ function MessagesPageInner() {
             {/* Main message area */}
             {selectedConversation && (
               <div className="flex-1 flex flex-col">
-                {/* Profile header above messages */}
+                {/* Profile header above messages, with invite button/indicator */}
                 {(() => {
                   const conv = conversations.find(c => c.id === selectedConversation);
                   if (!conv) return null;
@@ -308,9 +369,33 @@ function MessagesPageInner() {
                         )}
                         <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUser.name}</span>
                       </Link>
+                      {/* Profile indicator and invite button */}
+                      {villageStatus && (
+                        <div className="ml-auto flex items-center gap-2">
+                          {villageStatus.isInVillage ? (
+                            <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">In Your Village</span>
+                          ) : villageStatus.hasPendingInvite ? (
+                            <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-semibold">Invitation Pending</span>
+                          ) : (
+                            <button
+                              onClick={handleSendVillageInvitation}
+                              disabled={inviteLoading}
+                              className="px-4 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {inviteLoading ? 'Sending...' : 'Send Village Invitation'}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
+                                {/* Feedback banner for invitation sent */}
+                                {inviteBanner && (
+                                  <div className="mx-6 mt-2 mb-[-8px] p-3 rounded bg-green-100 text-green-800 text-center font-medium">
+                                    {inviteBanner}
+                                  </div>
+                                )}
                 <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-black space-y-4">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">

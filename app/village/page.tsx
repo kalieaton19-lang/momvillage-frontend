@@ -261,6 +261,7 @@ export default function VillagePage() {
   }
 
   async function handleSendVillageInvitation() {
+    console.log('handleSendVillageInvitation called', { selectedMomId, selectedMom });
     if (!selectedMomId) {
       setMessage("Please select a mom to invite");
       setTimeout(() => setMessage(""), 3000);
@@ -305,12 +306,25 @@ export default function VillagePage() {
         throw error;
       }
 
+      // Add to pendingSentInvitations immediately for UI feedback
+      setPendingSentInvitations(prev => [
+        {
+          ...invitation,
+          to_user_id: selectedMom.id,
+          to_user_name: selectedMom.user_metadata?.full_name,
+          to_user_email: selectedMom.email,
+          to_user_city: selectedMom.user_metadata?.city || '',
+          to_user_state: selectedMom.user_metadata?.state || '',
+        },
+        ...prev
+      ]);
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
       setSelectedMom(null);
       setInviteMessage("");
       setShowInviteForm(false);
-      setTimeout(() => setMessage(""), 3000);
+      // Keep the banner visible a bit longer for clarity
+      setTimeout(() => setMessage(""), 4000);
     } catch (error) {
       setMessage("Failed to send invitation");
       setTimeout(() => setMessage(""), 3000);
@@ -991,7 +1005,9 @@ export default function VillagePage() {
                   </button>
                   <button
                     onClick={handleSendVillageInvitation}
-                    className="flex-1 px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium hover:shadow-lg transition-all"
+                    disabled={!selectedMomId || !selectedMom?.user_metadata}
+                    className={`flex-1 px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium hover:shadow-lg transition-all ${(!selectedMomId || !selectedMom?.user_metadata) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title={!selectedMomId ? 'Select a mom first' : (!selectedMom?.user_metadata ? 'Profile data missing' : '')}
                   >
                     Send Invitation
                   </button>
