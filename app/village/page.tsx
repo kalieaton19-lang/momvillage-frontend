@@ -288,10 +288,10 @@ export default function VillagePage() {
       // Debug: log the invitation payload
       console.log('[Village Debug] Invitation payload:', invitation);
 
-      // Save invitation to Supabase
-      const { error } = await supabase
+      // Save invitation to Supabase and get the real row back
+      const { data, error } = await supabase
         .from('village_invitations')
-        .insert([invitation]);
+        .insert([invitation], { returning: 'representation' });
       if (error) {
         // Log full error details
         console.error('[Village Debug] Supabase error:', error);
@@ -301,25 +301,19 @@ export default function VillagePage() {
         throw error;
       }
 
-      // Add to pendingSentInvitations immediately for UI feedback
-      setPendingSentInvitations(prev => [
-        {
-          id: '', // Temporary, since we don't get the id from Supabase insert
-          from_user_id: currentUserId,
-          from_user_name: currentProfile?.full_name || '',
-          status: 'pending',
-          created_at: new Date().toISOString(),
-          to_user_id: selectedMom.id,
-          to_user_name: selectedMom.user_metadata?.full_name,
-          to_user_email: selectedMom.email,
-          to_user_city: selectedMom.user_metadata?.city || '',
-          to_user_state: selectedMom.user_metadata?.state || '',
-          name: selectedMom.user_metadata?.full_name || null,
-          city: selectedMom.user_metadata?.city || null,
-          state: selectedMom.user_metadata?.state || null,
-        },
-        ...prev
-      ]);
+      // Use the returned row for UI feedback (with real id)
+      if (data && data[0]) {
+        setPendingSentInvitations(prev => [
+          {
+            ...data[0],
+            to_user_name: selectedMom.user_metadata?.full_name,
+            to_user_email: selectedMom.email,
+            to_user_city: selectedMom.user_metadata?.city || '',
+            to_user_state: selectedMom.user_metadata?.state || '',
+          },
+          ...prev
+        ]);
+      }
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
       setSelectedMom(null);
