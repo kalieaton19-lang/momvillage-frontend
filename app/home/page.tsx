@@ -96,13 +96,7 @@ export default function HomePage() {
               {profile?.city || 'Not set'}, {profile?.state || ''}
             </div>
           </div>
-          <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 border border-teal-200 dark:border-teal-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="text-3xl">🤝</div>
-              <div className="text-sm font-medium text-teal-700 dark:text-teal-300">Village Friends</div>
-            </div>
-            <div className="text-3xl font-bold text-teal-900 dark:text-teal-50">0</div>
-          </div>
+          {/* Removed Village Friends stat for clarity; use only 'My Village' */}
         </div>
 
         {/* Main Actions */}
