@@ -303,16 +303,15 @@ export default function VillagePage() {
 
       // Use the returned row for UI feedback (with real id)
       if (data && data[0]) {
-        setPendingSentInvitations(prev => [
-          {
-            ...data[0],
-            to_user_name: selectedMom.user_metadata?.full_name,
-            to_user_email: selectedMom.email,
-            to_user_city: selectedMom.user_metadata?.city || '',
-            to_user_state: selectedMom.user_metadata?.state || '',
-          },
-          ...prev
-        ]);
+        const newInvite = {
+          ...data[0],
+          to_user_name: selectedMom.user_metadata?.full_name,
+          to_user_email: selectedMom.email,
+          to_user_city: selectedMom.user_metadata?.city || '',
+          to_user_state: selectedMom.user_metadata?.state || '',
+        };
+        setPendingSentInvitations(prev => [newInvite, ...prev]);
+        setVillageInvitations(prev => [newInvite, ...prev]);
       }
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
