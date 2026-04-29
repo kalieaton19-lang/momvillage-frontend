@@ -82,14 +82,16 @@ export default function FindMomsPage() {
           };
         }
         setCurrentProfile(current);
-        // Fetch all users for the moms list (admin API)
+        // Fetch all public profiles (with photos) for the moms list
         let res, json;
         try {
-          res = await fetch('/api/supabase/users', { cache: 'no-store' });
-          json = await res.json();
+          res = await supabase
+            .from('user_public_profiles')
+            .select('*');
+          json = { users: res.data };
         } catch (fetchErr) {
           if (typeof window !== 'undefined') {
-            console.error('Error fetching /api/supabase/users:', fetchErr);
+            console.error('Error fetching user_public_profiles:', fetchErr);
           }
           setMoms([]);
           setFilteredMoms([]);
@@ -98,51 +100,39 @@ export default function FindMomsPage() {
           return;
         }
         if (typeof window !== 'undefined') {
-          console.log('Full /api/supabase/users response:', json);
+          console.log('Full user_public_profiles response:', json);
         }
-        if (!res.ok || json?.error) {
+        if (!json?.users) {
           setMoms([]);
           setFilteredMoms([]);
-          setLoadError(json?.error || `Failed to load users (status ${res.status})`);
+          setLoadError('Failed to load users');
           setLoading(false);
           return;
         }
-        const users = (json?.users || []) as Array<{ id: string; email?: string | null; user_metadata?: Record<string, any> | null }>;
+        const users = (json?.users || []) as Array<any>;
         if (typeof window !== 'undefined') {
-          console.log('All users from API:', users);
+          console.log('All public profiles:', users);
         }
         // Exclude current user from moms list
         const otherMoms: MomProfile[] = (users || [])
           .filter((u: any) => u.id !== authUser?.id)
-          .map((u: any) => {
-            // Always ensure profile_photo_url is present in user_metadata
-            let user_metadata = {};
-            if (u.user_metadata && Object.keys(u.user_metadata).length > 0) {
-              user_metadata = {
-                ...u.user_metadata,
-                profile_photo_url: u.user_metadata.profile_photo_url || u.profile_photo_url || '',
-              };
-            } else {
-              user_metadata = {
-                full_name: u.full_name,
-                city: u.city,
-                state: u.state,
-                zip_code: u.zip_code,
-                number_of_kids: u.number_of_kids,
-                kids_age_groups: u.kids_age_groups,
-                preferred_language: u.preferred_language,
-                parenting_style: u.parenting_style,
-                profile_photo_url: u.profile_photo_url || '',
-                services_offered: u.services_offered,
-                services_needed: u.services_needed,
-              };
-            }
-            return {
-              id: u.id,
-              email: u.email ?? undefined,
-              user_metadata,
-            };
-          }) || [];
+          .map((u: any) => ({
+            id: u.id,
+            email: u.email ?? undefined,
+            user_metadata: {
+              full_name: u.full_name,
+              city: u.city,
+              state: u.state,
+              zip_code: u.zip_code,
+              number_of_kids: u.number_of_kids,
+              kids_age_groups: u.kids_age_groups,
+              preferred_language: u.preferred_language,
+              parenting_style: u.parenting_style,
+              profile_photo_url: u.profile_photo_url || '',
+              services_offered: u.services_offered,
+              services_needed: u.services_needed,
+            },
+          })) || [];
         // Debug: log the moms array to check profile_photo_url
         if (typeof window !== 'undefined') {
           console.log('DEBUG moms array:', JSON.stringify(otherMoms, null, 2));
