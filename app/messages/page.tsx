@@ -10,7 +10,7 @@ import { supabase } from "../../lib/supabase";
 import { sendMessageToMatch } from "./sendMessageToMatch";
 
 // Helper: fetch village members and invitations for the current user
-async function fetchVillageStatus(userId, otherUserId) {
+async function fetchVillageStatus(userId: string, otherUserId: string) {
   // Fetch village members
   const { data: members } = await supabase
     .from('village_members')
