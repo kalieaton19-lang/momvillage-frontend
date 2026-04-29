@@ -286,6 +286,31 @@ function MessagesPageInner() {
             {/* Main message area */}
             {selectedConversation && (
               <div className="flex-1 flex flex-col">
+                {/* Profile header above messages */}
+                {(() => {
+                  const conv = conversations.find(c => c.id === selectedConversation);
+                  if (!conv) return null;
+                  const otherUser = getOtherUserInfo(conv);
+                  const otherUserId = conv.user1_id === user?.id ? conv.user2_id : conv.user1_id;
+                  return (
+                    <div className="flex items-center gap-4 p-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                      <Link href={`/mom-profile?id=${otherUserId}`} className="flex items-center gap-4 no-underline hover:opacity-80">
+                        {otherUser.photo ? (
+                          <img
+                            src={otherUser.photo}
+                            alt={otherUser.name}
+                            className="w-14 h-14 rounded-full object-cover flex-shrink-0 border-2 border-pink-400"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-xl flex-shrink-0 border-2 border-pink-400">
+                            {otherUser.name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUser.name}</span>
+                      </Link>
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-black space-y-4">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
