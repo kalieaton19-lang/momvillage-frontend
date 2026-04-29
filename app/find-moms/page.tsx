@@ -143,6 +143,10 @@ export default function FindMomsPage() {
               user_metadata,
             };
           }) || [];
+        // Debug: log the moms array to check profile_photo_url
+        if (typeof window !== 'undefined') {
+          console.log('DEBUG moms array:', JSON.stringify(otherMoms, null, 2));
+        }
         setMoms(otherMoms);
         setFilteredMoms(otherMoms);
         setLoadError(null);
