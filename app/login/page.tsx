@@ -6,9 +6,11 @@ import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
 import { Alert } from "@/app/components/ui/Alert";
 
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -29,6 +31,16 @@ export default function LoginPage() {
       if (error) {
         setErrorMsg(mapError(error.message));
       } else if (data?.session) {
+        // If Remember Me is unchecked, move session from localStorage to sessionStorage
+        if (!rememberMe && typeof window !== 'undefined') {
+          // Find the Supabase session key (sb-<project-ref>-auth-token)
+          const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+          if (key && localStorage.getItem(key)) {
+            const value = localStorage.getItem(key);
+            sessionStorage.setItem(key, value!);
+            localStorage.removeItem(key);
+          }
+        }
         const { data: userData } = await supabase.auth.getUser();
         const hasProfile = userData?.user?.user_metadata?.full_name;
         window.location.href = hasProfile ? "/home" : "/profile";
@@ -67,6 +79,15 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={e => setRememberMe(e.target.checked)}
+              className="accent-pink-600"
+            />
+            Remember Me
+          </label>
           <Button type="submit" fullWidth disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </Button>
