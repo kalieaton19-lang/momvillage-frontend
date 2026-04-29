@@ -293,7 +293,9 @@ export default function VillagePage() {
         .from('village_invitations')
         .insert([invitation], { returning: 'representation' });
       // Extra debug logging
-      console.log('[Village Debug] Supabase insert result:', { data, error });
+      console.log('[Village Debug] Supabase insert result:');
+      console.log('  data:', data);
+      console.log('  error:', error);
       if (error) {
         // Log full error details
         console.error('[Village Debug] Supabase error:', error);
