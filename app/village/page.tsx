@@ -298,7 +298,10 @@ export default function VillagePage() {
         if (error.details) console.error('[Village Debug] Error details:', error.details);
         if (error.hint) console.error('[Village Debug] Error hint:', error.hint);
         if (error.code) console.error('[Village Debug] Error code:', error.code);
-        throw error;
+        // Show error in UI for debugging
+        setMessage(`Failed to send invitation: ${error.message || error.code || 'Unknown error'}`);
+        setTimeout(() => setMessage(""), 6000);
+        return;
       }
 
       // Use the returned row for UI feedback (with real id)
