@@ -304,12 +304,19 @@ export default function VillagePage() {
       // Add to pendingSentInvitations immediately for UI feedback
       setPendingSentInvitations(prev => [
         {
-          ...invitation,
+          id: '', // Temporary, since we don't get the id from Supabase insert
+          from_user_id: currentUserId,
+          from_user_name: currentProfile?.full_name || '',
+          status: 'pending',
+          created_at: new Date().toISOString(),
           to_user_id: selectedMom.id,
           to_user_name: selectedMom.user_metadata?.full_name,
           to_user_email: selectedMom.email,
           to_user_city: selectedMom.user_metadata?.city || '',
           to_user_state: selectedMom.user_metadata?.state || '',
+          name: selectedMom.user_metadata?.full_name || null,
+          city: selectedMom.user_metadata?.city || null,
+          state: selectedMom.user_metadata?.state || null,
         },
         ...prev
       ]);
