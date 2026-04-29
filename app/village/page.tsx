@@ -275,19 +275,14 @@ export default function VillagePage() {
         return;
       }
 
-      const invitation: VillageInvitation & { to_user_id: string; to_user_name?: string; to_user_email?: string; to_user_city?: string; to_user_state?: string } = {
-        id: `vinv_${Date.now()}`,
+
+      // Only send columns that exist in the table
+      const invitation = {
         from_user_id: currentUserId,
-        from_user_name: currentProfile?.full_name || 'A Mom',
-        from_user_photo: currentProfile?.profile_photo_url,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        message: inviteMessage,
         to_user_id: selectedMom.id,
-        to_user_name: selectedMom.user_metadata?.full_name,
-        to_user_email: selectedMom.email,
-        to_user_city: selectedMom.user_metadata?.city || '',
-        to_user_state: selectedMom.user_metadata?.state || '',
+        name: selectedMom.user_metadata?.full_name || null,
+        city: selectedMom.user_metadata?.city || null,
+        state: selectedMom.user_metadata?.state || null,
       };
 
       // Debug: log the invitation payload
