@@ -65,6 +65,8 @@ function MessagesPageInner() {
 
     async function checkUser() {
       try {
+          // Debug: log session before sending message
+          console.log('session', (await supabase.auth.getSession()).data.session);
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           router.push("/login");
