@@ -24,22 +24,38 @@ Deno.serve(async (req) => {
 
     const parsedBody = await req.json();
 
-    const { match_uuid, id, sender_id, receiver_id, message_text, created_at, metadata } = parsedBody;
-    // Debug: log what is being sent
-    console.log({ match_uuid, id, sender_id, receiver_id });
-    // treat `id` as conversation uuid
-    const conversation_id = id;
+
+    // Helper to normalize UUIDs: convert empty string, null, or undefined to null, else trim string
+    const normalizeUuid = (v: unknown) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === "string") {
+        const s = v.trim();
+        return s === "" ? null : s;
+      }
+      return v;
+    };
+
+    const match_uuid_n = normalizeUuid(parsedBody.match_uuid);
+    const conversation_id = normalizeUuid(parsedBody.id);
+    const sender_id_n = normalizeUuid(parsedBody.sender_id);
+    const receiver_id_n = normalizeUuid(parsedBody.receiver_id);
+    const message_text_n = parsedBody.message_text;
+    const created_at_n = parsedBody.created_at;
+    const metadata_n = parsedBody.metadata;
+
+    // Debug: log what is being sent (normalized)
+    console.log({ match_uuid: match_uuid_n, conversation_id, sender_id: sender_id_n, receiver_id: receiver_id_n });
 
     // Basic validation
-    if (!conversation_id || !sender_id || !message_text) {
+    if (!conversation_id || !sender_id_n || !message_text_n) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields",
+          error: "Missing required UUIDs",
           details: {
             conversation_id,
-            sender_id,
-            message_text,
-            request_body: { conversation_id, sender_id, receiver_id, message_text, created_at, metadata }
+            sender_id: sender_id_n,
+            message_text: message_text_n,
+            request_body: { conversation_id, sender_id: sender_id_n, receiver_id: receiver_id_n, message_text: message_text_n, created_at: created_at_n, metadata: metadata_n }
           }
         }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -56,11 +72,11 @@ Deno.serve(async (req) => {
       .insert([
         {
           conversation_id,
-          sender_id,
-          receiver_id: receiver_id ?? null,
-          message_text,
-          created_at: created_at ?? new Date().toISOString(),
-          metadata: metadata ?? {},
+          sender_id: sender_id_n,
+          receiver_id: receiver_id_n, // will be null if empty string
+          message_text: message_text_n,
+          created_at: created_at_n ?? new Date().toISOString(),
+          metadata: metadata_n ?? {},
         },
       ])
       .select()
