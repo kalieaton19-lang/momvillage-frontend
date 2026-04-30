@@ -119,6 +119,7 @@ export default function VillagePage() {
         .select('*')
         .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
         .order('created_at', { ascending: false });
+      console.log('[Village Debug] Loaded invitations:', invitations, invError);
       if (!invError && invitations) {
         setVillageInvitations(invitations);
       }
@@ -294,9 +295,7 @@ export default function VillagePage() {
         .from('village_invitations')
         .insert([invitation], { returning: 'representation' });
       // Extra debug logging
-      console.log('[Village Debug] Supabase insert result:');
-      console.log('  data:', data);
-      console.log('  error:', error);
+      console.log('[Village Debug] Supabase insert result:', { data, error });
       if (error) {
         // Log full error details
         console.error('[Village Debug] Supabase error:', error);
@@ -1008,6 +1007,7 @@ export default function VillagePage() {
                   </button>
                   {/* Prevent duplicate invites: check if a pending invite exists for this mom */}
                   {(() => {
+                    // Fix: check for pending invites to this mom
                     const alreadyInvited = villageInvitations.some(
                       inv => inv.from_user_id === currentUserId && inv.to_user_id === selectedMomId && inv.status === 'pending'
                     );
@@ -1036,95 +1036,128 @@ export default function VillagePage() {
                 </div>
               </div>
             )}
-            {/* Pending Invitations List (below invite box) */}
-            {pendingSentInvitations.length > 0 && (
-              <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 text-sm">Pending Invitations:</h3>
-                <ul className="space-y-3">
-                  <AsyncPendingInvites invites={pendingSentInvitations} />
-                </ul>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">These moms have not yet accepted or declined your invitation.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Profile Modal */}
-      {selectedMemberProfile && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-zinc-200 dark:border-zinc-800">
-            <div className="sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Profile</h2>
-              <button
-                onClick={() => setSelectedMemberProfile(null)}
-                className="text-2xl text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Photo */}
-              <div className="text-center mb-6">
-                {selectedMemberProfile.photo ? (
-                  <img
-                    src={selectedMemberProfile.photo}
-                    alt={selectedMemberProfile.name}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-pink-300 mx-auto mb-4"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-4xl font-semibold mx-auto mb-4">
-                    {selectedMemberProfile.name[0]?.toUpperCase() || '?'}
+            {/* Invitations Tab */}
+            {activeTab === 'invitations' && (
+              <div className="space-y-6">
+                {/* Sent Invitations */}
+                {villageInvitations.filter(i => i.from_user_id === currentUserId).length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                      📤 Sent Invitations ({villageInvitations.filter(i => i.from_user_id === currentUserId).length})
+                    </h3>
+                    <div className="space-y-4">
+                      {villageInvitations.filter(i => i.from_user_id === currentUserId).map(invitation => (
+                        <div
+                          key={invitation.id}
+                          className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl"
+                        >
+                          <div className="flex items-start gap-4 mb-2">
+                            <div>
+                              <h4 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
+                                To: {invitation.to_user_name || invitation.to_user_id}
+                              </h4>
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                                Status: {invitation.status}
+                              </p>
+                              {invitation.message && (
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                                  "{invitation.message}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                  {/* Try all possible sources for name */}
-                  {selectedMemberProfile.name || selectedMemberProfile.email || selectedMemberProfile.id || 'Unknown Mom'}
-                </h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {selectedMemberProfile.email}
-                </p>
-              </div>
 
-              {/* Info */}
-              <div className="space-y-4 mb-6">
-                <div>
-                  <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Location</p>
-                  <p className="text-zinc-900 dark:text-zinc-50 mt-1">
-                    {/* Try all possible sources for city/state */}
-                    {(() => {
-                      let city = selectedMemberProfile.city || '';
-                      let state = selectedMemberProfile.state || '';
-                      if (!city || !state) {
-                        // Try to get from conversations
-                        const conv = conversations.find(c => c.other_user_id === selectedMemberProfile.id);
-                        if (conv) {
-                          city = city || conv.other_user_city || '';
-                          state = state || conv.other_user_state || '';
-                        }
-                        // Try to get from availableMoms by id or email
-                        const mom = availableMoms.find(m => m.id === selectedMemberProfile.id || m.email === selectedMemberProfile.email);
-                        if (mom) {
-                          city = city || mom.user_metadata?.city || '';
-                          state = state || mom.user_metadata?.state || '';
-                        }
-                      }
-                      if (city || state) {
-                        return `${city}${city && state ? ', ' : ''}${state}`;
-                      }
-                      return 'Location not set';
-                    })()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Joined Village</p>
-                  <p className="text-zinc-900 dark:text-zinc-50 mt-1">
-                    {new Date(selectedMemberProfile.joined_date).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
+                {/* Received Invitations */}
+                {pendingInvitations.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                      📬 Pending Invitations ({pendingInvitations.length})
+                    </h3>
+                    <div className="space-y-4">
+                      {pendingInvitations.map(invitation => (
+                        <div
+                          key={invitation.id}
+                          className="p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-4">
+                            <div>
+                              <h4 className="font-semibold text-purple-900 dark:text-purple-50 mb-1">
+                                {invitation.from_user_name}
+                              </h4>
+                              <p className="text-sm text-purple-700 dark:text-purple-300">
+                                Wants you to join their village
+                              </p>
+                              {invitation.message && (
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                                  "{invitation.message}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleRespondToVillageInvitation(invitation.id, true)}
+                              className="flex-1 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-medium transition-colors"
+                            >
+                              ✓ Accept
+                            </button>
+                            <button
+                              onClick={() => handleRespondToVillageInvitation(invitation.id, false)}
+                              className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium transition-colors"
+                            >
+                              ✕ Decline
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
+                {/* Accepted Invitations */}
+                {acceptedInvitations.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                      ✓ Accepted ({acceptedInvitations.length})
+                    </h3>
+                    <div className="space-y-4">
+                      {acceptedInvitations.map(invitation => (
+                        <div
+                          key={invitation.id}
+                          className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl"
+                        >
+                          <div className="flex items-start gap-4">
+                            <span className="text-2xl">🤝</span>
+                            <div>
+                              <h4 className="font-semibold text-green-900 dark:text-green-50">
+                                {invitation.from_user_name}
+                              </h4>
+                              <p className="text-sm text-green-700 dark:text-green-300">
+                                You're now part of their village!
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {villageInvitations.length === 0 && (
+                  <div className="text-center py-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+                    <div className="text-4xl mb-3">📭</div>
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      No village invitations yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
               {/* Actions */}
               <div className="flex flex-col gap-3">
                 <button
