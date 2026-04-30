@@ -269,6 +269,9 @@ export default function VillagePage() {
   }
 
   async function handleSendVillageInvitation() {
+      // Confirm session and user ID before insert
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('session?', !!session, 'user?', session?.user?.id);
     console.log('handleSendVillageInvitation called', { selectedMomId, selectedMom });
     if (!selectedMomId) {
       setMessage("Please select a mom to invite");
