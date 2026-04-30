@@ -286,7 +286,6 @@ export default function VillagePage() {
 
       // Only send columns that exist in the table
       const invitation = {
-        from_user_id: currentUserId,
         to_user_id: selectedMom.id,
         name: selectedMom.user_metadata?.full_name || null,
         city: selectedMom.user_metadata?.city || null,
