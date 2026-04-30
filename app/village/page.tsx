@@ -52,7 +52,7 @@ interface MomProfile {
 
 export default function VillagePage() {
     // Track pending sent invitations for the current user
-    const [pendingSentInvitations, setPendingSentInvitations] = useState<VillageInvitationWithRecipient[]>([]);
+    // Removed pendingSentInvitations; use villageInvitations for all checks
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -320,7 +320,7 @@ export default function VillagePage() {
           to_user_city: selectedMom.user_metadata?.city || '',
           to_user_state: selectedMom.user_metadata?.state || '',
         };
-        setPendingSentInvitations(prev => [newInvite, ...prev]);
+        // No longer needed: setPendingSentInvitations
         setVillageInvitations(prev => [newInvite, ...prev]);
       }
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
@@ -817,8 +817,8 @@ export default function VillagePage() {
                       <div className="space-y-2">
                         {conversations.map((conv) => (
                           (() => {
-                            const alreadyInvited = pendingSentInvitations.some(
-                              (inv) => inv.to_user_id === conv.other_user_id || inv.to_user_email === conv.other_user_email
+                            const alreadyInvited = villageInvitations.some(
+                              (inv) => inv.from_user_id === currentUserId && inv.to_user_id === conv.other_user_id && inv.status === 'pending'
                             );
                             return (
                               <div
@@ -914,8 +914,8 @@ export default function VillagePage() {
                     {searchResults.length > 0 && (
                       <div className="mt-4 space-y-2">
                         {searchResults.map((mom) => {
-                          const alreadyInvited = pendingSentInvitations.some(
-                            (inv) => inv.to_user_id === mom.id || inv.to_user_email === mom.email
+                          const alreadyInvited = villageInvitations.some(
+                            (inv) => inv.from_user_id === currentUserId && inv.to_user_id === mom.id && inv.status === 'pending'
                           );
                           return (
                             <div
