@@ -112,11 +112,11 @@ export default function VillagePage() {
       if (!membersError && members) {
         setVillageMembers(members);
       }
-      // Load invitations from Supabase
+      // Load invitations from Supabase (both sent and received)
       const { data: invitations, error: invError } = await supabase
         .from('village_invitations')
         .select('*')
-        .eq('to_user_id', userId)
+        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
         .order('created_at', { ascending: false });
       if (!invError && invitations) {
         setVillageInvitations(invitations);
@@ -1005,14 +1005,33 @@ export default function VillagePage() {
                   >
                     Back
                   </button>
-                  <button
-                    onClick={handleSendVillageInvitation}
-                    disabled={!selectedMomId || !selectedMom?.user_metadata}
-                    className={`flex-1 px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium hover:shadow-lg transition-all ${(!selectedMomId || !selectedMom?.user_metadata) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    title={!selectedMomId ? 'Select a mom first' : (!selectedMom?.user_metadata ? 'Profile data missing' : '')}
-                  >
-                    Send Invitation
-                  </button>
+                  {/* Prevent duplicate invites: check if a pending invite exists for this mom */}
+                  {(() => {
+                    const alreadyInvited = villageInvitations.some(
+                      inv => inv.from_user_id === currentUserId && inv.to_user_id === selectedMomId && inv.status === 'pending'
+                    );
+                    if (alreadyInvited) {
+                      return (
+                        <button
+                          disabled
+                          className="flex-1 px-6 py-2 rounded-lg bg-gray-300 text-gray-600 font-medium cursor-not-allowed"
+                          title="Invitation already sent"
+                        >
+                          Invitation sent
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        onClick={handleSendVillageInvitation}
+                        disabled={!selectedMomId || !selectedMom?.user_metadata}
+                        className={`flex-1 px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium hover:shadow-lg transition-all ${(!selectedMomId || !selectedMom?.user_metadata) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={!selectedMomId ? 'Select a mom first' : (!selectedMom?.user_metadata ? 'Profile data missing' : '')}
+                      >
+                        Send Invitation
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             )}
