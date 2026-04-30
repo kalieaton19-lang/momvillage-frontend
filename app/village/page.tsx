@@ -7,7 +7,7 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { AsyncPendingInvites } from "./AsyncPendingInvites";
 
-type VillageTab = 'members' | 'invite' | 'invitations';
+type VillageTabType = 'members' | 'invite' | 'invitations';
 
 interface VillageMember {
   id: string;
@@ -61,7 +61,7 @@ export default function VillagePage() {
   const [villageMembers, setVillageMembers] = useState<VillageMember[]>([]);
   const [villageInvitations, setVillageInvitations] = useState<VillageInvitation[]>([]);
   const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<VillageTab>('members');
+  const [activeTab, setActiveTab] = useState<VillageTabType>('members');
   const [selectedMomId, setSelectedMomId] = useState("");
   const [selectedMom, setSelectedMom] = useState<MomProfile | null>(null);
   const [showInviteForm, setShowInviteForm] = useState(false);
