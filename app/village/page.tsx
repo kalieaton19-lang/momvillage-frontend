@@ -122,8 +122,11 @@ export default function VillagePage() {
         .select('*')
         .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
         .order('created_at', { ascending: false });
-      console.log('[Village Debug] Loaded invitations:', invitations, invError);
-      if (!invError && invitations) {
+      console.log('[Village Debug] Supabase invitations fetch:', { userId, invitations, invError });
+      if (invError) {
+        console.error('[Village Debug] Error fetching invitations:', invError);
+      }
+      if (invitations) {
         setVillageInvitations(invitations);
       }
       // Load conversations from Supabase
@@ -311,6 +314,11 @@ export default function VillagePage() {
         return;
       }
 
+      // Debug: log the invitation insert result
+      console.log('[Village Debug] Supabase insert result:', { data, error });
+      if (error) {
+        console.error('[Village Debug] Error inserting invitation:', error);
+      }
       // Use the returned row for UI feedback (with real id)
       if (data && data[0]) {
         const newInvite = {
@@ -320,7 +328,6 @@ export default function VillagePage() {
           to_user_city: selectedMom.user_metadata?.city || '',
           to_user_state: selectedMom.user_metadata?.state || '',
         };
-        // No longer needed: setPendingSentInvitations
         setVillageInvitations(prev => [newInvite, ...prev]);
       }
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
