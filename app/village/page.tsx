@@ -1,5 +1,6 @@
-type VillageTab = 'members' | 'invite' | 'invitations';
+
 "use client";
+type VillageTab = 'members' | 'invite' | 'invitations';
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
