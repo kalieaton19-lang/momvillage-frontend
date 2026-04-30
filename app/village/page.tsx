@@ -1177,7 +1177,8 @@ export default function VillagePage() {
                 </button>
               </div>
             </div>
-      )}
-    </div>
-  );
+          )}
+        </div>
+      </div>
+    );
 }
