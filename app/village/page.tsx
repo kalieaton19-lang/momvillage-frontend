@@ -19,6 +19,7 @@ interface VillageMember {
 interface VillageInvitation {
   id: string;
   from_user_id: string;
+  to_user_id: string;
   from_user_name: string;
   from_user_photo?: string;
   status: 'pending' | 'accepted' | 'declined';
