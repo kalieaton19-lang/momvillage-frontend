@@ -1,12 +1,13 @@
 
-"use client";
-type VillageTab = 'members' | 'invite' | 'invitations';
 
+"use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { AsyncPendingInvites } from "./AsyncPendingInvites";
+
+type VillageTab = 'members' | 'invite' | 'invitations';
 
 interface VillageMember {
   id: string;
