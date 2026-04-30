@@ -564,7 +564,7 @@ export default function VillagePage() {
           <button
             onClick={() => setActiveTab('members')}
             className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
-              activeTab === 'members'
+              (activeTab as VillageTabType) === 'members'
                 ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
             }`}
@@ -574,7 +574,7 @@ export default function VillagePage() {
           <button
             onClick={() => setActiveTab('invitations')}
             className={`px-4 py-2 font-medium text-sm transition-colors relative whitespace-nowrap ${
-              activeTab === 'invitations'
+              (activeTab as VillageTabType) === 'invitations'
                 ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
             }`}
@@ -593,7 +593,7 @@ export default function VillagePage() {
               setSelectedMomId("");
             }}
             className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
-              activeTab === 'invite'
+              (activeTab as VillageTabType) === 'invite'
                 ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
             }`}
@@ -603,7 +603,7 @@ export default function VillagePage() {
         </div>
 
         {/* Members Tab */}
-        {activeTab === 'members' && (
+        {(activeTab as VillageTabType) === 'members' && (
           <div>
             {villageMembers.length > 0 ? (
               <div>
@@ -657,7 +657,7 @@ export default function VillagePage() {
         )}
 
         {/* Invitations Tab */}
-        {activeTab === 'invitations' && (
+        {(activeTab as VillageTabType) === 'invitations' && (
           <div className="space-y-6">
             {/* Pending Invitations */}
             {pendingInvitations.length > 0 && (
@@ -747,7 +747,7 @@ export default function VillagePage() {
         )}
 
         {/* Invite Tab */}
-        {activeTab === 'invite' && (
+        {(activeTab as VillageTabType) === 'invite' && (
           <div className="max-w-2xl">
             {/* Invite Box */}
             {!showInviteForm ? (
@@ -1040,7 +1040,7 @@ export default function VillagePage() {
               </div>
             )}
             {/* Invitations Tab */}
-            {activeTab === 'invitations' && (
+            {(activeTab as VillageTabType) === 'invitations' && (
               <div className="space-y-6">
                 {/* Sent Invitations */}
                 {villageInvitations.filter(i => i.from_user_id === currentUserId).length > 0 && (
@@ -1049,28 +1049,32 @@ export default function VillagePage() {
                       📤 Sent Invitations ({villageInvitations.filter(i => i.from_user_id === currentUserId).length})
                     </h3>
                     <div className="space-y-4">
-                      {villageInvitations.filter(i => i.from_user_id === currentUserId).map(invitation => (
-                        <div
-                          key={invitation.id}
-                          className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl"
-                        >
-                          <div className="flex items-start gap-4 mb-2">
-                            <div>
-                              <h4 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
-                                To: {invitation.to_user_name || invitation.to_user_id}
-                              </h4>
-                              <p className="text-sm text-blue-700 dark:text-blue-300">
-                                Status: {invitation.status}
-                              </p>
-                              {invitation.message && (
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-                                  "{invitation.message}"
+                      {villageInvitations.filter(i => i.from_user_id === currentUserId).map(invitation => {
+                        // Cast to VillageInvitationWithRecipient for UI fields
+                        const inv = invitation as VillageInvitationWithRecipient;
+                        return (
+                          <div
+                            key={inv.id}
+                            className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl"
+                          >
+                            <div className="flex items-start gap-4 mb-2">
+                              <div>
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
+                                  To: {inv.to_user_name || inv.to_user_id}
+                                </h4>
+                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                  Status: {inv.status}
                                 </p>
-                              )}
+                                {inv.message && (
+                                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                                    "{inv.message}"
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1165,10 +1169,13 @@ export default function VillagePage() {
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => {
-                    handleStartConversation(selectedMemberProfile.id);
-                    setSelectedMemberProfile(null);
+                    if (selectedMemberProfile) {
+                      handleStartConversation(selectedMemberProfile.id);
+                      setSelectedMemberProfile(null);
+                    }
                   }}
                   className="w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
+                  disabled={!selectedMemberProfile}
                 >
                   💬 Go to Chat
                 </button>
