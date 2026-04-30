@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import RefreshBanner from "@/app/components/RefreshBanner";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -111,7 +111,7 @@ export default function RootLayout({
             in Vercel for admin operations to work, then redeploy.
           </div>
         )}
-        <RefreshBanner />
+
         {children}
       </body>
     </html>
