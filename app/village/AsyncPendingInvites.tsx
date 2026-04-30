@@ -13,7 +13,7 @@ export function AsyncPendingInvites({ invites }: { invites: any[] }) {
     <ul className="p-4 bg-yellow-100 text-yellow-800 rounded-lg">
       {invites.map((invite, idx) => (
         <li key={invite.id || idx} className="mb-2">
-          Pending invite: {invite.recipient_name || JSON.stringify(invite)}
+          Pending invite: {invite.to_user_name || invite.name || JSON.stringify(invite)}
         </li>
       ))}
     </ul>
