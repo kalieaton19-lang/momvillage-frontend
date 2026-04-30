@@ -1,3 +1,4 @@
+type VillageTab = 'members' | 'invite' | 'invitations';
 "use client";
 
 import { useState, useEffect } from "react";
@@ -58,7 +59,7 @@ export default function VillagePage() {
   const [villageMembers, setVillageMembers] = useState<VillageMember[]>([]);
   const [villageInvitations, setVillageInvitations] = useState<VillageInvitation[]>([]);
   const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<'members' | 'invite' | 'invitations'>('members');
+  const [activeTab, setActiveTab] = useState<VillageTab>('members');
   const [selectedMomId, setSelectedMomId] = useState("");
   const [selectedMom, setSelectedMom] = useState<MomProfile | null>(null);
   const [showInviteForm, setShowInviteForm] = useState(false);
