@@ -299,7 +299,8 @@ export default function VillagePage() {
       // Save invitation to Supabase and get the real row back
       const { data, error } = await supabase
         .from('village_invitations')
-        .insert([invitation], { returning: 'representation' });
+        .insert([invitation])
+        .select();
       // Extra debug logging
       console.log('[Village Debug] Supabase insert result:', { data, error });
       if (error) {
