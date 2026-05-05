@@ -88,16 +88,6 @@ export default function VillagePage() {
       {/* ...existing JSX content here... */}
     </>
   );
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{m.name}</h3>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.city}, {m.state}</p>
-                          </div>
-                        </div>
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-4">Joined {new Date(m.joined_date).toLocaleDateString()}</div>
-                        <div className="flex flex-col gap-2">
-                          <button onClick={() => setSelectedMemberProfile(m)} className="w-full px-3 py-2 text-xs text-center bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors font-medium">👤 View Profile</button>
                           <button onClick={() => handleStartConversation(m.id)} className="w-full px-3 py-2 text-xs text-center bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-lg hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors font-medium">💬 Message</button>
                           <button onClick={() => handleRemoveFromVillage(m.id)} className="w-full px-3 py-2 text-xs text-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium">✕ Remove</button>
                         </div>
