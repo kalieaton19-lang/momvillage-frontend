@@ -1209,27 +1209,6 @@ export default function VillagePage() {
                 )}
               </div>
             )}
-              {/* Actions */}
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    if (selectedMemberProfile) {
-                      handleStartConversation(selectedMemberProfile.id);
-                      setSelectedMemberProfile(null);
-                    }
-                  }}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
-                  disabled={!selectedMemberProfile}
-                >
-                  💬 Go to Chat
-                </button>
-                <button
-                  onClick={() => setSelectedMemberProfile(null)}
-                  className="w-full px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-medium"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           )}
         </div>
