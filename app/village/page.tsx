@@ -343,23 +343,15 @@ export default function VillagePage() {
       if (error) {
         console.error('[Village Debug] Error inserting invitation:', error);
       }
-      // Use the returned row for UI feedback (with real id)
-      if (data && data[0]) {
-        const newInvite = {
-          ...data[0],
-          to_user_name: selectedMom.user_metadata?.full_name,
-          to_user_email: selectedMom.email,
-          to_user_city: selectedMom.user_metadata?.city || '',
-          to_user_state: selectedMom.user_metadata?.state || '',
-        };
-        setVillageInvitations(prev => [newInvite, ...prev]);
+      // After sending, refetch all invitations to keep UI in sync
+      if (user?.id) {
+        await loadVillageData(user.id);
       }
       setMessage(`Village invitation sent to ${selectedMom.user_metadata?.full_name}!`);
       setSelectedMomId("");
       setSelectedMom(null);
       setInviteMessage("");
       setShowInviteForm(false);
-      // Keep the banner visible a bit longer for clarity
       setTimeout(() => setMessage(""), 4000);
     } catch (error) {
       setMessage("Failed to send invitation");
