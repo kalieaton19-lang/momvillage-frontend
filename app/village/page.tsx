@@ -73,13 +73,11 @@ export default function VillagePage() {
       setCurrentUserId(session.user.id);
       
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser?.user_metadata) {
-        setCurrentProfile(currentUser.user_metadata);
-      }
-      
-      await loadVillageData(session.user.id);
-      await loadAvailableMoms();
-
+            setUser(session.user);
+            setCurrentUserId(session.user.id);
+            await loadVillageData(session.user.id);
+            await loadAvailableMoms();
+            // (localStorage migration removed, now using Supabase only)
       // (localStorage migration removed, now using Supabase only)
     } catch (error) {
       console.error('Error checking user:', error);
@@ -119,7 +117,7 @@ export default function VillagePage() {
                 {pendingInvitations.length}
 	      </span>
 	    )}
-
+            // ...fetch logic here...
           // After sending, refetch all invitations to keep UI in sync
         {/* Tab Content */}
         <div>
