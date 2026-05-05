@@ -574,8 +574,6 @@ export default function VillagePage() {
       </div>
     );
   }
-  }
-  }
 
   const pendingInvitations = villageInvitations.filter(i => i.status === 'pending');
   const acceptedInvitations = villageInvitations.filter(i => i.status === 'accepted');
