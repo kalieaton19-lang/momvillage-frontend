@@ -36,22 +36,10 @@ export default function VillagePage() {
 
   useEffect(() => {
     checkUser();
-  }, []);
-
-  // Always update currentUserId from Supabase before rendering invitations UI
-  useEffect(() => {
-    ensureCurrentUserId();
-  }, [activeTab, showInviteForm]);
-
-  // ...rest of your VillagePage code...
-  const [inviteMode, setInviteMode] = useState<'search' | 'conversations'>('search');
-  const [villageSearchQuery, setVillageSearchQuery] = useState("");
-
   useEffect(() => {
     checkUser();
   }, []);
 
-  // Always update currentUserId from Supabase before rendering invitations UI
   async function ensureCurrentUserId() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user && user.id !== currentUserId) {
@@ -68,16 +56,13 @@ export default function VillagePage() {
       if (!session) {
         router.push('/login');
         return;
-
+      }
       setUser(session.user);
       setCurrentUserId(session.user.id);
-      
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-            setUser(session.user);
-            setCurrentUserId(session.user.id);
-            await loadVillageData(session.user.id);
-            await loadAvailableMoms();
-            // (localStorage migration removed, now using Supabase only)
+      // Optionally use currentUser if needed
+      await loadVillageData(session.user.id);
+      await loadAvailableMoms();
       // (localStorage migration removed, now using Supabase only)
     } catch (error) {
       console.error('Error checking user:', error);
@@ -90,28 +75,47 @@ export default function VillagePage() {
   async function loadVillageData(userId: string) {
     try {
       // Load village members from Supabase
+    } catch (error) {
+      console.error('Error loading village data:', error);
+    }
+  }
 
-        {/* Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
-              (activeTab as VillageTabType) === 'members'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-            }`}
-          >
-            Members ({villageMembers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('invitations')}
-            className={`px-4 py-2 font-medium text-sm transition-colors relative whitespace-nowrap ${
-              (activeTab as VillageTabType) === 'invitations'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-            }`}
-          >
-            Invitations
+  // ...existing code...
+
+  // Main return statement for the component
+  return (
+    <>
+      {/* Tabs */}
+      <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('members')}
+          className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
+            (activeTab as VillageTabType) === 'members'
+              ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+          }`}
+        >
+          Members ({villageMembers.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('invitations')}
+          className={`px-4 py-2 font-medium text-sm transition-colors relative whitespace-nowrap ${
+            (activeTab as VillageTabType) === 'invitations'
+              ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+          }`}
+        >
+          Invitations
+          {pendingInvitations.length > 0 && (
+            <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {pendingInvitations.length}
+            </span>
+          )}
+        </button>
+      </div>
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'members' && (
             {pendingInvitations.length > 0 && (
               <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {pendingInvitations.length}
