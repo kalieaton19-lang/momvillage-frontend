@@ -27,54 +27,54 @@ interface VillageInvitation {
   from_user_photo?: string;
   status: 'pending' | 'accepted' | 'declined';
   created_at: string;
-  message?: string;
-}
+        {/* Tabs */}
+        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
+              (activeTab as VillageTabType) === 'members'
+                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+            }`}
+          >
+            Members ({villageMembers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('invitations')}
+            className={`px-4 py-2 font-medium text-sm transition-colors relative whitespace-nowrap ${
+              (activeTab as VillageTabType) === 'invitations'
+                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+            }`}
+          >
+            Invitations
+            {pendingInvitations.length > 0 && (
+              <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {pendingInvitations.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('invite');
+              setShowInviteForm(false);
+              setSelectedMomId("");
+            }}
+            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
+              (activeTab as VillageTabType) === 'invite'
+                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+            }`}
+          >
+            Invite a Mom
+          </button>
+        </div>
 
-// For UI/state, allow recipient fields
-type VillageInvitationWithRecipient = VillageInvitation & {
-  to_user_id?: string;
-  to_user_name?: string;
-  to_user_email?: string;
-  to_user_city?: string;
-  to_user_state?: string;
-};
-
-interface MomProfile {
-  id: string;
-  email?: string;
-  user_metadata?: {
-    full_name?: string;
-    profile_photo_url?: string;
-    city?: string;
-    state?: string;
-  };
-}
-
-export default function VillagePage() {
-      // Derived invitation arrays for UI
-      const pendingInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'pending');
-      const acceptedInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'accepted');
-    // Track pending sent invitations for the current user
-    // Removed pendingSentInvitations; use villageInvitations for all checks
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
-  const [currentUserId, setCurrentUserId] = useState("");
-  const [villageMembers, setVillageMembers] = useState<VillageMember[]>([]);
-  const [villageInvitations, setVillageInvitations] = useState<VillageInvitation[]>([]);
-  const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<VillageTabType>('members');
-  const [selectedMomId, setSelectedMomId] = useState("");
-  const [selectedMom, setSelectedMom] = useState<MomProfile | null>(null);
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteMessage, setInviteMessage] = useState("");
-  const [availableMoms, setAvailableMoms] = useState<MomProfile[]>([]);
-  const [selectedMemberProfile, setSelectedMemberProfile] = useState<VillageMember | null>(null);
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<MomProfile[]>([]);
-  const [searching, setSearching] = useState(false);
+        {/* Members Tab */}
+        {(activeTab as VillageTabType) === 'members' && (
+          <div>
+            {villageMembers.length > 0 ? (
+              <div>
   const [inviteMode, setInviteMode] = useState<'search' | 'conversations'>('search');
   const [villageSearchQuery, setVillageSearchQuery] = useState("");
 
@@ -609,7 +609,7 @@ export default function VillagePage() {
               </span>
 
             )}
-          </div>
+        </div>
 
       {/* Members Tab */}
       {(activeTab as VillageTabType) === 'members' && (
