@@ -84,9 +84,7 @@ export default function VillagePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user && user.id !== currentUserId) {
       setCurrentUserId(user.id);
-      }
-      }
-
+    }
   }
   useEffect(() => {
     ensureCurrentUserId();
