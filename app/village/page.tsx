@@ -585,19 +585,6 @@ export default function VillagePage() {
         <div>
           {villageMembers.length > 0 ? (
             <div>
-            onClick={() => {
-              setActiveTab('invite');
-              setShowInviteForm(false);
-              setSelectedMomId("");
-            }}
-            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
-              (activeTab as VillageTabType) === 'invite'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-            }`}
-          >
-            Invite a Mom
-          </button>
         </div>
 
       {/* Members Tab */}
