@@ -367,7 +367,7 @@ export default function VillagePage() {
                   </div>
                 </div>
               );
-            })()}
+            })();}
       // After sending, refetch all invitations to keep UI in sync
       if (user?.id) {
         await loadVillageData(user.id);
@@ -1040,7 +1040,7 @@ export default function VillagePage() {
                         Send Invitation
                       </button>
                     );
-                  })()}
+                  })();}
                 </div>
               </div>
             )}
