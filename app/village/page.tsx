@@ -1215,4 +1215,4 @@ function VillagePage() {
               </div>
             )}
         );
-      }
+}
