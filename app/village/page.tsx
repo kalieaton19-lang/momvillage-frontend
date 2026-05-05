@@ -74,40 +74,6 @@ export default function VillagePage() {
   }
 
   // Main return statement for the component
-
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
-                    📬 Pending Invitations ({pendingInvitations.length})
-                  </h3>
-                  <div className="space-y-4">
-                    {pendingInvitations.map(invitation => (
-                      <div
-                        key={invitation.id}
-                        className="p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl"
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <div>
-                            <h4 className="font-semibold text-purple-900 dark:text-purple-50 mb-1">
-                              {invitation.from_user_name}
-                            </h4>
-                            <p className="text-sm text-purple-700 dark:text-purple-300">
-                              Wants you to join their village
-                            </p>
-                            {invitation.message && (
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-                                "{invitation.message}"
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleRespondToVillageInvitation(invitation.id, true)}
-                            className="flex-1 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-medium transition-colors"
-                          >
-                            ✓ Accept
-                          </button>
-                          <button
-                            onClick={() => handleRespondToVillageInvitation(invitation.id, false)}
                             className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium transition-colors"
                           >
                             ✕ Decline
