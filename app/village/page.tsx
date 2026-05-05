@@ -27,65 +27,6 @@ interface VillageInvitation {
   from_user_photo?: string;
   status: 'pending' | 'accepted' | 'declined';
   created_at: string;
-      // ...existing hooks and state...
-      const pendingInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'pending');
-    // ...existing hooks and state...
-
-    // ...existing code...
-
-    // Derived invitation arrays for UI (if not already present)
-    const pendingInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'pending');
-
-    return (
-      <>
-        {/* Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
-              (activeTab as VillageTabType) === 'members'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-            }`}
-          >
-            Members ({villageMembers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('invitations')}
-            className={`px-4 py-2 font-medium text-sm transition-colors relative whitespace-nowrap ${
-              (activeTab as VillageTabType) === 'invitations'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-            }`}
-          >
-            Invitations
-            {pendingInvitations.length > 0 && (
-              <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {pendingInvitations.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('invite');
-              setShowInviteForm(false);
-              setSelectedMomId("");
-            }}
-            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
-              (activeTab as VillageTabType) === 'invite'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-            }`}
-          >
-            Invite a Mom
-          </button>
-        </div>
-
-        {/* Members Tab */}
-        {(activeTab as VillageTabType) === 'members' && (
-          <div>
-            {villageMembers.length > 0 ? (
-              <div>
   const [inviteMode, setInviteMode] = useState<'search' | 'conversations'>('search');
   const [villageSearchQuery, setVillageSearchQuery] = useState("");
 
