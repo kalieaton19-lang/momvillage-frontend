@@ -51,21 +51,20 @@ export default function VillagePage() {
   }, [activeTab, showInviteForm]);
 
   async function checkUser() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      setUser(session.user);
-      setCurrentUserId(session.user.id);
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      // Optionally use currentUser if needed
-      await loadVillageData(session.user.id);
-      await loadAvailableMoms();
-      // (localStorage migration removed, now using Supabase only)
-    } catch (error) {
-      console.error('Error checking user:', error);
+    return (
+      <>
+        {/* ...existing JSX content here... */}
+        {/* Members grid and action buttons should be here, inside the fragment */}
+        {/* Empty state for village */}
+        {villageMembers.length === 0 && activeTab === 'members' && (
+          <div className="text-center py-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+            <div className="text-4xl mb-3">🏘️</div>
+            <p className="text-zinc-600 dark:text-zinc-400 mb-4">Your village is empty</p>
+            <Link href="/find-moms" className="inline-block px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium">Find Moms to Add</Link>
+          </div>
+        )}
+      </>
+    );
       router.push('/login');
     } finally {
       setLoading(false);
