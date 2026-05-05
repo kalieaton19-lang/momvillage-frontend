@@ -283,9 +283,6 @@ export default function VillagePage() {
           )}
         </div>
     // ...existing code continues...
-        setMessage("Could not load invitation details");
-        setTimeout(() => setMessage(""), 3000);
-        return;
       }
 
       // Only send columns that exist in the table
