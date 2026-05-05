@@ -314,6 +314,11 @@ export default function VillagePage() {
       }
 
       // Only send columns that exist in the table
+      // --- INSERT INVITATION ---
+      const { data: insertData, error: insertError } = await supabase
+        .from('village_invitations')
+        .insert([{ from_user_id: currentUserId, to_user_id: selectedMomId }]);
+      console.log('[Village Debug] Supabase insert result:', { insertData, insertError });
             {/* Invitations Tab */}
             {(activeTab as VillageTabType) === 'invitations' && (() => {
               // Move debug logs outside JSX
@@ -339,6 +344,25 @@ export default function VillagePage() {
                         </div>
                       ))}
                     </div>
+                    <h4 className="mt-4 font-semibold">All Invitations (detailed)</h4>
+                    <table style={{ fontSize: '12px', width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          {villageInvitations && villageInvitations.length > 0 && Object.keys(villageInvitations[0]).map((key) => (
+                            <th key={key} style={{ border: '1px solid #ccc', padding: '2px' }}>{key}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {villageInvitations && villageInvitations.map((inv, idx) => (
+                          <tr key={idx}>
+                            {Object.values(inv).map((val, i) => (
+                              <td key={i} style={{ border: '1px solid #ccc', padding: '2px' }}>{String(val)}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               );
