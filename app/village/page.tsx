@@ -945,19 +945,20 @@ export default function VillagePage() {
                     {searchResults.length > 0 && (
                       <div className="mt-4 space-y-2">
                         {searchResults.map((mom) => {
-                          const alreadyInvited = villageInvitations.some(
-                            (inv) => inv.from_user_id === currentUserId && inv.to_user_id === mom.id && inv.status === 'pending'
+                          const sentInvite = villageInvitations.find(
+                            (inv) => inv.from_user_id === currentUserId && inv.to_user_id === mom.id
                           );
+                          const inviteStatus = sentInvite?.status;
                           return (
                             <div
                               key={mom.id}
-                              onClick={alreadyInvited ? undefined : () => {
+                              onClick={sentInvite && inviteStatus === 'pending' ? undefined : () => {
                                 setSelectedMomId(mom.id);
                                 setSelectedMom(mom);
                                 setSearchQuery("");
                                 setSearchResults([]);
                               }}
-                              className={`flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 ${alreadyInvited ? 'opacity-60 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer'} transition-colors`}
+                              className={`flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 ${sentInvite && inviteStatus === 'pending' ? 'opacity-60 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer'} transition-colors`}
                             >
                               {/* Profile Photo */}
                               <img
@@ -974,11 +975,19 @@ export default function VillagePage() {
                                     ? `${mom.user_metadata?.city || ''}${mom.user_metadata?.city && mom.user_metadata?.state ? ', ' : ''}${mom.user_metadata?.state || ''}`
                                     : "Location not set"}
                                 </p>
-                                {alreadyInvited && (
-                                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 rounded">Already Invited</span>
+                                {sentInvite && (
+                                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded ${
+                                    inviteStatus === 'pending'
+                                      ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200'
+                                      : inviteStatus === 'accepted'
+                                      ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200'
+                                      : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200'
+                                  }`}>
+                                    Invitation {inviteStatus}
+                                  </span>
                                 )}
                               </div>
-                              {!alreadyInvited && <div className="text-pink-500 font-semibold">Select</div>}
+                              {!sentInvite && <div className="text-pink-500 font-semibold">Select</div>}
                             </div>
                           );
                         })}
