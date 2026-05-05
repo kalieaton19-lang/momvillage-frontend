@@ -1184,4 +1184,3 @@ export default function VillagePage() {
                 )}
               </div>
             )}
-      }
