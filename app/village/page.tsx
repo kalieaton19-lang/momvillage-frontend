@@ -319,6 +319,11 @@ export default function VillagePage() {
         .from('village_invitations')
         .insert([invitation])
         .select();
+      // Additional diagnostics after insert attempt
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('uid', sessionData.session?.user?.id);
+      console.log('token aud', sessionData.session?.access_token?.split(".")?.[1] ? 'has payload' : 'missing');
+      console.log('payload types', { from_user_id: typeof invitation.from_user_id });
       // Extra debug logging
       console.log('[Village Debug] Supabase insert result:', { data, error });
       if (error) {
