@@ -270,8 +270,19 @@ export default function VillagePage() {
 
   async function handleSendVillageInvitation() {
 
-    // Confirm session and user ID before insert
-    const { data: { user } } = await supabase.auth.getUser();
+    // Confirm session and user ID before insert, with diagnostics
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+    console.log('[invitation] session error:', sessionErr);
+    console.log('[invitation] session exists:', !!sessionData?.session);
+    console.log('[invitation] user:', sessionData?.session?.user?.id);
+    console.log('[invitation] access_token exists:', !!sessionData?.session?.access_token);
+    console.log('[invitation] token (first 10 chars):', sessionData?.session?.access_token?.slice(0, 10));
+    if (!sessionData?.session?.access_token) {
+      setMessage('No active Supabase session: user not authenticated for insert.');
+      setTimeout(() => setMessage(""), 3000);
+      return;
+    }
+    const user = sessionData.session.user;
     if (!user) {
       setMessage("You must be logged in to send an invitation.");
       setTimeout(() => setMessage(""), 3000);
