@@ -27,6 +27,23 @@ interface VillageInvitation {
   from_user_photo?: string;
   status: 'pending' | 'accepted' | 'declined';
   created_at: string;
+}
+
+export default function VillagePage() {
+  // ...existing hooks and state...
+  const [inviteMode, setInviteMode] = useState<'search' | 'conversations'>('search');
+  const [villageSearchQuery, setVillageSearchQuery] = useState("");
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  // Always update currentUserId from Supabase before rendering invitations UI
+  useEffect(() => {
+    ensureCurrentUserId();
+  }, [activeTab, showInviteForm]);
+
+  // ...rest of your VillagePage code...
   const [inviteMode, setInviteMode] = useState<'search' | 'conversations'>('search');
   const [villageSearchQuery, setVillageSearchQuery] = useState("");
 
