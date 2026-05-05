@@ -79,6 +79,17 @@ export default function VillagePage() {
     checkUser();
   }, []);
 
+  // Always update currentUserId from Supabase before rendering invitations UI
+  async function ensureCurrentUserId() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && user.id !== currentUserId) {
+      setCurrentUserId(user.id);
+    }
+  }
+  useEffect(() => {
+    ensureCurrentUserId();
+  }, [activeTab, showInviteForm]);
+
   async function checkUser() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -941,16 +952,18 @@ export default function VillagePage() {
                             (inv) => inv.from_user_id === currentUserId && inv.to_user_id === mom.id
                           );
                           const inviteStatus = sentInvite?.status;
+                          // Block all duplicate invites, regardless of status
+                          const alreadyInvited = !!sentInvite;
                           return (
                             <div
                               key={mom.id}
-                              onClick={sentInvite && inviteStatus === 'pending' ? undefined : () => {
+                              onClick={alreadyInvited ? undefined : () => {
                                 setSelectedMomId(mom.id);
                                 setSelectedMom(mom);
                                 setSearchQuery("");
                                 setSearchResults([]);
                               }}
-                              className={`flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 ${sentInvite && inviteStatus === 'pending' ? 'opacity-60 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer'} transition-colors`}
+                              className={`flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 ${alreadyInvited ? 'opacity-60 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer'} transition-colors`}
                             >
                               {/* Profile Photo */}
                               <img
@@ -979,7 +992,7 @@ export default function VillagePage() {
                                   </span>
                                 )}
                               </div>
-                              {!sentInvite && <div className="text-pink-500 font-semibold">Select</div>}
+                              {!alreadyInvited && <div className="text-pink-500 font-semibold">Select</div>}
                             </div>
                           );
                         })}
