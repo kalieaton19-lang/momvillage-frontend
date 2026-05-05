@@ -83,26 +83,6 @@ export default function VillagePage() {
   // ...existing code...
 
   // Main return statement for the component
-      </div>
-      {/* Tab Content */}
-      <div>
-        {activeTab === 'members' && (
-          <>
-            {villageMembers.length > 0 ? (
-                <div>
-                  <div className="mb-6 space-y-3">
-                    <div className="relative">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 relative">
-                          <div className="absolute left-3 top-3 text-zinc-400">🔍</div>
-                          <input
-                            type="text"
-                            placeholder="Search by name, city, or state..."
-                            value={villageSearchQuery}
-                            onChange={(e) => setVillageSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-10 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-500 dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
-                          />
-                          {villageSearchQuery && (
                             <button
                               onClick={() => setVillageSearchQuery("")}
                               className="absolute right-3 top-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 text-lg"
