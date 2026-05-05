@@ -51,6 +51,9 @@ interface MomProfile {
 }
 
 export default function VillagePage() {
+      // Derived invitation arrays for UI
+      const pendingInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'pending');
+      const acceptedInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'accepted');
     // Track pending sent invitations for the current user
     // Removed pendingSentInvitations; use villageInvitations for all checks
   const router = useRouter();
