@@ -27,6 +27,15 @@ interface VillageInvitation {
   from_user_photo?: string;
   status: 'pending' | 'accepted' | 'declined';
   created_at: string;
+    // ...existing hooks and state...
+
+    // ...existing code...
+
+    // Derived invitation arrays for UI (if not already present)
+    const pendingInvitations = villageInvitations.filter(i => i.to_user_id === currentUserId && i.status === 'pending');
+
+    return (
+      <>
         {/* Tabs */}
         <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
           <button
