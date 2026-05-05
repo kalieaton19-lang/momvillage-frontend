@@ -86,18 +86,9 @@ export default function VillagePage() {
   return (
     <>
       {/* ...existing JSX content here... */}
+      {/* Members grid and action buttons should be here, inside the fragment */}
     </>
   );
-                          <button onClick={() => handleStartConversation(m.id)} className="w-full px-3 py-2 text-xs text-center bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-lg hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors font-medium">💬 Message</button>
-                          <button onClick={() => handleRemoveFromVillage(m.id)} className="w-full px-3 py-2 text-xs text-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium">✕ Remove</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
-                  <div className="text-4xl mb-3">🏘️</div>
                   <p className="text-zinc-600 dark:text-zinc-400 mb-4">Your village is empty</p>
                   <Link href="/find-moms" className="inline-block px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium">Find Moms to Add</Link>
                 </div>
