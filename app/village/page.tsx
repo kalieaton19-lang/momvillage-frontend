@@ -74,6 +74,7 @@ export default function VillagePage() {
   }
 
   // Main return statement for the component
+
   return (
     <>
       {/* ...existing JSX content here... */}
