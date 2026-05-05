@@ -84,8 +84,11 @@ export default function VillagePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user && user.id !== currentUserId) {
       setCurrentUserId(user.id);
+      }
     }
   }
+
+export default VillagePage;
   useEffect(() => {
     ensureCurrentUserId();
   }, [activeTab, showInviteForm]);
@@ -96,6 +99,7 @@ export default function VillagePage() {
       if (!session) {
         router.push('/login');
         return;
+      }
       setUser(session.user);
       setCurrentUserId(session.user.id);
       
