@@ -605,6 +605,14 @@ export default function VillagePage() {
                 {pendingInvitations.length}
               </span>
             )}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default VillagePage;
           </button>
           <button
             onClick={() => {
