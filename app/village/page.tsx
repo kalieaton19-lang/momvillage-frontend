@@ -19,8 +19,6 @@ interface VillageMember {
 	joined_date: string;
 }
 
-export default VillagePage;
-
 interface VillageInvitation {
   id: string;
   from_user_id: string;
