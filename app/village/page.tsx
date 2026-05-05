@@ -92,168 +92,197 @@ export default function VillagePage() {
   async function loadVillageData(userId: string) {
     try {
       // Load village members from Supabase
-      const { data: members, error: membersError } = await supabase
-        .from('village_members')
-        .select('*')
-        .eq('user_id', userId);
-      if (!membersError && members) {
-        setVillageMembers(members);
-      }
-      // Load invitations from Supabase (both sent and received)
-      const { data: invitations, error: invError } = await supabase
-        .from('village_invitations')
-        .select('*')
-        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
-      console.log('[Village Debug] Supabase invitations fetch:', { userId, invitations, invError });
-      if (invError) {
-        console.error('[Village Debug] Error fetching invitations:', invError);
-      }
-      if (invitations) {
-        setVillageInvitations(invitations);
-      }
-      // Load conversations from Supabase
-      const { data: convs, error: convError } = await supabase
-        .from('conversations')
-        .select('*')
-        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-        .order('updated_at', { ascending: false });
-      if (!convError && convs) {
-        // Fetch all user profiles for city/state lookup
-        const { data: profiles, error: profilesError } = await supabase
-          .from('user_public_profiles')
-          .select('id, city, state');
-        const profileMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
-          acc[p.id] = p;
-          return acc;
-        }, {});
-        // Enrich each conversation with other_user_id, other_user_name, other_user_photo, other_user_city, other_user_state
-        const enrichedConvs = convs.map((conv: any) => {
-          let other_user_id = null;
-          let other_user_name = null;
-          let other_user_photo = null;
-          let other_user_city = null;
-          let other_user_state = null;
-          if (conv.user1_id === userId) {
-            other_user_id = conv.user2_id;
-            other_user_name = conv.user2_name || '';
-            other_user_photo = conv.user2_photo || '';
-          } else if (conv.user2_id === userId) {
-            other_user_id = conv.user1_id;
-            other_user_name = conv.user1_name || '';
-            other_user_photo = conv.user1_photo || '';
-          }
-          // Lookup city/state from user_public_profiles
-          if (other_user_id && profileMap[other_user_id]) {
-            other_user_city = profileMap[other_user_id].city || '';
-            other_user_state = profileMap[other_user_id].state || '';
-          }
-          return {
-            ...conv,
-            other_user_id,
-            other_user_name,
-            other_user_photo,
-            other_user_city,
-            other_user_state,
-          };
-        });
-        setConversations(enrichedConvs);
-      }
-      console.log('[Village Debug] Loaded conversations from Supabase:', convs);
-    } catch (e) {
-      console.error('[Village Debug] Error loading village data:', e);
-    }
-  }
 
-  async function loadAvailableMoms() {
-    try {
-      // Fetch all public profiles from Supabase (excluding current user)
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        setAvailableMoms([]);
-        return;
-      }
-      const { data, error } = await supabase
-        .from('user_public_profiles')
-        .select('*');
-      if (error) {
-        console.error('Error fetching user_public_profiles:', error);
-        setAvailableMoms([]);
-        return;
-      }
-      // Exclude current user and map to MomProfile
-      const moms = (data || [])
-        .filter((profile: any) => profile.id !== authUser.id)
-        .map((profile: any) => ({
-          id: profile.id,
-          email: profile.email ?? undefined,
-          user_metadata: {
-            full_name: profile.full_name,
-            profile_photo_url: profile.profile_photo_url,
-            city: profile.city,
-            state: profile.state,
-            // add other fields as needed
-          },
-        }));
-      setAvailableMoms(moms);
-    } catch (error) {
-      console.error('Error loading available moms:', error);
-      setAvailableMoms([]);
-    }
-  }
+        {/* Tabs */}
+        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
+              (activeTab as VillageTabType) === 'members'
+                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+            }`}
+          >
+            Members ({villageMembers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('invitations')}
+            className={`px-4 py-2 font-medium text-sm transition-colors relative whitespace-nowrap ${
+              (activeTab as VillageTabType) === 'invitations'
+                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+            }`}
+          >
+            Invitations
+            {pendingInvitations.length > 0 && (
+              <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {pendingInvitations.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-  async function handleSearchMoms(query: string) {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setSearching(false);
-      return;
-    }
+        {/* Tab Content */}
+        <div>
+          {activeTab === 'members' && (
+            <>
+              {villageMembers.length > 0 ? (
+                <div>
+                  <div className="mb-6 space-y-3">
+                    <div className="relative">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 relative">
+                          <div className="absolute left-3 top-3 text-zinc-400">🔍</div>
+                          <input
+                            type="text"
+                            placeholder="Search by name, city, or state..."
+                            value={villageSearchQuery}
+                            onChange={(e) => setVillageSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-10 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-500 dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
+                          />
+                          {villageSearchQuery && (
+                            <button
+                              onClick={() => setVillageSearchQuery("")}
+                              className="absolute right-3 top-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 text-lg"
+                              aria-label="Clear search"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {villageSearchQuery && (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                          Found {villageMembers.filter((m) =>
+                            m.name.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
+                            m.city?.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
+                            m.state?.toLowerCase().includes(villageSearchQuery.toLowerCase())
+                          ).length} of {villageMembers.length} members
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {villageMembers.filter((m) =>
+                      villageSearchQuery === "" ||
+                      m.name.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
+                      m.city?.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
+                      m.state?.toLowerCase().includes(villageSearchQuery.toLowerCase())
+                    ).map((m) => (
+                      <div key={m.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-lg transition-all">
+                        <div className="flex items-start gap-4 mb-4">
+                          {m.photo ? (
+                            <img src={m.photo} alt={m.name} className="w-14 h-14 rounded-full object-cover border-2 border-pink-300" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold">
+                              {m.name[0]?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{m.name}</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.city}, {m.state}</p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-4">Joined {new Date(m.joined_date).toLocaleDateString()}</div>
+                        <div className="flex flex-col gap-2">
+                          <button onClick={() => setSelectedMemberProfile(m)} className="w-full px-3 py-2 text-xs text-center bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors font-medium">👤 View Profile</button>
+                          <button onClick={() => handleStartConversation(m.id)} className="w-full px-3 py-2 text-xs text-center bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-lg hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors font-medium">💬 Message</button>
+                          <button onClick={() => handleRemoveFromVillage(m.id)} className="w-full px-3 py-2 text-xs text-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium">✕ Remove</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+                  <div className="text-4xl mb-3">🏘️</div>
+                  <p className="text-zinc-600 dark:text-zinc-400 mb-4">Your village is empty</p>
+                  <Link href="/find-moms" className="inline-block px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium">Find Moms to Add</Link>
+                </div>
+              )}
+            </>
+          )}
 
-    setSearching(true);
-    try {
-      // Search for all users and filter by name matching
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      // In a real production app, you'd use Supabase's full-text search
-      // For now, we'll use the Supabase admin API to get users
-      // This requires proper RLS policies in a real app
-      
-      // Fetch all users and filter client-side (not ideal for production)
-      const { data, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) {
-        console.error('Error searching users:', error);
-        setSearchResults([]);
-      } else if (data?.users) {
-        // Filter users by name matching (case-insensitive)
-        const lowerQuery = query.toLowerCase();
-        type UserRow = { id: string; email?: string | null; user_metadata?: Record<string, any> };
-        const users: UserRow[] = (data.users || []) as unknown as UserRow[];
-        const filtered = users
-          .filter((u: UserRow) => {
-            const fullName = u.user_metadata?.full_name || '';
-            return fullName.toLowerCase().includes(lowerQuery) && u.id !== currentUserId;
-          })
-          .map((u: UserRow): MomProfile => ({
-            id: u.id,
-            email: u.email ?? undefined,
-            user_metadata: u.user_metadata as any,
-          })) as MomProfile[];
-        
-        setSearchResults(filtered);
-      }
-    } catch (error) {
-      console.error('Error searching moms:', error);
-      // Fallback: show message about search limitations
-      setMessage("Search requires proper permissions. Try inviting by email instead.");
-    } finally {
-      setSearching(false);
-    }
-  }
+          {activeTab === 'invitations' && (
+            <div className="space-y-6">
+              {/* Pending Invitations */}
+              {pendingInvitations.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                    📬 Pending Invitations ({pendingInvitations.length})
+                  </h3>
+                  <div className="space-y-4">
+                    {pendingInvitations.map(invitation => (
+                      <div
+                        key={invitation.id}
+                        className="p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                          <div>
+                            <h4 className="font-semibold text-purple-900 dark:text-purple-50 mb-1">
+                              {invitation.from_user_name}
+                            </h4>
+                            <p className="text-sm text-purple-700 dark:text-purple-300">
+                              Wants you to join their village
+                            </p>
+                            {invitation.message && (
+                              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                                "{invitation.message}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleRespondToVillageInvitation(invitation.id, true)}
+                            className="flex-1 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-medium transition-colors"
+                          >
+                            ✓ Accept
+                          </button>
+                          <button
+                            onClick={() => handleRespondToVillageInvitation(invitation.id, false)}
+                            className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium transition-colors"
+                          >
+                            ✕ Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-  async function handleSendVillageInvitation() {
-
-    // Confirm session and user ID before insert, with diagnostics
+              {/* Accepted Invitations */}
+              {acceptedInvitations.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                    ✓ Accepted ({acceptedInvitations.length})
+                  </h3>
+                  <div className="space-y-4">
+                    {acceptedInvitations.map(invitation => (
+                      <div
+                        key={invitation.id}
+                        className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl"
+                      >
+                        <div className="flex items-start gap-4">
+                          <span className="text-2xl">🤝</span>
+                          <div>
+                            <h4 className="font-semibold text-green-900 dark:text-green-50">
+                              {invitation.from_user_name}
+                            </h4>
+                            <p className="text-sm text-green-700 dark:text-green-300">
+                              Invitation accepted!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
     const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
     console.log('[invitation] session error:', sessionErr);
     console.log('[invitation] session exists:', !!sessionData?.session);
