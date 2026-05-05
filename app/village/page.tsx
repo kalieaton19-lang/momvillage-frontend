@@ -274,20 +274,6 @@ export default function VillagePage() {
             </div>
           )}
         </div>
-                    </h3>
-                    <div className="space-y-2">
-                      {villageInvitations.map(inv => (
-                        <div key={inv.id} className="p-2 border rounded">
-                          <div>From: {inv.from_user_id}</div>
-                          <div>To: {inv.to_user_id}</div>
-                          <div>Status: {inv.status}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <h4 className="mt-4 font-semibold">All Invitations (detailed)</h4>
-                    <table style={{ fontSize: '12px', width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
                           {villageInvitations && villageInvitations.length > 0 && Object.keys(villageInvitations[0]).map((key) => (
                             <th key={key} style={{ border: '1px solid #ccc', padding: '2px' }}>{key}</th>
                           ))}
