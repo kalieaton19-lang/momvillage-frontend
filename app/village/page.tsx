@@ -635,9 +635,9 @@ export default function VillagePage() {
 
       {/* Members Tab */}
       {(activeTab as VillageTabType) === 'members' && (
-          <div>
-            {villageMembers.length > 0 ? (
-              <div>
+        <div>
+          {villageMembers.length > 0 ? (
+            <div>
                 <div className="mb-6 space-y-3">
                   <div className="relative">
                     <div className="flex items-center gap-2">
