@@ -7,10 +7,17 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 export function Input({ label, hint, className = "", ...props }: InputProps) {
+  const { id, name } = props;
   return (
     <div className="space-y-1">
-      {label ? <label className="block text-sm font-medium text-gray-700">{label}</label> : null}
+      {label && id ? (
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
+      ) : label ? (
+        <span className="block text-sm font-medium text-gray-700">{label}</span>
+      ) : null}
       <input
+        id={id}
+        name={name}
         className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 shadow-sm focus:border-black focus:ring-black ${className}`}
         {...props}
       />

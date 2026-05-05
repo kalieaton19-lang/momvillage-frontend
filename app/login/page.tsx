@@ -66,15 +66,21 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
+            id="login-email"
+            name="email"
             type="email"
             label="Email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <Input
+            id="login-password"
+            name="password"
             type="password"
             label="Password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
