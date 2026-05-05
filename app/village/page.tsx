@@ -314,45 +314,52 @@ export default function VillagePage() {
       }
 
       // Only send columns that exist in the table
-      const invitation = {
-        to_user_id: selectedMom.id,
-        name: selectedMom.user_metadata?.full_name || null,
-        city: selectedMom.user_metadata?.city || null,
-        state: selectedMom.user_metadata?.state || null,
-        from_user_id: user.id,
-      };
-
-      // Debug: log the invitation payload
-      console.log('[Village Debug] Invitation payload:', invitation);
-
-      // Save invitation to Supabase and get the real row back
-      const { data, error } = await supabase
-        .from('village_invitations')
-        .insert([invitation])
-        .select();
-      // Additional diagnostics after insert attempt
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('uid', sessionData.session?.user?.id);
-      console.log('token aud', sessionData.session?.access_token?.split(".")?.[1] ? 'has payload' : 'missing');
-      console.log('payload types', { from_user_id: typeof invitation.from_user_id });
-      // Extra debug logging
-      console.log('[Village Debug] Supabase insert result:', { data, error });
-      if (error) {
-        // Log full error details
-        console.error('[Village Debug] Supabase error:', error);
-        if (error.details) console.error('[Village Debug] Error details:', error.details);
-        if (error.hint) console.error('[Village Debug] Error hint:', error.hint);
-        if (error.code) console.error('[Village Debug] Error code:', error.code);
-        // Show error in UI for debugging
-        setMessage(`Failed to send invitation: ${error.message || error.code || 'Unknown error'}`);
-        setTimeout(() => setMessage(""), 6000);
-        return;
-      }
-
-      // Debug: log the invitation insert result
-      console.log('[Village Debug] Supabase insert result:', { data, error });
-      if (error) {
-        console.error('[Village Debug] Error inserting invitation:', error);
+            {/* Invitations Tab */}
+            {(activeTab as VillageTabType) === 'invitations' && (
+              <>
+                {console.log('currentUserId', currentUserId)}
+                {console.log('villageInvitations', villageInvitations)}
+                {currentUserId && (
+                  <div className="space-y-6">
+                    {/* Sent Invitations */}
+                    {villageInvitations.filter(i => i.from_user_id === currentUserId).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                          📤 Sent Invitations ({villageInvitations.filter(i => i.from_user_id === currentUserId).length})
+                        </h3>
+                        <div className="space-y-4">
+                          {villageInvitations.filter(i => i.from_user_id === currentUserId).map(invitation => {
+                            // Cast to VillageInvitationWithRecipient for UI fields
+                            const inv = invitation as VillageInvitationWithRecipient;
+                            return (
+                              <div
+                                key={inv.id}
+                                className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl"
+                              >
+                                <div className="flex items-start gap-4 mb-2">
+                                  <div>
+                                    <h4 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
+                                      To: {inv.to_user_name || inv.to_user_id}
+                                    </h4>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                                      Status: {inv.status}
+                                    </p>
+                                    {inv.message && (
+                                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                                        "{inv.message}"
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
       }
       // After sending, refetch all invitations to keep UI in sync
       if (user?.id) {
