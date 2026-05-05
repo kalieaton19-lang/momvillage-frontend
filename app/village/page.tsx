@@ -585,8 +585,6 @@ export default function VillagePage() {
         <div>
           {villageMembers.length > 0 ? (
             <div>
-          </button>
-          <button
             onClick={() => {
               setActiveTab('invite');
               setShowInviteForm(false);
