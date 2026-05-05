@@ -87,10 +87,7 @@ export default function VillagePage() {
       }
       }
 
-    export default VillagePage;
   }
-
-export default VillagePage;
   useEffect(() => {
     ensureCurrentUserId();
   }, [activeTab, showInviteForm]);
