@@ -274,30 +274,6 @@ export default function VillagePage() {
             </div>
           )}
         </div>
-
-      }
-
-      // Only send columns that exist in the table
-      // --- INSERT INVITATION ---
-      const { data: insertData, error: insertError } = await supabase
-        .from('village_invitations')
-        .insert([{ from_user_id: currentUserId, to_user_id: selectedMomId }]);
-      console.log('[Village Debug] Supabase insert result:', { insertData, insertError });
-            {/* Invitations Tab */}
-            {(activeTab as VillageTabType) === 'invitations' && (() => {
-              // Move debug logs outside JSX
-              console.log('currentUserId', currentUserId);
-              console.log('villageInvitations', villageInvitations);
-              console.log(
-                "filteredSentInvitations",
-                villageInvitations.filter(i => i.from_user_id === currentUserId)
-              );
-              return currentUserId && (
-                <div className="space-y-6">
-                  {/* TEMP: Render all invitations for debugging */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
-                      All Invitations (debug)
                     </h3>
                     <div className="space-y-2">
                       {villageInvitations.map(inv => (
