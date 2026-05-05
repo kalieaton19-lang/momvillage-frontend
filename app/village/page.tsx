@@ -274,6 +274,7 @@ export default function VillagePage() {
             </div>
           )}
         </div>
+                        <tr>
                           {villageInvitations && villageInvitations.length > 0 && Object.keys(villageInvitations[0]).map((key) => (
                             <th key={key} style={{ border: '1px solid #ccc', padding: '2px' }}>{key}</th>
                           ))}
