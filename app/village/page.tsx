@@ -578,7 +578,6 @@ export default function VillagePage() {
               </span>
 
             )}
-        </div>
       {(activeTab as VillageTabType) === 'members' && (
         <div>
           {villageMembers.length > 0 ? (
