@@ -85,7 +85,9 @@ export default function VillagePage() {
     if (user && user.id !== currentUserId) {
       setCurrentUserId(user.id);
       }
-    }
+      }
+
+    export default VillagePage;
   }
 
 export default VillagePage;
