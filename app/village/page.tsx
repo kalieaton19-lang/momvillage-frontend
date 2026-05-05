@@ -83,41 +83,11 @@ export default function VillagePage() {
   // ...existing code...
 
   // Main return statement for the component
-                            <button
-                              onClick={() => setVillageSearchQuery("")}
-                              className="absolute right-3 top-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 text-lg"
-                              aria-label="Clear search"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      {villageSearchQuery && (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                          Found {villageMembers.filter((m) =>
-                            m.name.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
-                            m.city?.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
-                            m.state?.toLowerCase().includes(villageSearchQuery.toLowerCase())
-                          ).length} of {villageMembers.length} members
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {villageMembers.filter((m) =>
-                      villageSearchQuery === "" ||
-                      m.name.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
-                      m.city?.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
-                      m.state?.toLowerCase().includes(villageSearchQuery.toLowerCase())
-                    ).map((m) => (
-                      <div key={m.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-lg transition-all">
-                        <div className="flex items-start gap-4 mb-4">
-                          {m.photo ? (
-                            <img src={m.photo} alt={m.name} className="w-14 h-14 rounded-full object-cover border-2 border-pink-300" />
-                          ) : (
-                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold">
-                              {m.name[0]?.toUpperCase() || '?'}
+  return (
+    <>
+      {/* ...existing JSX content here... */}
+    </>
+  );
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
