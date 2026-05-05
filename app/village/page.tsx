@@ -17,7 +17,6 @@ interface VillageMember {
   city?: string;
   state?: string;
   joined_date: string;
-}
 
 interface VillageInvitation {
   id: string;
