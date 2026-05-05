@@ -322,41 +322,25 @@ export default function VillagePage() {
                 {currentUserId && (
                   <div className="space-y-6">
                     {/* Sent Invitations */}
-                    {villageInvitations.filter(i => i.from_user_id === currentUserId).length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
-                          📤 Sent Invitations ({villageInvitations.filter(i => i.from_user_id === currentUserId).length})
-                        </h3>
-                        <div className="space-y-4">
-                          {villageInvitations.filter(i => i.from_user_id === currentUserId).map(invitation => {
-                            // Cast to VillageInvitationWithRecipient for UI fields
-                            const inv = invitation as VillageInvitationWithRecipient;
-                            return (
-                              <div
-                                key={inv.id}
-                                className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl"
-                              >
-                                <div className="flex items-start gap-4 mb-2">
-                                  <div>
-                                    <h4 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
-                                      To: {inv.to_user_name || inv.to_user_id}
-                                    </h4>
-                                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                                      Status: {inv.status}
-                                    </p>
-                                    {inv.message && (
-                                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-                                        "{inv.message}"
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                    {console.log(
+                      "filteredSentInvitations",
+                      villageInvitations.filter(i => i.from_user_id === currentUserId)
                     )}
+                    {/* TEMP: Render all invitations for debugging */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                        All Invitations (debug)
+                      </h3>
+                      <div className="space-y-2">
+                        {villageInvitations.map(inv => (
+                          <div key={inv.id} className="p-2 border rounded">
+                            <div>From: {inv.from_user_id}</div>
+                            <div>To: {inv.to_user_id}</div>
+                            <div>Status: {inv.status}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </>
