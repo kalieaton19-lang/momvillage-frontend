@@ -579,15 +579,6 @@ export default function VillagePage() {
 
             )}
         </div>
-
-      {/* Members Tab */}
-      {(activeTab as VillageTabType) === 'members' && (
-        <div>
-          {villageMembers.length > 0 ? (
-            <div>
-        </div>
-
-      {/* Members Tab */}
       {(activeTab as VillageTabType) === 'members' && (
         <div>
           {villageMembers.length > 0 ? (
