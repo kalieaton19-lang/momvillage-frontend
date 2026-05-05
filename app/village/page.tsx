@@ -282,7 +282,7 @@ export default function VillagePage() {
             </div>
           )}
         </div>
-    // ...existing code continues...
+
       }
 
       // Only send columns that exist in the table
