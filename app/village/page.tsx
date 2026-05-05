@@ -68,7 +68,7 @@ export default function VillagePage() {
       if (!session) {
         router.push('/login');
         return;
-      }
+
       setUser(session.user);
       setCurrentUserId(session.user.id);
       
