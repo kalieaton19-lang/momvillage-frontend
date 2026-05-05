@@ -269,9 +269,14 @@ export default function VillagePage() {
   }
 
   async function handleSendVillageInvitation() {
-      // Confirm session and user ID before insert
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('session?', !!session, 'user?', session?.user?.id);
+
+    // Confirm session and user ID before insert
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setMessage("You must be logged in to send an invitation.");
+      setTimeout(() => setMessage(""), 3000);
+      return;
+    }
     console.log('handleSendVillageInvitation called', { selectedMomId, selectedMom });
     if (!selectedMomId) {
       setMessage("Please select a mom to invite");
@@ -286,13 +291,13 @@ export default function VillagePage() {
         return;
       }
 
-
       // Only send columns that exist in the table
       const invitation = {
         to_user_id: selectedMom.id,
         name: selectedMom.user_metadata?.full_name || null,
         city: selectedMom.user_metadata?.city || null,
         state: selectedMom.user_metadata?.state || null,
+        from_user_id: user.id,
       };
 
       // Debug: log the invitation payload
