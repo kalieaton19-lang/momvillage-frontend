@@ -315,36 +315,34 @@ export default function VillagePage() {
 
       // Only send columns that exist in the table
             {/* Invitations Tab */}
-            {(activeTab as VillageTabType) === 'invitations' && (
-              <>
-                {console.log('currentUserId', currentUserId)}
-                {console.log('villageInvitations', villageInvitations)}
-                {currentUserId && (
-                  <div className="space-y-6">
-                    {/* Sent Invitations */}
-                    {console.log(
-                      "filteredSentInvitations",
-                      villageInvitations.filter(i => i.from_user_id === currentUserId)
-                    )}
-                    {/* TEMP: Render all invitations for debugging */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
-                        All Invitations (debug)
-                      </h3>
-                      <div className="space-y-2">
-                        {villageInvitations.map(inv => (
-                          <div key={inv.id} className="p-2 border rounded">
-                            <div>From: {inv.from_user_id}</div>
-                            <div>To: {inv.to_user_id}</div>
-                            <div>Status: {inv.status}</div>
-                          </div>
-                        ))}
-                      </div>
+            {(activeTab as VillageTabType) === 'invitations' && (() => {
+              // Move debug logs outside JSX
+              console.log('currentUserId', currentUserId);
+              console.log('villageInvitations', villageInvitations);
+              console.log(
+                "filteredSentInvitations",
+                villageInvitations.filter(i => i.from_user_id === currentUserId)
+              );
+              return currentUserId && (
+                <div className="space-y-6">
+                  {/* TEMP: Render all invitations for debugging */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                      All Invitations (debug)
+                    </h3>
+                    <div className="space-y-2">
+                      {villageInvitations.map(inv => (
+                        <div key={inv.id} className="p-2 border rounded">
+                          <div>From: {inv.from_user_id}</div>
+                          <div>To: {inv.to_user_id}</div>
+                          <div>Status: {inv.status}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )}
-              </>
-            )}
+                </div>
+              );
+            })()}
       // After sending, refetch all invitations to keep UI in sync
       if (user?.id) {
         await loadVillageData(user.id);
