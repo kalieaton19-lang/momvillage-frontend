@@ -569,37 +569,7 @@ export default function VillagePage() {
     return enrichedInvites;
   }
 
-function VillagePage() {
-  // ...existing hooks and state...
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
-        <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
-      </div>
-    );
-  }
-
-  const pendingInvitations = villageInvitations.filter(i => i.status === 'pending');
-  const acceptedInvitations = villageInvitations.filter(i => i.status === 'accepted');
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">My Village 🏘️</h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                Your circle of mom support and friendship
-              </p>
-            </div>
-            <Link href="/home" className="text-sm text-pink-600 dark:text-pink-400 hover:underline">
-              Back to Home
-            </Link>
-          </div>
-        </header>
+// ...existing code above...
 
         {message && (
           <div className={`mb-6 p-4 rounded-lg text-sm font-medium ${
