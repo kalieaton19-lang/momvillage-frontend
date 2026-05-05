@@ -83,11 +83,6 @@ export default function VillagePage() {
   // ...existing code...
 
   // Main return statement for the component
-        </div>
-              {pendingInvitations.length}
-            </span>
-          )}
-        </button>
       </div>
       {/* Tab Content */}
       <div>
