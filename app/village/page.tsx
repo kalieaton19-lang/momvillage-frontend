@@ -62,9 +62,7 @@ export default function VillagePage() {
         .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
         .order("created_at", { ascending: false });
       if (invitesError) throw invitesError;
-      if (typeof window !== 'undefined') {
-        console.log('[DEBUG] Raw invites from Supabase:', invites);
-      }
+      // (Debug log removed)
       // Step 2: Collect 'other' user ids
       const otherIds = [...new Set((invites ?? []).map((invite: any) => (
         invite.from_user_id === session.user.id ? invite.to_user_id : invite.from_user_id
@@ -77,10 +75,16 @@ export default function VillagePage() {
       if (profilesError) throw profilesError;
       const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
       // Step 4: Merge into invitations, clarify sender/recipient
+      // Always show invitations for both sender and recipient
       const invitationsWithOther = (invites ?? []).map((invite: any) => {
         const isSender = invite.from_user_id === session.user.id;
         const isRecipient = invite.to_user_id === session.user.id;
-        const otherUserId = isSender ? invite.to_user_id : invite.from_user_id;
+        // Show the other user (not yourself)
+        let otherUserId = isSender ? invite.to_user_id : invite.from_user_id;
+        // If somehow the other user is yourself (shouldn't happen), fallback to the other id
+        if (otherUserId === session.user.id) {
+          otherUserId = isSender ? invite.from_user_id : invite.to_user_id;
+        }
         const otherProfile = profileById.get(otherUserId) as any;
         return {
           ...invite,
@@ -95,9 +99,6 @@ export default function VillagePage() {
           },
         };
       });
-      if (typeof window !== 'undefined') {
-        console.log('[DEBUG] invitationsWithOther:', invitationsWithOther);
-      }
       setInvitationsWithOther(invitationsWithOther);
     } catch (e) {
       setInvitationsWithOther([]);
