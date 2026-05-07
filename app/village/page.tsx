@@ -87,10 +87,10 @@ export default function VillagePage() {
         setInviteBanner(`Invitation sent to ${selectedMom.name}!`);
         setShowProfileModal(false);
       } else {
-        setInviteBanner(`Failed to send invitation.`);
+        setInviteBanner(`Failed to send invitation: ${error.message}`);
       }
-    } catch (e) {
-      setInviteBanner(`Failed to send invitation.`);
+    } catch (e: any) {
+      setInviteBanner(`Failed to send invitation: ${e?.message || e}`);
     } finally {
       setSendingInviteId(null);
     }
