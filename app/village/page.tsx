@@ -518,11 +518,10 @@ export default function VillagePage() {
                                         .eq("status", "pending");
                                       if (updateError) throw updateError;
                                       setInviteBanner("Resent invitation!");
-                                      await fetchUserAndInvitations();
                                     } else {
                                       setInviteBanner("You can only resend once.");
-                                      await fetchUserAndInvitations();
                                     }
+                                    await fetchUserAndInvitations();
                                   } catch (e: any) {
                                     setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
                                   } finally {
@@ -533,9 +532,10 @@ export default function VillagePage() {
                               >
                                 {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
                               </button>
-                            ) : invite.status === 'resent' ? (
-                              <span className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold">Resent</span>
                             ) : null}
+                            {invite.status === 'resent' && (
+                              <span className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold">Resent</span>
+                            )}
                           </div>
                         )}
                         {invite.status === 'accepted' && (
