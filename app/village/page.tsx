@@ -492,13 +492,22 @@ export default function VillagePage() {
                         {invite.status === 'pending' && invite.isSender && (
                           <div className="flex items-center gap-2 w-full justify-center">
                             <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
+                            {/* Debug log for invitation status and user IDs */}
+                            <pre style={{ fontSize: 10, color: '#888', margin: 0 }}>
+                              {`[DEBUG] invite.id: ${invite.id}, status: ${invite.status}, isSender: ${invite.isSender}, from: ${invite.from_user_id}, to: ${invite.to_user_id}, user.id: ${user.id}, invite.other.id: ${invite.other.id}`}
+                            </pre>
                             {invite.status === 'pending' ? (
                               <button
                                 className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
                                 onClick={async () => {
                                   setSendingInviteId(invite.other.id);
                                   try {
-                                    // Only allow resend if status is still pending in DB
+                                    // Debug log before resend
+                                    console.log('[DEBUG][Resend] Attempting resend', {
+                                      fromUserId: user.id,
+                                      toUserId: invite.other.id,
+                                      invite
+                                    });
                                     const fromUserId = user.id;
                                     const toUserId = invite.other.id;
                                     const low = fromUserId < toUserId ? fromUserId : toUserId;
@@ -509,6 +518,7 @@ export default function VillagePage() {
                                       .eq("from_to_low", low)
                                       .eq("from_to_high", high)
                                       .maybeSingle();
+                                    console.log('[DEBUG][Resend] Existing invitation', existing, findError);
                                     if (findError) throw findError;
                                     if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
                                       const { error: updateError } = await supabase
@@ -516,6 +526,7 @@ export default function VillagePage() {
                                         .update({ status: "resent" })
                                         .eq("id", existing.id)
                                         .eq("status", "pending");
+                                      console.log('[DEBUG][Resend] Update result', updateError);
                                       if (updateError) throw updateError;
                                       setInviteBanner("Resent invitation!");
                                     } else {
@@ -523,6 +534,7 @@ export default function VillagePage() {
                                     }
                                     await fetchUserAndInvitations();
                                   } catch (e: any) {
+                                    console.error('[DEBUG][Resend] Error', e);
                                     setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
                                   } finally {
                                     setSendingInviteId(null);
