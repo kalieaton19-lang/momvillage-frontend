@@ -167,8 +167,8 @@ export default function VillagePage() {
             status: "pending",
           });
         if (insertError) {
-          // If conflict (409), refresh invitations so user sees the existing invite
-          if (insertError.code === '23505' || insertError.status === 409) {
+          // If unique constraint violation, refresh invitations so user sees the existing invite
+          if (insertError.code === '23505') {
             setInviteBanner('An invitation already exists.');
             setShowProfileModal(false);
             await fetchUserAndInvitations();
