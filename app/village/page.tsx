@@ -7,42 +7,48 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
+  // Live search as user types (debounced)
+  React.useEffect(() => {
+    const trimmed = search.trim();
     setError("");
     setResults([]);
-    try {
-      const { data, error: searchError } = await supabase
-        .from("user_public_profiles")
-        .select("id, full_name, profile_photo_url, city, state, is_public")
-        .ilike("full_name", `%${search}%`)
-        .limit(10);
-      if (searchError) throw searchError;
-      setResults(data || []);
-      if ((data || []).length === 0) setError("No users found.");
-    } catch (e: any) {
-      setError("Search failed. Try again.");
-    } finally {
+    if (!trimmed || trimmed.split(/\s+/)[0].length < 2) {
+      if (trimmed.length > 0) setError("Please enter at least a first name (2+ letters).");
       setLoading(false);
+      return;
     }
-  }
+    setLoading(true);
+    const handler = setTimeout(async () => {
+      try {
+        const { data, error: searchError } = await supabase
+          .from("user_public_profiles")
+          .select("id, full_name, profile_photo_url, city, state, is_public")
+          .or(`full_name.ilike.%${trimmed}%,city.ilike.%${trimmed}%`)
+          .limit(10);
+        if (searchError) throw searchError;
+        setResults(data || []);
+        if ((data || []).length === 0) setError("No users found.");
+      } catch (e: any) {
+        setError("Search failed. Try again.");
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   return (
     <div>
-      <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
           className="flex-1 px-4 py-2 border rounded-lg"
-          placeholder="Enter name..."
+          placeholder="Enter name or city..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           required
         />
-        <button type="submit" className="px-4 py-2 bg-pink-500 text-white rounded-lg" disabled={loading}>
-          {loading ? "Searching..." : "Search"}
-        </button>
-      </form>
+      </div>
       {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
       <div className="space-y-2">
         {results.map(user => (
