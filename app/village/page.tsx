@@ -547,6 +547,12 @@ export default function VillagePage() {
                                 {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
                               </button>
                             ) : null}
+                            {invite.status !== 'pending' && (
+                              <div style={{ fontSize: 12, color: '#b91c1c', background: '#fff0f6', border: '1px solid #f472b6', borderRadius: 6, padding: 8, marginTop: 4 }}>
+                                <strong>[DEBUG]</strong> invite.status: {String(invite.status)}<br />
+                                <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{JSON.stringify(invite, null, 2)}</span>
+                              </div>
+                            )}
                             {invite.status === 'resent' && (
                               <button
                                 className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold cursor-default"
