@@ -137,24 +137,6 @@
   async function handleRemoveFromVillage(memberId: string) {
     if (!confirm('Remove this mom from your village?')) return;
 
-    try {
-      const updatedMembers = villageMembers.filter(m => m.id !== memberId);
-      const villageKey = `village_${currentUserId}`;
-      localStorage.setItem(villageKey, JSON.stringify(updatedMembers));
-      setVillageMembers(updatedMembers);
-
-      // Also remove current user from their village
-      const memberVillageKey = `village_${memberId}`;
-      const memberVillage = JSON.parse(localStorage.getItem(memberVillageKey) || '[]');
-      const filtered = memberVillage.filter((m: VillageMember) => m.id !== currentUserId);
-      localStorage.setItem(memberVillageKey, JSON.stringify(filtered));
-
-      setMessage("Removed from your village");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (error) {
-      console.error('Error removing member:', error);
-      setMessage("Failed to remove member");
-      setTimeout(() => setMessage(""), 3000);
     }
   }
 
