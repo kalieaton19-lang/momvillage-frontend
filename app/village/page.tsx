@@ -207,16 +207,16 @@ export default function VillagePage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {invite.status === 'pending' && isRecipient && (
+                        {invite.status === 'pending' && isRecipient && !isSender && (
                           <>
-                            <button className="px-4 py-2 bg-green-500 text-white rounded-lg" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
-                            <button className="px-4 py-2 bg-red-500 text-white rounded-lg" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
+                            <button className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
+                            <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
                           </>
                         )}
                         {invite.status === 'pending' && isSender && (
                           <>
                             <span className="text-xs text-zinc-400">Invitation sent</span>
-                            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg" onClick={() => {/* TODO: Resend logic */}}>Resend invite</button>
+                            <button className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors" onClick={() => {/* TODO: Resend logic */}}>Resend invite</button>
                           </>
                         )}
                         {invite.status === 'accepted' && (
