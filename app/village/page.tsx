@@ -11,41 +11,7 @@ type VillageTabType = 'members' | 'invite' | 'invitations';
 
 interface VillageMember {
   id: string;
-  name: string;
-  photo?: string;
-  email?: string;
-  city?: string;
-  state?: string;
-	joined_date: string;
-}
 
-interface VillageInvitation {
-  id: string;
-  from_user_id: string;
-  to_user_id: string;
-  from_user_name: string;
-  from_user_photo?: string;
-  status: 'pending' | 'accepted' | 'declined';
-  created_at: string;
-}
-
-export default function VillagePage() {
-  // ...existing hooks and state...
-  const [inviteMode, setInviteMode] = useState<'search' | 'conversations'>('search');
-  const [villageSearchQuery, setVillageSearchQuery] = useState("");
-
-  useEffect(() => {
-    checkUser();
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  async function ensureCurrentUserId() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user && user.id !== currentUserId) {
-      setCurrentUserId(user.id);
-    }
-  }
   useEffect(() => {
     ensureCurrentUserId();
   }, [activeTab, showInviteForm]);
