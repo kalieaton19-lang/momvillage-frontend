@@ -67,6 +67,14 @@ export default function VillagePage() {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">🤝</div>
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">Invite a mom to your village.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6 mb-4">
+              <button className="flex-1 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-all">
+                💬 Invite from Conversations
+              </button>
+              <button className="flex-1 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-all">
+                🔍 Invite by Name
+              </button>
+            </div>
             <p className="text-zinc-400 text-xs">(Coming soon: search and invite form)</p>
           </div>
         )}
