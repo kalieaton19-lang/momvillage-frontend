@@ -214,10 +214,10 @@ export default function VillagePage() {
                           </>
                         )}
                         {invite.status === 'pending' && isSender && (
-                          <>
-                            <span className="text-xs text-zinc-400">Invitation sent</span>
+                          <div className="flex flex-col items-center justify-center w-full">
+                            <span className="text-base text-pink-600 font-semibold text-center mb-2">Invitation sent</span>
                             <button className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors" onClick={() => {/* TODO: Resend logic */}}>Resend invite</button>
-                          </>
+                          </div>
                         )}
                         {invite.status === 'accepted' && (
                           <span className="text-green-600 font-semibold">Accepted</span>
