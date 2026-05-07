@@ -5,19 +5,13 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 const missingConfig = !url || !anonKey || url.includes('your-project-ref') || anonKey.includes('your-anon-public-key');
 
-// Only log hard errors in production; warn once in dev.
-if (missingConfig && process.env.NODE_ENV === 'production') {
-  console.error('❌ NEXT_PUBLIC_SUPABASE_URL is not configured');
-  console.error('❌ NEXT_PUBLIC_SUPABASE_ANON_KEY is not configured');
-} else if (missingConfig) {
-  const warnedKey = '__supabaseEnvWarned__';
-  if (!(globalThis as any)[warnedKey]) {
-    console.warn('⚠️ Supabase env missing. Running in local-only stub mode.');
-    (globalThis as any)[warnedKey] = true;
-  }
+// Fail loudly if env vars are missing (never use stub)
+if (missingConfig) {
+  throw new Error(
+    'Supabase environment variables are missing!\n' +
+    'Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.'
+  );
 }
-
-// Provide a safe local-only stub when env is missing, so the app can run.
 const isBrowser = typeof window !== 'undefined';
 
 type Store = {
@@ -137,4 +131,4 @@ const supabaseStub = {
   },
 } as const;
 
-export const supabase = missingConfig ? (supabaseStub as any) : createClient(url, anonKey);
+export const supabase = createClient(url, anonKey);
