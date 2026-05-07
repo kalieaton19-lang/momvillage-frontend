@@ -1,23 +1,4 @@
-
-
-"use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "../../lib/supabase";
-import { AsyncPendingInvites } from "./AsyncPendingInvites";
-
-type VillageTabType = 'members' | 'invite' | 'invitations';
-
-
-interface VillageMember {
-  id: string;
-  name: string;
-  photo?: string;
-  email?: string;
-  city?: string;
-  state?: string;
-  joined_date: string;
+}
 }
                         </tr>
                       </thead>
