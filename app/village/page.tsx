@@ -30,16 +30,16 @@ export default function VillagePage() {
   async function fetchUserAndConversations() {
     setLoadingConversations(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      setUser(session.user); // Ensure user is always set
+      const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+      if (!currentUser) return;
+      setUser(currentUser); // Ensure user is always set
       // Fetch conversations for this user
-      const { data, error } = await supabase
+      const { data, error: convError } = await supabase
         .from("conversations")
         .select("*")
-        .or(`user1_id.eq.${session.user.id},user2_id.eq.${session.user.id}`)
+        .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order("updated_at", { ascending: false });
-      if (!error && data) {
+      if (!convError && data) {
         setConversations(data);
       }
     } catch (e) {
@@ -52,20 +52,30 @@ export default function VillagePage() {
   async function fetchUserAndInvitations() {
     setLoadingInvitations(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      setUser(session.user);
+      const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+      if (!currentUser) return;
+      setUser(currentUser);
+      // Debug: Log currentUser.id
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] currentUser.id:', currentUser.id);
+      }
       // Step 1: Fetch invitations
       const { data: invites, error: invitesError } = await supabase
         .from("village_invitations")
         .select("id, from_user_id, to_user_id, status, created_at")
-        .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
+        .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`)
         .order("created_at", { ascending: false });
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] invites.length:', invites?.length);
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] sample invites:', (invites ?? []).slice(0, 3));
+      }
       if (invitesError) throw invitesError;
-      // (Debug log removed)
       // Step 2: Collect 'other' user ids
       const otherIds = [...new Set((invites ?? []).map((invite: any) => (
-        invite.from_user_id === session.user.id ? invite.to_user_id : invite.from_user_id
+        invite.from_user_id === currentUser.id ? invite.to_user_id : invite.from_user_id
       )))];
       // Step 3: Fetch profiles for 'other' users
       const { data: profiles, error: profilesError } = await supabase
@@ -77,12 +87,22 @@ export default function VillagePage() {
       // Step 4: Merge into invitations, clarify sender/recipient
       // Always show invitations for both sender and recipient
       const invitationsWithOther = (invites ?? []).map((invite: any) => {
-        const isSender = invite.from_user_id === session.user.id;
-        const isRecipient = invite.to_user_id === session.user.id;
+        const isSender = invite.from_user_id === currentUser.id;
+        const isRecipient = invite.to_user_id === currentUser.id;
+        if (typeof window !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.log('[DEBUG] invite row:', {
+            id: invite.id,
+            from_user_id: invite.from_user_id,
+            to_user_id: invite.to_user_id,
+            isSender,
+            isRecipient
+          });
+        }
         // Show the other user (not yourself)
         let otherUserId = isSender ? invite.to_user_id : invite.from_user_id;
         // If somehow the other user is yourself (shouldn't happen), fallback to the other id
-        if (otherUserId === session.user.id) {
+        if (otherUserId === currentUser.id) {
           otherUserId = isSender ? invite.from_user_id : invite.to_user_id;
         }
         const otherProfile = profileById.get(otherUserId) as any;
