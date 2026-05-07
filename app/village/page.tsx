@@ -6,38 +6,6 @@ export default function VillagePage() {
     </div>
   );
 }
-  from_user_id: string;
-  from_user_name: string;
-  from_user_photo?: string;
-  status: 'pending' | 'accepted' | 'declined';
-  created_at: string;
-  message?: string;
-}
-
-// For UI/state, allow recipient fields
-type VillageInvitationWithRecipient = VillageInvitation & {
-  to_user_id?: string;
-  to_user_name?: string;
-  to_user_email?: string;
-  to_user_city?: string;
-  to_user_state?: string;
-};
-
-interface MomProfile {
-  id: string;
-  email?: string;
-  user_metadata?: {
-    full_name?: string;
-    profile_photo_url?: string;
-    city?: string;
-    state?: string;
-  };
-}
-
-export default function VillagePage() {
-    // Track pending sent invitations for the current user
-    const [pendingSentInvitations, setPendingSentInvitations] = useState<VillageInvitationWithRecipient[]>([]);
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [currentProfile, setCurrentProfile] = useState<any>(null);
