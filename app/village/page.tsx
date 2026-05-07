@@ -446,7 +446,7 @@ export default function VillagePage() {
                     key={invite.id}
                     className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl ${invite.status === 'accepted' ? 'bg-pink-100 dark:bg-pink-900 border-pink-400 dark:border-pink-600' : 'bg-zinc-50 dark:bg-zinc-800'}`}
                   >
-                    <div className="flex items-center gap-3 flex-1 text-left">
+                    <div className="flex items-center gap-3 text-left" style={{ minWidth: 0 }}>
                       {invite.other.photoUrl ? (
                         <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover" />
                       ) : (
@@ -463,7 +463,7 @@ export default function VillagePage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-center w-full justify-center">
+                    <div className="flex flex-row gap-2 items-center justify-end w-full">
                       {/* Pending: Accept/Decline for recipient */}
                       {invite.status === 'pending' && invite.isRecipient && !invite.isSender && (
                         <div className="flex gap-2">
