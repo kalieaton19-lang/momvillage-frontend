@@ -153,7 +153,7 @@ export default function VillagePage() {
         .maybeSingle();
       if (findError) throw findError;
       if (existing) {
-        // Only allow resend if status is 'pending' and user is the sender
+        // Only allow resend if status is 'pending' and user is the sender, and only allow one resend
         if (existing.status === 'pending' && existing.from_user_id === fromUserId) {
           const { error: updateError } = await supabase
             .from("village_invitations")
@@ -306,7 +306,10 @@ export default function VillagePage() {
               <div className="space-y-4">
                 {invitationsWithOther.map((invite) => {
                   return (
-                    <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
+                    <div
+                      key={invite.id}
+                      className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl ${invite.status === 'accepted' ? 'bg-pink-100 dark:bg-pink-900 border-pink-400 dark:border-pink-600' : 'bg-zinc-50 dark:bg-zinc-800'}`}
+                    >
                       <div className="flex items-center gap-3 flex-1 text-left">
                         {invite.other.photoUrl ? (
                           <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover" />
@@ -320,11 +323,6 @@ export default function VillagePage() {
                             {invite.other.name || invite.other.id}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {invite.isSender
-                              ? `Sent to ${invite.other.name || invite.other.id}`
-                              : `Received from ${invite.other.name || invite.other.id}`}
-                          </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
                           </div>
                         </div>
@@ -332,7 +330,25 @@ export default function VillagePage() {
                       <div className="flex gap-2">
                         {invite.status === 'pending' && invite.isRecipient && !invite.isSender && (
                           <>
-                            <button className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
+                            <button
+                              className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+                              onClick={async () => {
+                                // Accept invitation: update status to 'accepted'
+                                try {
+                                  await supabase
+                                    .from("village_invitations")
+                                    .update({ status: "accepted" })
+                                    .eq("id", invite.id)
+                                    .eq("status", "pending");
+                                  setInviteBanner(`Accepted invitation from ${invite.other.name || invite.other.id}`);
+                                  await fetchUserAndInvitations();
+                                } catch (e) {
+                                  setInviteBanner('Failed to accept invitation.');
+                                }
+                              }}
+                            >
+                              Accept
+                            </button>
                             <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
                           </>
                         )}
@@ -386,7 +402,7 @@ export default function VillagePage() {
                           </div>
                         )}
                         {invite.status === 'accepted' && (
-                          <span className="text-green-600 font-semibold">Accepted</span>
+                          <span className="text-pink-600 font-semibold">{invite.other.name || invite.other.id} Accepted</span>
                         )}
                         {invite.status === 'declined' && (
                           <span className="text-red-600 font-semibold">Declined</span>
