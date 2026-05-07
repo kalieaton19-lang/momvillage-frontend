@@ -491,6 +491,7 @@ export default function VillagePage() {
                         )}
                         {invite.status === 'pending' && invite.isSender && (
                           <div className="flex items-center gap-2 w-full justify-center">
+                            <span style={{fontSize:10, color:'#888', marginRight:8}}>[DEBUG invite.status: {String(invite.status)}]</span>
                             <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
                             {invite.status === 'pending' ? (
                               <button
