@@ -6,18 +6,6 @@ export default function VillagePage() {
     </div>
   );
 }
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
-  const [currentUserId, setCurrentUserId] = useState("");
-  const [villageMembers, setVillageMembers] = useState<VillageMember[]>([]);
-  const [villageInvitations, setVillageInvitations] = useState<VillageInvitation[]>([]);
-  const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'invite'>('members');
-  const [selectedMomId, setSelectedMomId] = useState("");
-  const [selectedMom, setSelectedMom] = useState<MomProfile | null>(null);
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteMessage, setInviteMessage] = useState("");
   const [availableMoms, setAvailableMoms] = useState<MomProfile[]>([]);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState<VillageMember | null>(null);
   const [conversations, setConversations] = useState<any[]>([]);
