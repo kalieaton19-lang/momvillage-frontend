@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 // InviteByNameForm component (top-level)
-function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: (user: any) => void }) {
+function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: (user: any) => void }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,7 +55,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
           <button
             key={user.id}
             className="w-full flex items-center gap-3 p-3 border rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-pink-100 dark:hover:bg-pink-900 transition-all"
-            onClick={() => onInvite(user)}
+            onClick={() => onSelect(user)}
           >
             {user.profile_photo_url ? (
               <img src={user.profile_photo_url} alt={user.full_name} className="w-10 h-10 rounded-full object-cover" />
@@ -714,7 +714,7 @@ export default function VillagePage() {
                 <h2 className="text-lg font-bold mb-4">Invite by Name</h2>
                 <InviteByNameForm
                   onBack={() => setInviteMode('none')}
-                  onInvite={async (user) => {
+                  onSelect={(user) => {
                     setSelectedMom({
                       id: user.id,
                       name: user.full_name,
