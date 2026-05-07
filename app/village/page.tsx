@@ -96,24 +96,55 @@ export default function VillagePage() {
     }
   }
 
+  // Direction-agnostic send/resend logic: only allow one resend, and do not allow resending if already resent, accepted, or declined
   async function handleInviteMom() {
     if (!user || !selectedMom) return;
     setSendingInviteId(selectedMom.id);
     try {
-      const { error } = await supabase
+      const fromUserId = user.id;
+      const toUserId = selectedMom.id;
+      const low = fromUserId < toUserId ? fromUserId : toUserId;
+      const high = fromUserId < toUserId ? toUserId : fromUserId;
+      // Check for existing invitation (direction-agnostic)
+      const { data: existing, error: findError } = await supabase
         .from("village_invitations")
-        .insert([
-          {
-            from_user_id: user.id,
-            to_user_id: selectedMom.id,
-            status: "pending",
-          },
-        ]);
-      if (!error) {
-        setInviteBanner(`Invitation sent to ${selectedMom.name}!`);
+        .select("id, status, from_user_id, to_user_id")
+        .eq("from_to_low", low)
+        .eq("from_to_high", high)
+        .maybeSingle();
+      if (findError) throw findError;
+      if (existing) {
+        // Only allow resend if status is 'pending' and user is the sender
+        if (existing.status === 'pending' && existing.from_user_id === fromUserId) {
+          const { error: updateError } = await supabase
+            .from("village_invitations")
+            .update({ status: "resent" })
+            .eq("id", existing.id)
+            .eq("status", "pending");
+          if (updateError) throw updateError;
+          setInviteBanner("Resent invitation!");
+        } else if (existing.status === 'resent') {
+          setInviteBanner("You can only resend once.");
+        } else if (existing.status === 'accepted') {
+          setInviteBanner("This invitation has already been accepted.");
+        } else if (existing.status === 'declined') {
+          setInviteBanner("This invitation was declined.");
+        } else {
+          setInviteBanner("Cannot resend invitation.");
+        }
         setShowProfileModal(false);
       } else {
-        setInviteBanner(`Failed to send invitation: ${error.message}`);
+        // No existing invitation, create new
+        const { error: insertError } = await supabase
+          .from("village_invitations")
+          .insert({
+            from_user_id: fromUserId,
+            to_user_id: toUserId,
+            status: "pending",
+          });
+        if (insertError) throw insertError;
+        setInviteBanner(`Invitation sent to ${selectedMom.name}!`);
+        setShowProfileModal(false);
       }
     } catch (e: any) {
       setInviteBanner(`Failed to send invitation: ${e?.message || e}`);
@@ -214,9 +245,52 @@ export default function VillagePage() {
                           </>
                         )}
                         {invite.status === 'pending' && isSender && (
-                          <div className="flex flex-col items-center justify-center w-full">
-                            <span className="text-base text-pink-600 font-semibold text-center mb-2">Invitation sent</span>
-                            <button className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors" onClick={() => {/* TODO: Resend logic */}}>Resend invite</button>
+                          <div className="flex items-center gap-2 w-full justify-center">
+                            <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
+                            <button
+                              className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
+                              onClick={async () => {
+                                // Resend logic: only allow one resend
+                                setSendingInviteId(invite.other.id);
+                                try {
+                                  const fromUserId = user.id;
+                                  const toUserId = invite.other.id;
+                                  const low = fromUserId < toUserId ? fromUserId : toUserId;
+                                  const high = fromUserId < toUserId ? toUserId : fromUserId;
+                                  const { data: existing, error: findError } = await supabase
+                                    .from("village_invitations")
+                                    .select("id, status, from_user_id, to_user_id")
+                                    .eq("from_to_low", low)
+                                    .eq("from_to_high", high)
+                                    .maybeSingle();
+                                  if (findError) throw findError;
+                                  if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
+                                    const { error: updateError } = await supabase
+                                      .from("village_invitations")
+                                      .update({ status: "resent" })
+                                      .eq("id", existing.id)
+                                      .eq("status", "pending");
+                                    if (updateError) throw updateError;
+                                    setInviteBanner("Resent invitation!");
+                                  } else if (existing && existing.status === 'resent') {
+                                    setInviteBanner("You can only resend once.");
+                                  } else if (existing && existing.status === 'accepted') {
+                                    setInviteBanner("This invitation has already been accepted.");
+                                  } else if (existing && existing.status === 'declined') {
+                                    setInviteBanner("This invitation was declined.");
+                                  } else {
+                                    setInviteBanner("Cannot resend invitation.");
+                                  }
+                                } catch (e: any) {
+                                  setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
+                                } finally {
+                                  setSendingInviteId(null);
+                                }
+                              }}
+                              disabled={sendingInviteId === invite.other.id}
+                            >
+                              {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
+                            </button>
                           </div>
                         )}
                         {invite.status === 'accepted' && (
