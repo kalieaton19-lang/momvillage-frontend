@@ -2,17 +2,23 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 
-export default function VillagePage() {
   const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'invite'>('members');
   const [inviteMode, setInviteMode] = useState<'none' | 'conversations' | 'name'>('none');
   const [conversations, setConversations] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
+  const [inviteBanner, setInviteBanner] = useState<string>("");
+  const [invitations, setInvitations] = useState<any[]>([]); // All invitations for this user (sent or received)
+  const [loadingInvitations, setLoadingInvitations] = useState(false);
 
   useEffect(() => {
-    // Fetch user and conversations when Invite tab is opened
+    // Fetch user and conversations/invitations when Invite or Invitations tab is opened
     if (activeTab === 'invite') {
       fetchUserAndConversations();
+    }
+    if (activeTab === 'invitations') {
+      fetchUserAndInvitations();
     }
     // eslint-disable-next-line
   }, [activeTab]);
@@ -36,6 +42,28 @@ export default function VillagePage() {
       setConversations([]);
     } finally {
       setLoadingConversations(false);
+    }
+  }
+
+  async function fetchUserAndInvitations() {
+    setLoadingInvitations(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setUser(session.user);
+      // Fetch invitations where user is sender or receiver
+      const { data, error } = await supabase
+        .from("village_invitations")
+        .select("*")
+        .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setInvitations(data);
+      }
+    } catch (e) {
+      setInvitations([]);
+    } finally {
+      setLoadingInvitations(false);
     }
   }
 
