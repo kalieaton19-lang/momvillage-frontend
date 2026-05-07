@@ -113,6 +113,14 @@ export default function VillagePage() {
     try {
       const fromUserId = user.id;
       const toUserId = selectedMom.id;
+      if (typeof window !== 'undefined') {
+        console.log('[DEBUG] handleInviteMom fromUserId:', fromUserId, 'toUserId:', toUserId);
+      }
+      if (fromUserId === toUserId) {
+        setInviteBanner("You cannot invite yourself.");
+        setSendingInviteId(null);
+        return;
+      }
       const low = fromUserId < toUserId ? fromUserId : toUserId;
       const high = fromUserId < toUserId ? toUserId : fromUserId;
       // Check for existing invitation (direction-agnostic)
@@ -147,6 +155,9 @@ export default function VillagePage() {
         await fetchUserAndInvitations();
       } else {
         // No existing invitation, create new
+        if (typeof window !== 'undefined') {
+          console.log('[DEBUG] Inserting invitation:', { from_user_id: fromUserId, to_user_id: toUserId, status: 'pending' });
+        }
         const { error: insertError } = await supabase
           .from("village_invitations")
           .insert({
