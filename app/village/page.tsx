@@ -429,6 +429,7 @@ export default function VillagePage() {
                 ))}
               </div>
             )}
+          </div>
         )}
         {activeTab === 'invitations' && (
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
@@ -440,142 +441,141 @@ export default function VillagePage() {
               <div className="text-zinc-500">No invitations found.</div>
             ) : (
               <div className="space-y-4">
-                {invitationsWithOther.map((invite) => {
-                  return (
-                    <div
-                      key={invite.id}
-                      className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl ${invite.status === 'accepted' ? 'bg-pink-100 dark:bg-pink-900 border-pink-400 dark:border-pink-600' : 'bg-zinc-50 dark:bg-zinc-800'}`}
-                    >
-                      <div className="flex items-center gap-3 flex-1 text-left">
-                        {invite.other.photoUrl ? (
-                          <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
-                            {invite.other.name?.[0]?.toUpperCase() || '?'}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50">
-                            {invite.other.name || invite.other.id}
-                          </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
-                          </div>
+                {invitationsWithOther.map((invite) => (
+                  <div
+                    key={invite.id}
+                    className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl ${invite.status === 'accepted' ? 'bg-pink-100 dark:bg-pink-900 border-pink-400 dark:border-pink-600' : 'bg-zinc-50 dark:bg-zinc-800'}`}
+                  >
+                    <div className="flex items-center gap-3 flex-1 text-left">
+                      {invite.other.photoUrl ? (
+                        <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
+                          {invite.other.name?.[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+                          {invite.other.name || invite.other.id}
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 items-center w-full justify-center">
-                        {/* Debug box for non-pending statuses, sender only */}
-                        {invite.isSender && invite.status !== 'pending' && (
-                          <div style={{ fontSize: 12, color: '#b91c1c', background: '#fff0f6', border: '1px solid #f472b6', borderRadius: 6, padding: 8, marginBottom: 4 }}>
-                            <strong>[DEBUG]</strong> invite.status: {String(invite.status)}<br />
-                            <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{JSON.stringify(invite, null, 2)}</span>
-                          </div>
-                        )}
-                        {/* Pending: Accept/Decline for recipient */}
-                        {invite.status === 'pending' && invite.isRecipient && !invite.isSender && (
-                          <div className="flex gap-2">
-                            <button
-                              className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
-                              onClick={async () => {
-                                // Accept invitation: update status to 'accepted'
-                                try {
-                                  await supabase
-                                    .from("village_invitations")
-                                    .update({ status: "accepted" })
-                                    .eq("id", invite.id)
-                                    .eq("status", "pending");
-                                  setInviteBanner(`Accepted invitation from ${invite.other.name || invite.other.id}`);
-                                  await fetchUserAndInvitations();
-                                } catch (e) {
-                                  setInviteBanner('Failed to accept invitation.');
-                                }
-                              }}
-                            >
-                              Accept
-                            </button>
-                            <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
-                          </div>
-                        )}
-                        {/* Pending: Resend for sender */}
-                        {invite.status === 'pending' && invite.isSender && (
-                          <div className="flex items-center gap-2 w-full justify-center">
-                            <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
-                            <button
-                              className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
-                              onClick={async () => {
-                                setSendingInviteId(invite.other.id);
-                                try {
-                                  const fromUserId = user.id;
-                                  const toUserId = invite.other.id;
-                                  const low = fromUserId < toUserId ? fromUserId : toUserId;
-                                  const high = fromUserId < toUserId ? toUserId : fromUserId;
-                                  // Extra debug: log all invitations before update
-                                  const { data: allInvites } = await supabase
-                                    .from("village_invitations")
-                                    .select("id, status, from_user_id, to_user_id");
-                                  if (typeof window !== 'undefined') {
-                                    console.log('[DEBUG][Resend] All invites before update:', allInvites);
-                                  }
-                                  const { data: existing, error: findError } = await supabase
-                                    .from("village_invitations")
-                                    .select("id, status, from_user_id, to_user_id")
-                                    .eq("from_to_low", low)
-                                    .eq("from_to_high", high)
-                                    .maybeSingle();
-                                  console.log('[DEBUG][Resend] Existing before update:', existing);
-                                  if (findError) throw findError;
-                                  if (!existing || !existing.id) throw new Error("Invitation not found");
-                                  // Only allow resend if status is 'pending' (client-side check)
-                                  if (existing.status !== 'pending') {
-                                    setInviteBanner("You can only resend a pending invitation.");
-                                    await fetchUserAndInvitations();
-                                    return;
-                                  }
-                                  // Update by id only, robust error handling
-                                  const { data: updated, error: updateError } = await supabase
-                                    .from("village_invitations")
-                                    .update({ status: "resent" })
-                                    .eq("id", existing.id)
-                                    .select()
-                                    .single();
-                                  console.log('[DEBUG][Resend] Update result:', updated, updateError);
-                                  if (updateError) throw updateError;
-                                  if (!updated) throw new Error("Invitation not found / not updated");
-                                  setInviteBanner("Resent invitation!");
-                                  await fetchUserAndInvitations();
-                                } catch (e: any) {
-                                  setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
-                                } finally {
-                                  setSendingInviteId(null);
-                                }
-                              }}
-                              disabled={sendingInviteId === invite.other.id || invite.status !== 'pending'}
-                            >
-                              {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
-                            </button>
-                          </div>
-                        )}
-                        {/* Resent: show button for sender */}
-                        {invite.status === 'resent' && invite.isSender && (
-                          <button
-                            className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold cursor-default"
-                            tabIndex={-1}
-                            disabled
-                          >
-                            Resent
-                          </button>
-                        )}
-                        {/* Accepted: show label */}
-                        {invite.status === 'accepted' && (
-                          <span className="text-pink-600 font-semibold">Accepted</span>
-                        )}
-                        {/* Declined: show label */}
-                        {invite.status === 'declined' && (
-                          <span className="text-zinc-500 font-semibold">Declined</span>
-                        )}
-                      </div>
                     </div>
-                  );
+                    <div className="flex flex-col gap-2 items-center w-full justify-center">
+                      {/* Debug box for non-pending statuses, sender only */}
+                      {invite.isSender && invite.status !== 'pending' && (
+                        <div style={{ fontSize: 12, color: '#b91c1c', background: '#fff0f6', border: '1px solid #f472b6', borderRadius: 6, padding: 8, marginBottom: 4 }}>
+                          <strong>[DEBUG]</strong> invite.status: {String(invite.status)}<br />
+                          <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{JSON.stringify(invite, null, 2)}</span>
+                        </div>
+                      )}
+                      {/* Pending: Accept/Decline for recipient */}
+                      {invite.status === 'pending' && invite.isRecipient && !invite.isSender && (
+                        <div className="flex gap-2">
+                          <button
+                            className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+                            onClick={async () => {
+                              // Accept invitation: update status to 'accepted'
+                              try {
+                                await supabase
+                                  .from("village_invitations")
+                                  .update({ status: "accepted" })
+                                  .eq("id", invite.id)
+                                  .eq("status", "pending");
+                                setInviteBanner(`Accepted invitation from ${invite.other.name || invite.other.id}`);
+                                await fetchUserAndInvitations();
+                              } catch (e) {
+                                setInviteBanner('Failed to accept invitation.');
+                              }
+                            }}
+                          >
+                            Accept
+                          </button>
+                          <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
+                        </div>
+                      )}
+                      {/* Pending: Resend for sender */}
+                      {invite.status === 'pending' && invite.isSender && (
+                        <div className="flex items-center gap-2 w-full justify-center">
+                          <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
+                          <button
+                            className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
+                            onClick={async () => {
+                              setSendingInviteId(invite.other.id);
+                              try {
+                                const fromUserId = user.id;
+                                const toUserId = invite.other.id;
+                                const low = fromUserId < toUserId ? fromUserId : toUserId;
+                                const high = fromUserId < toUserId ? toUserId : fromUserId;
+                                // Extra debug: log all invitations before update
+                                const { data: allInvites } = await supabase
+                                  .from("village_invitations")
+                                  .select("id, status, from_user_id, to_user_id");
+                                if (typeof window !== 'undefined') {
+                                  console.log('[DEBUG][Resend] All invites before update:', allInvites);
+                                }
+                                const { data: existing, error: findError } = await supabase
+                                  .from("village_invitations")
+                                  .select("id, status, from_user_id, to_user_id")
+                                  .eq("from_to_low", low)
+                                  .eq("from_to_high", high)
+                                  .maybeSingle();
+                                console.log('[DEBUG][Resend] Existing before update:', existing);
+                                if (findError) throw findError;
+                                if (!existing || !existing.id) throw new Error("Invitation not found");
+                                // Only allow resend if status is 'pending' (client-side check)
+                                if (existing.status !== 'pending') {
+                                  setInviteBanner("You can only resend a pending invitation.");
+                                  await fetchUserAndInvitations();
+                                  return;
+                                }
+                                // Update by id only, robust error handling
+                                const { data: updated, error: updateError } = await supabase
+                                  .from("village_invitations")
+                                  .update({ status: "resent" })
+                                  .eq("id", existing.id)
+                                  .select()
+                                  .single();
+                                console.log('[DEBUG][Resend] Update result:', updated, updateError);
+                                if (updateError) throw updateError;
+                                if (!updated) throw new Error("Invitation not found / not updated");
+                                setInviteBanner("Resent invitation!");
+                                await fetchUserAndInvitations();
+                              } catch (e: any) {
+                                setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
+                              } finally {
+                                setSendingInviteId(null);
+                              }
+                            }}
+                            disabled={sendingInviteId === invite.other.id || invite.status !== 'pending'}
+                          >
+                            {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
+                          </button>
+                        </div>
+                      )}
+                      {/* Resent: show button for sender */}
+                      {invite.status === 'resent' && invite.isSender && (
+                        <button
+                          className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold cursor-default"
+                          tabIndex={-1}
+                          disabled
+                        >
+                          Resent
+                        </button>
+                      )}
+                      {/* Accepted: show label */}
+                      {invite.status === 'accepted' && (
+                        <span className="text-pink-600 font-semibold">Accepted</span>
+                      )}
+                      {/* Declined: show label */}
+                      {invite.status === 'declined' && (
+                        <span className="text-zinc-500 font-semibold">Declined</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
