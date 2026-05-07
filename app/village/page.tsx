@@ -6,6 +6,7 @@ export default function VillagePage() {
   const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'invite'>('members');
   const [inviteMode, setInviteMode] = useState<'none' | 'conversations' | 'name'>('none');
   const [conversations, setConversations] = useState<any[]>([]);
+  const [villageMembers, setVillageMembers] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
@@ -17,15 +18,49 @@ export default function VillagePage() {
   const [invitationsWithOther, setInvitationsWithOther] = useState<any[]>([]);
 
   useEffect(() => {
-    // Fetch user and conversations/invitations when Invite or Invitations tab is opened
+    // Fetch user and conversations/invitations/members when tab is opened
     if (activeTab === 'invite') {
       fetchUserAndConversations();
     }
     if (activeTab === 'invitations') {
       fetchUserAndInvitations();
     }
+    if (activeTab === 'members') {
+      fetchVillageMembers();
+    }
     // eslint-disable-next-line
   }, [activeTab]);
+  // Fetch accepted village members for the current user
+  async function fetchVillageMembers() {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+      // Fetch all accepted invitations where user is sender or recipient
+      const { data: invites, error: invitesError } = await supabase
+        .from("village_invitations")
+        .select("id, from_user_id, to_user_id, status")
+        .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`)
+        .eq("status", "accepted");
+      if (invitesError) throw invitesError;
+      // Get the other user's IDs
+      const memberIds = [...new Set((invites ?? []).map((invite: any) => (
+        invite.from_user_id === currentUser.id ? invite.to_user_id : invite.from_user_id
+      )))];
+      if (memberIds.length === 0) {
+        setVillageMembers([]);
+        return;
+      }
+      // Fetch their profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, profile_photo_url, city, state, is_public")
+        .in("id", memberIds);
+      if (profilesError) throw profilesError;
+      setVillageMembers(profiles ?? []);
+    } catch (e) {
+      setVillageMembers([]);
+    }
+  }
 
   async function fetchUserAndConversations() {
     setLoadingConversations(true);
@@ -290,8 +325,28 @@ export default function VillagePage() {
         {activeTab === 'members' && (
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">🏘️</div>
-            <p className="text-zinc-600 dark:text-zinc-400 mb-4">Your village members will appear here.</p>
-            <p className="text-zinc-400 text-xs">(Coming soon: member list, profile modal, actions)</p>
+            <h2 className="text-lg font-bold mb-4">Your Village Members</h2>
+            {villageMembers.length === 0 ? (
+              <p className="text-zinc-600 dark:text-zinc-400 mb-4">No members yet. Accepted invitations will appear here.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {villageMembers.map((member: any) => (
+                  <div key={member.id} className="flex items-center gap-4 p-4 border rounded-xl bg-pink-50 dark:bg-pink-900/20">
+                    {member.profile_photo_url ? (
+                      <img src={member.profile_photo_url} alt={member.full_name} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
+                        {member.full_name?.[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <div className="text-left">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{member.full_name}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{member.city}{member.city && member.state ? ', ' : ''}{member.state}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'invitations' && (
@@ -402,7 +457,7 @@ export default function VillagePage() {
                           </div>
                         )}
                         {invite.status === 'accepted' && (
-                          <span className="text-pink-600 font-semibold">{invite.other.name || invite.other.id} Accepted</span>
+                          <span className="text-pink-600 font-semibold">Accepted</span>
                         )}
                         {invite.status === 'declined' && (
                           <span className="text-red-600 font-semibold">Declined</span>
