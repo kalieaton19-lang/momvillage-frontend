@@ -70,6 +70,32 @@ export default function VillagePage() {
     }
   }
 
+  async function handleInviteMom() {
+    if (!user || !selectedMom) return;
+    setSendingInviteId(selectedMom.id);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .insert([
+          {
+            from_user_id: user.id,
+            to_user_id: selectedMom.id,
+            status: "pending",
+          },
+        ]);
+      if (!error) {
+        setInviteBanner(`Invitation sent to ${selectedMom.name}!`);
+        setShowProfileModal(false);
+      } else {
+        setInviteBanner(`Failed to send invitation.`);
+      }
+    } catch (e) {
+      setInviteBanner(`Failed to send invitation.`);
+    } finally {
+      setSendingInviteId(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
       <div className="max-w-4xl mx-auto">
@@ -220,8 +246,12 @@ export default function VillagePage() {
                       <div className="text-center">
                         <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{selectedMom.name}</div>
                         <div className="text-zinc-500 dark:text-zinc-400 mb-2">{selectedMom.city}{selectedMom.city && selectedMom.state ? ', ' : ''}{selectedMom.state}</div>
-                        <button className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full" onClick={() => {/* TODO: Invite logic here */}}>
-                          Invite {selectedMom.name} to your village
+                        <button
+                          className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
+                          onClick={handleInviteMom}
+                          disabled={sendingInviteId === selectedMom.id}
+                        >
+                          {sendingInviteId === selectedMom.id ? 'Sending...' : `Invite ${selectedMom.name} to your village`}
                         </button>
                       </div>
                     </div>
@@ -237,6 +267,12 @@ export default function VillagePage() {
                 <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
               </div>
             )}
+          </div>
+        )}
+        {inviteBanner && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-6 py-3 rounded-xl shadow-lg z-50">
+            {inviteBanner}
+            <button className="ml-4 text-white/80 hover:text-white underline" onClick={() => setInviteBanner("")}>Dismiss</button>
           </div>
         )}
       </div>
