@@ -187,9 +187,44 @@ export default function VillagePage() {
     }
   }
 
+  // Debug: Show session and user info
+  async function handleDebugSession() {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] Supabase session:', session);
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] user state:', user);
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('supabase.auth.token');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // eslint-disable-next-line no-console
+          console.log('[DEBUG] localStorage supabase.auth.token:', parsed);
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Could not parse supabase.auth.token from localStorage');
+      }
+    }
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] Error from supabase.auth.getSession:', error);
+    }
+    alert('Check the console for session and user debug info.');
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
       <div className="max-w-4xl mx-auto">
+        {/* Debug Button */}
+        <button
+          onClick={handleDebugSession}
+          className="fixed top-4 right-4 z-50 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg shadow font-mono text-xs"
+          style={{ opacity: 0.85 }}
+        >
+          Debug Session
+        </button>
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">My Village 🏘️</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
