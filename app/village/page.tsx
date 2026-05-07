@@ -492,10 +492,6 @@ export default function VillagePage() {
                         {invite.status === 'pending' && invite.isSender && (
                           <div className="flex items-center gap-2 w-full justify-center">
                             <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
-                            {/* Debug log for invitation status and user IDs */}
-                            <pre style={{ fontSize: 10, color: '#888', margin: 0 }}>
-                              {`[DEBUG] invite.id: ${invite.id}, status: ${invite.status}, isSender: ${invite.isSender}, from: ${invite.from_user_id}, to: ${invite.to_user_id}, user.id: ${user.id}, invite.other.id: ${invite.other.id}`}
-                            </pre>
                             {invite.status === 'pending' ? (
                               <button
                                 className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
