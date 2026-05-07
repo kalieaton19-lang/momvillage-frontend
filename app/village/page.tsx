@@ -496,9 +496,9 @@ export default function VillagePage() {
                               <button
                                 className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
                                 onClick={async () => {
-                                  // Resend logic: only allow one resend
                                   setSendingInviteId(invite.other.id);
                                   try {
+                                    // Only allow resend if status is still pending in DB
                                     const fromUserId = user.id;
                                     const toUserId = invite.other.id;
                                     const low = fromUserId < toUserId ? fromUserId : toUserId;
@@ -518,14 +518,10 @@ export default function VillagePage() {
                                         .eq("status", "pending");
                                       if (updateError) throw updateError;
                                       setInviteBanner("Resent invitation!");
-                                    } else if (existing && existing.status === 'resent') {
-                                      setInviteBanner("You can only resend once.");
-                                    } else if (existing && existing.status === 'accepted') {
-                                      setInviteBanner("This invitation has already been accepted.");
-                                    } else if (existing && existing.status === 'declined') {
-                                      setInviteBanner("This invitation was declined.");
+                                      await fetchUserAndInvitations();
                                     } else {
-                                      setInviteBanner("Cannot resend invitation.");
+                                      setInviteBanner("You can only resend once.");
+                                      await fetchUserAndInvitations();
                                     }
                                   } catch (e: any) {
                                     setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
