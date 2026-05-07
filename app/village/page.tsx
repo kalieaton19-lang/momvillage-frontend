@@ -518,21 +518,25 @@ export default function VillagePage() {
                                       .maybeSingle();
                                     console.log('[DEBUG][Resend] Existing before update:', existing);
                                     if (findError) throw findError;
-                                    if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
-                                      const { data: updateData, error: updateError } = await supabase
-                                        .from("village_invitations")
-                                        .update({ status: "resent" })
-                                        .eq("id", existing.id)
-                                        .select();
-                                      console.log('[DEBUG][Resend] Update result:', updateData, updateError);
-                                      if (updateError) throw updateError;
-                                      setInviteBanner("Resent invitation!");
-                                      // Force UI update: fetch latest invitations
+                                    if (!existing || !existing.id) throw new Error("Invitation not found");
+                                    // Only allow resend if status is 'pending' (client-side check)
+                                    if (existing.status !== 'pending') {
+                                      setInviteBanner("You can only resend a pending invitation.");
                                       await fetchUserAndInvitations();
-                                    } else {
-                                      setInviteBanner("You can only resend once.");
-                                      await fetchUserAndInvitations();
+                                      return;
                                     }
+                                    // Update by id only, robust error handling
+                                    const { data: updated, error: updateError } = await supabase
+                                      .from("village_invitations")
+                                      .update({ status: "resent" })
+                                      .eq("id", existing.id)
+                                      .select()
+                                      .single();
+                                    console.log('[DEBUG][Resend] Update result:', updated, updateError);
+                                    if (updateError) throw updateError;
+                                    if (!updated) throw new Error("Invitation not found / not updated");
+                                    setInviteBanner("Resent invitation!");
+                                    await fetchUserAndInvitations();
                                   } catch (e: any) {
                                     setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
                                   } finally {
