@@ -464,13 +464,6 @@ export default function VillagePage() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 items-center w-full justify-center">
-                      {/* Debug box for non-pending statuses, sender only */}
-                      {invite.isSender && invite.status !== 'pending' && (
-                        <div style={{ fontSize: 12, color: '#b91c1c', background: '#fff0f6', border: '1px solid #f472b6', borderRadius: 6, padding: 8, marginBottom: 4 }}>
-                          <strong>[DEBUG]</strong> invite.status: {String(invite.status)}<br />
-                          <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{JSON.stringify(invite, null, 2)}</span>
-                        </div>
-                      )}
                       {/* Pending: Accept/Decline for recipient */}
                       {invite.status === 'pending' && invite.isRecipient && !invite.isSender && (
                         <div className="flex gap-2">
