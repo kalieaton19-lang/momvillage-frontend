@@ -347,6 +347,13 @@ export default function VillagePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
       <div className="max-w-4xl mx-auto">
+        {/* Back to Home Button */}
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 mb-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-lg shadow hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-medium"
+        >
+          <span aria-hidden="true">←</span> Back to Home
+        </a>
         {/* Debug Button */}
         <button
           onClick={handleDebugSession}
