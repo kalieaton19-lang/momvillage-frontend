@@ -14,6 +14,7 @@ export default function VillagePage() {
   const [loadingInvitations, setLoadingInvitations] = useState(false);
   const [selectedMom, setSelectedMom] = useState<any>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [invitationsWithOther, setInvitationsWithOther] = useState<any[]>([]);
 
   useEffect(() => {
     // Fetch user and conversations/invitations when Invite or Invitations tab is opened
@@ -54,17 +55,42 @@ export default function VillagePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       setUser(session.user);
-      // Fetch invitations where user is sender or receiver
-      const { data, error } = await supabase
+      // Step 1: Fetch invitations
+      const { data: invites, error: invitesError } = await supabase
         .from("village_invitations")
-        .select("*")
+        .select("id, from_user_id, to_user_id, status, created_at")
         .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
         .order("created_at", { ascending: false });
-      if (!error && data) {
-        setInvitations(data);
-      }
+      if (invitesError) throw invitesError;
+      // Step 2: Collect 'other' user ids
+      const otherIds = [...new Set((invites ?? []).map((invite: any) => (
+        invite.from_user_id === session.user.id ? invite.to_user_id : invite.from_user_id
+      )))];
+      // Step 3: Fetch profiles for 'other' users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, profile_photo_url, city, state, is_public")
+        .in("id", otherIds);
+      if (profilesError) throw profilesError;
+      const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      // Step 4: Merge into invitations
+      const invitationsWithOther = (invites ?? []).map((invite: any) => {
+        const otherUserId = invite.from_user_id === session.user.id ? invite.to_user_id : invite.from_user_id;
+        const otherProfile = profileById.get(otherUserId) as any;
+        return {
+          ...invite,
+          other: {
+            id: otherUserId,
+            name: otherProfile?.full_name ?? null,
+            photoUrl: otherProfile?.profile_photo_url ?? null,
+            city: otherProfile?.city ?? null,
+            state: otherProfile?.state ?? null,
+          },
+        };
+      });
+      setInvitationsWithOther(invitationsWithOther);
     } catch (e) {
-      setInvitations([]);
+      setInvitationsWithOther([]);
     } finally {
       setLoadingInvitations(false);
     }
@@ -154,50 +180,45 @@ export default function VillagePage() {
             <h2 className="text-lg font-bold mb-4">Your Invitations</h2>
             {loadingInvitations ? (
               <div className="text-zinc-500">Loading invitations...</div>
-            ) : invitations.length === 0 ? (
+            ) : invitationsWithOther.length === 0 ? (
               <div className="text-zinc-500">No invitations found.</div>
             ) : (
               <div className="space-y-4">
-                {invitations.map((invite) => {
-                  // Show sender's profile (from_user_id)
-                  const isIncoming = invite.to_user_id === user?.id;
-                  return (
-                    <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
-                      <div className="flex items-center gap-3 flex-1 text-left">
-                        {/* Profile photo placeholder (if available in invite) */}
-                        {invite.from_user_photo ? (
-                          <img src={invite.from_user_photo} alt={invite.from_user_name} className="w-12 h-12 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
-                            {invite.from_user_name?.[0]?.toUpperCase() || '?'}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50">
-                            {invite.from_user_name || invite.from_user_id}
-                          </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
-                          </div>
+                {invitationsWithOther.map((invite) => (
+                  <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
+                    <div className="flex items-center gap-3 flex-1 text-left">
+                      {invite.other.photoUrl ? (
+                        <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
+                          {invite.other.name?.[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+                          {invite.other.name || invite.other.id}
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {invite.status === 'pending' && isIncoming && (
-                          <>
-                            <button className="px-4 py-2 bg-green-500 text-white rounded-lg" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
-                            <button className="px-4 py-2 bg-red-500 text-white rounded-lg" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
-                          </>
-                        )}
-                        {invite.status === 'accepted' && (
-                          <span className="text-green-600 font-semibold">Accepted</span>
-                        )}
-                        {invite.status === 'declined' && (
-                          <span className="text-red-600 font-semibold">Declined</span>
-                        )}
-                      </div>
                     </div>
-                  );
-                })}
+                    <div className="flex gap-2">
+                      {invite.status === 'pending' && invite.to_user_id === user?.id && (
+                        <>
+                          <button className="px-4 py-2 bg-green-500 text-white rounded-lg" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
+                          <button className="px-4 py-2 bg-red-500 text-white rounded-lg" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
+                        </>
+                      )}
+                      {invite.status === 'accepted' && (
+                        <span className="text-green-600 font-semibold">Accepted</span>
+                      )}
+                      {invite.status === 'declined' && (
+                        <span className="text-red-600 font-semibold">Declined</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
