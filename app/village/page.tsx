@@ -158,36 +158,46 @@ export default function VillagePage() {
               <div className="text-zinc-500">No invitations found.</div>
             ) : (
               <div className="space-y-4">
-                {invitations.map((invite) => (
-                  <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">
-                        {invite.status === 'pending' ? 'Pending' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)} invitation
+                {invitations.map((invite) => {
+                  // Show sender's profile (from_user_id)
+                  const isIncoming = invite.to_user_id === user?.id;
+                  return (
+                    <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
+                      <div className="flex items-center gap-3 flex-1 text-left">
+                        {/* Profile photo placeholder (if available in invite) */}
+                        {invite.from_user_photo ? (
+                          <img src={invite.from_user_photo} alt={invite.from_user_name} className="w-12 h-12 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
+                            {invite.from_user_name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+                            {invite.from_user_name || invite.from_user_id}
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                        From: {invite.from_user_id}<br />
-                        To: {invite.to_user_id}
+                      <div className="flex gap-2">
+                        {invite.status === 'pending' && isIncoming && (
+                          <>
+                            <button className="px-4 py-2 bg-green-500 text-white rounded-lg" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
+                            <button className="px-4 py-2 bg-red-500 text-white rounded-lg" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
+                          </>
+                        )}
+                        {invite.status === 'accepted' && (
+                          <span className="text-green-600 font-semibold">Accepted</span>
+                        )}
+                        {invite.status === 'declined' && (
+                          <span className="text-red-600 font-semibold">Declined</span>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {invite.status === 'pending' && invite.to_user_id === user?.id && (
-                        <>
-                          <button className="px-4 py-2 bg-green-500 text-white rounded-lg" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
-                          <button className="px-4 py-2 bg-red-500 text-white rounded-lg" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
-                        </>
-                      )}
-                      {invite.status === 'pending' && invite.from_user_id === user?.id && (
-                        <span className="text-xs text-zinc-400">Awaiting response</span>
-                      )}
-                      {invite.status === 'accepted' && (
-                        <span className="text-green-600 font-semibold">Accepted</span>
-                      )}
-                      {invite.status === 'declined' && (
-                        <span className="text-red-600 font-semibold">Declined</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
