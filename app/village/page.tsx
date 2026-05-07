@@ -426,7 +426,7 @@ export default function VillagePage() {
                       <div className="text-xs text-zinc-500 dark:text-zinc-400">{member.city}{member.city && member.state ? ', ' : ''}{member.state}</div>
                     </div>
                   </div>
-                ))}
+                })}
               </div>
             )}
           </div>
@@ -582,7 +582,7 @@ export default function VillagePage() {
                       )}
                     </div>
                   </div>
-                ))}
+                })}
               </div>
             )}
           </div>
