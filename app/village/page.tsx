@@ -190,9 +190,15 @@ export default function VillagePage() {
                       // Enhanced debug log for diagnosis
                       if (typeof window !== 'undefined') {
                         console.log('[DEBUG] user.id:', user?.id, 'type:', typeof user?.id);
-                        console.log('[DEBUG] conv:', conv);
-                        console.log('[DEBUG] conv.user1_id:', conv.user1_id, 'type:', typeof conv.user1_id);
-                        console.log('[DEBUG] conv.user2_id:', conv.user2_id, 'type:', typeof conv.user2_id);
+                        // Add session.user.id log
+                        try {
+                          const session = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
+                          const sessionUserId = session?.currentSession?.user?.id;
+                          console.log('[DEBUG] session.user.id:', sessionUserId);
+                        } catch (e) {
+                          console.log('[DEBUG] Could not parse session from localStorage');
+                        }
+                        console.log('[DEBUG] conv ids:', conv.user1_id, conv.user2_id);
                       }
                       let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
                       if (user) {
