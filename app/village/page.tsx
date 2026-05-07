@@ -207,6 +207,8 @@ export default function VillagePage() {
                         }
                       }
                       const other = user ? getOtherUser(conv, user.id) : null;
+                      // Skip if the other user is yourself or missing
+                      if (!other || other.id === user?.id) return null;
                       return (
                         <button
                           key={conv.id}
