@@ -28,7 +28,7 @@ export default function VillagePage() {
     setLoadingConversations(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      }
+      if (!session) return;
       // Fetch conversations for this user
       const { data, error } = await supabase
         .from("conversations")
@@ -215,4 +215,4 @@ export default function VillagePage() {
       </div>
     </div>
   );
-// ...existing code inside export default function VillagePage() only, no duplicate imports or code blocks...
+}
