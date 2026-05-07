@@ -349,7 +349,7 @@ export default function VillagePage() {
       <div className="max-w-4xl mx-auto">
         {/* Back to Home Button */}
         <a
-          href="/"
+          href="/home"
           className="inline-flex items-center gap-2 px-4 py-2 mb-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-lg shadow hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-medium"
         >
           <span aria-hidden="true">←</span> Back to Home
