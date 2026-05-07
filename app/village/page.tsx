@@ -491,7 +491,6 @@ export default function VillagePage() {
                         )}
                         {invite.status === 'pending' && invite.isSender && (
                           <div className="flex items-center gap-2 w-full justify-center">
-                            <span style={{fontSize:10, color:'#888', marginRight:8}}>[DEBUG invite.status: {String(invite.status)}]</span>
                             <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
                             {invite.status === 'pending' ? (
                               <button
@@ -549,7 +548,13 @@ export default function VillagePage() {
                               </button>
                             ) : null}
                             {invite.status === 'resent' && (
-                              <span className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold">Resent</span>
+                              <button
+                                className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold cursor-default"
+                                tabIndex={-1}
+                                disabled
+                              >
+                                Resent
+                              </button>
                             )}
                           </div>
                         )}
