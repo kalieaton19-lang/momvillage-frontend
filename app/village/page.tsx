@@ -19,25 +19,6 @@ interface VillageMember {
   state?: string;
   joined_date: string;
 }
-
-  // Main return statement for the component
-                            className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium transition-colors"
-                          >
-                            Decline
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-                        <tr>
-                          {villageInvitations && villageInvitations.length > 0 && Object.keys(villageInvitations[0]).map((key) => (
-                            <th key={key} style={{ border: '1px solid #ccc', padding: '2px' }}>{key}</th>
-                          ))}
                         </tr>
                       </thead>
                       <tbody>
