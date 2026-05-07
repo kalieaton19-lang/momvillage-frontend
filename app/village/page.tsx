@@ -498,12 +498,6 @@ export default function VillagePage() {
                                 onClick={async () => {
                                   setSendingInviteId(invite.other.id);
                                   try {
-                                    // Debug log before resend
-                                    console.log('[DEBUG][Resend] Attempting resend', {
-                                      fromUserId: user.id,
-                                      toUserId: invite.other.id,
-                                      invite
-                                    });
                                     const fromUserId = user.id;
                                     const toUserId = invite.other.id;
                                     const low = fromUserId < toUserId ? fromUserId : toUserId;
@@ -514,7 +508,6 @@ export default function VillagePage() {
                                       .eq("from_to_low", low)
                                       .eq("from_to_high", high)
                                       .maybeSingle();
-                                    console.log('[DEBUG][Resend] Existing invitation', existing, findError);
                                     if (findError) throw findError;
                                     if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
                                       const { error: updateError } = await supabase
@@ -522,21 +515,21 @@ export default function VillagePage() {
                                         .update({ status: "resent" })
                                         .eq("id", existing.id)
                                         .eq("status", "pending");
-                                      console.log('[DEBUG][Resend] Update result', updateError);
                                       if (updateError) throw updateError;
                                       setInviteBanner("Resent invitation!");
+                                      // Force UI update: fetch latest invitations
+                                      await fetchUserAndInvitations();
                                     } else {
                                       setInviteBanner("You can only resend once.");
+                                      await fetchUserAndInvitations();
                                     }
-                                    await fetchUserAndInvitations();
                                   } catch (e: any) {
-                                    console.error('[DEBUG][Resend] Error', e);
                                     setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
                                   } finally {
                                     setSendingInviteId(null);
                                   }
                                 }}
-                                disabled={sendingInviteId === invite.other.id}
+                                disabled={sendingInviteId === invite.other.id || invite.status !== 'pending'}
                               >
                                 {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
                               </button>
