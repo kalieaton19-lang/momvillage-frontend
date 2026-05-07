@@ -149,10 +149,47 @@ export default function VillagePage() {
           </div>
         )}
         {activeTab === 'invitations' && (
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
             <div className="text-4xl mb-3">📬</div>
-            <p className="text-zinc-600 dark:text-zinc-400 mb-4">Your invitations will appear here.</p>
-            <p className="text-zinc-400 text-xs">(Coming soon: pending/accepted invites)</p>
+            <h2 className="text-lg font-bold mb-4">Your Invitations</h2>
+            {loadingInvitations ? (
+              <div className="text-zinc-500">Loading invitations...</div>
+            ) : invitations.length === 0 ? (
+              <div className="text-zinc-500">No invitations found.</div>
+            ) : (
+              <div className="space-y-4">
+                {invitations.map((invite) => (
+                  <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+                        {invite.status === 'pending' ? 'Pending' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)} invitation
+                      </div>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                        From: {invite.from_user_id}<br />
+                        To: {invite.to_user_id}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {invite.status === 'pending' && invite.to_user_id === user?.id && (
+                        <>
+                          <button className="px-4 py-2 bg-green-500 text-white rounded-lg" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
+                          <button className="px-4 py-2 bg-red-500 text-white rounded-lg" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
+                        </>
+                      )}
+                      {invite.status === 'pending' && invite.from_user_id === user?.id && (
+                        <span className="text-xs text-zinc-400">Awaiting response</span>
+                      )}
+                      {invite.status === 'accepted' && (
+                        <span className="text-green-600 font-semibold">Accepted</span>
+                      )}
+                      {invite.status === 'declined' && (
+                        <span className="text-red-600 font-semibold">Declined</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'invite' && (
