@@ -187,16 +187,12 @@ export default function VillagePage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     {conversations.map((conv) => {
-                      // Debug log for diagnosis
+                      // Enhanced debug log for diagnosis
                       if (typeof window !== 'undefined') {
-                        console.log('[DEBUG] user.id:', user?.id, 'conv:', {
-                          user1_id: conv.user1_id,
-                          user2_id: conv.user2_id,
-                          user1_name: conv.user1_name,
-                          user2_name: conv.user2_name,
-                          user1_photo: conv.user1_photo,
-                          user2_photo: conv.user2_photo,
-                        });
+                        console.log('[DEBUG] user.id:', user?.id, 'type:', typeof user?.id);
+                        console.log('[DEBUG] conv:', conv);
+                        console.log('[DEBUG] conv.user1_id:', conv.user1_id, 'type:', typeof conv.user1_id);
+                        console.log('[DEBUG] conv.user2_id:', conv.user2_id, 'type:', typeof conv.user2_id);
                       }
                       let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
                       if (user) {
