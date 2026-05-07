@@ -29,7 +29,7 @@ export default function VillagePage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      // Do NOT setUser here (matches a60c474 logic)
+      setUser(session.user); // Ensure user is always set
       // Fetch conversations for this user
       const { data, error } = await supabase
         .from("conversations")
