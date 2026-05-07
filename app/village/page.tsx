@@ -156,25 +156,7 @@
                         ).length} of {villageMembers.length} members
                       </p>
                     )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {villageMembers.filter((m) => 
-                    villageSearchQuery === "" ||
-                    m.name.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
-                    m.city?.toLowerCase().includes(villageSearchQuery.toLowerCase()) ||
-                    m.state?.toLowerCase().includes(villageSearchQuery.toLowerCase())
-                  ).map((m) => (<div key={m.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-lg transition-all"><div className="flex items-start gap-4 mb-4">{m.photo ? (<img src={m.photo} alt={m.name} className="w-14 h-14 rounded-full object-cover border-2 border-pink-300" />) : (<div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold">{m.name[0]?.toUpperCase() || '?'}</div>)}<div className="flex-1 min-w-0"><h3 className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{m.name}</h3><p className="text-xs text-zinc-500 dark:text-zinc-400">{m.city}, {m.state}</p></div></div><div className="text-xs text-zinc-600 dark:text-zinc-400 mb-4">Joined {new Date(m.joined_date).toLocaleDateString()}</div><div className="flex flex-col gap-2"><button onClick={() => setSelectedMemberProfile(m)} className="w-full px-3 py-2 text-xs text-center bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors font-medium">👤 View Profile</button><button onClick={() => handleStartConversation(m.id)} className="w-full px-3 py-2 text-xs text-center bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-lg hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors font-medium">💬 Message</button><button onClick={() => handleRemoveFromVillage(m.id)} className="w-full px-3 py-2 text-xs text-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium">✕ Remove</button></div></div>))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl"><div className="text-4xl mb-3">🏘️</div><p className="text-zinc-600 dark:text-zinc-400 mb-4">Your village is empty</p><Link href="/find-moms" className="inline-block px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium">Find Moms to Add</Link></div>
-            )}
-          </div>
-        )}
 
-        {/* Invitations Tab */}
-        {(activeTab as VillageTabType) === 'invitations' && (
           <div className="space-y-6">
             {/* Pending Invitations */}
             {pendingInvitations.length > 0 && (
