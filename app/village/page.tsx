@@ -448,9 +448,11 @@ export default function VillagePage() {
                   >
                     <div className="flex items-center gap-3 text-left" style={{ minWidth: 0 }}>
                       {invite.other.photoUrl ? (
-                        <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover" />
+                        <div className="w-12 h-12 flex-shrink-0">
+                          <img src={invite.other.photoUrl} alt={invite.other.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                        </div>
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-xl flex-shrink-0">
                           {invite.other.name?.[0]?.toUpperCase() || '?'}
                         </div>
                       )}
