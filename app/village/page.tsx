@@ -17,7 +17,7 @@
     try {
       const invitation = villageInvitations.find(i => i.id === invitationId);
       if (!invitation) return;
-// File intentionally left blank to resolve parse errors
+
       const updatedInvitations = villageInvitations.map(inv =>
         inv.id === invitationId
           ? { ...inv, status: (accept ? 'accepted' : 'declined') as ('pending' | 'accepted' | 'declined') }
