@@ -1,8 +1,43 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function VillagePage() {
   const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'invite'>('members');
+  const [inviteMode, setInviteMode] = useState<'none' | 'conversations' | 'name'>('none');
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+
+  useEffect(() => {
+    // Fetch user and conversations when Invite tab is opened
+    if (activeTab === 'invite') {
+      fetchUserAndConversations();
+    }
+    // eslint-disable-next-line
+  }, [activeTab]);
+
+  async function fetchUserAndConversations() {
+    setLoadingConversations(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setUser(session.user);
+      // Fetch conversations for this user
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .or(`user1_id.eq.${session.user.id},user2_id.eq.${session.user.id}`)
+        .order("updated_at", { ascending: false });
+      if (!error && data) {
+        setConversations(data);
+      }
+    } catch (e) {
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
@@ -67,15 +102,81 @@ export default function VillagePage() {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">🤝</div>
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">Invite a mom to your village.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6 mb-4">
-              <button className="flex-1 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-all">
-                💬 Invite from Conversations
-              </button>
-              <button className="flex-1 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-all">
-                🔍 Invite by Name
-              </button>
-            </div>
-            <p className="text-zinc-400 text-xs">(Coming soon: search and invite form)</p>
+            {inviteMode === 'none' && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6 mb-4">
+                <button
+                  className="flex-1 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-all"
+                  onClick={() => setInviteMode('conversations')}
+                >
+                  💬 Invite from Conversations
+                </button>
+                <button
+                  className="flex-1 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-all"
+                  onClick={() => setInviteMode('name')}
+                >
+                  🔍 Invite by Name
+                </button>
+              </div>
+            )}
+
+
+            {inviteMode === 'conversations' && (
+              <div className="mt-6">
+                <h2 className="text-lg font-bold mb-4">Select a Mom from Your Conversations</h2>
+                {loadingConversations ? (
+                  <div className="text-zinc-500">Loading conversations...</div>
+                ) : conversations.length === 0 ? (
+                  <div className="text-zinc-500">No conversations found.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    {conversations.map((conv) => {
+                      // Figure out the other user
+                      let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
+                      if (user) {
+                        if (conv.user1_id === user.id) {
+                          otherUserId = conv.user2_id;
+                          otherUserName = conv.user2_name || '';
+                          otherUserPhoto = conv.user2_photo || '';
+                          otherUserCity = conv.user2_city || '';
+                          otherUserState = conv.user2_state || '';
+                        } else {
+                          otherUserId = conv.user1_id;
+                          otherUserName = conv.user1_name || '';
+                          otherUserPhoto = conv.user1_photo || '';
+                          otherUserCity = conv.user1_city || '';
+                          otherUserState = conv.user1_state || '';
+                        }
+                      }
+                      return (
+                        <div key={conv.id} className="flex items-center gap-3 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+                          {otherUserPhoto ? (
+                            <img src={otherUserPhoto} alt={otherUserName} className="w-12 h-12 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold">
+                              {otherUserName?.[0]?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 text-left">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
+                          </div>
+                          <button className="px-3 py-1 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-medium">Invite</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
+              </div>
+            )}
+
+            {inviteMode === 'name' && (
+              <div className="mt-6">
+                <h2 className="text-lg font-bold mb-4">Invite by Name</h2>
+                <p className="text-zinc-400 text-xs mb-4">(Coming soon: search and invite form)</p>
+                <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
+              </div>
+            )}
           </div>
         )}
       </div>
