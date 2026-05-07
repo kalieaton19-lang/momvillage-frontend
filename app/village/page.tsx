@@ -148,20 +148,25 @@ export default function VillagePage() {
                         }
                       }
                       return (
-                        <div key={conv.id} className="flex items-center gap-3 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+                        <button
+                          key={conv.id}
+                          className="flex items-center gap-3 p-4 rounded-2xl border-2 border-pink-300 dark:border-pink-600 bg-pink-50 dark:bg-pink-900/20 w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          style={{ cursor: 'pointer' }}
+                          // TODO: Add invite logic here
+                        >
                           {otherUserPhoto ? (
-                            <img src={otherUserPhoto} alt={otherUserName} className="w-12 h-12 rounded-full object-cover" />
+                            <img src={otherUserPhoto} alt={otherUserName} className="w-14 h-14 rounded-full object-cover" />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold">
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
                               {otherUserName?.[0]?.toUpperCase() || '?'}
                             </div>
                           )}
                           <div className="flex-1 text-left">
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
+                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
                             <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
                           </div>
-                          <button className="px-3 py-1 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-medium">Invite</button>
-                        </div>
+                          <span className="ml-4 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-base font-semibold">Invite</span>
+                        </button>
                       );
                     })}
                   </div>
