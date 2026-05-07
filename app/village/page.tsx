@@ -441,11 +441,17 @@ export default function VillagePage() {
               <div className="text-zinc-500">No invitations found.</div>
             ) : (
               <div className="space-y-4">
-                {invitationsWithOther.map((invite) => (
-                  <div
-                    key={invite.id}
-                    className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl ${invite.status === 'accepted' ? 'bg-pink-100 dark:bg-pink-900 border-pink-400 dark:border-pink-600' : 'bg-zinc-50 dark:bg-zinc-800'}`}
-                  >
+                {invitationsWithOther.map((invite) => {
+                  let cardClass = 'flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl ';
+                  if (invite.status === 'accepted') {
+                    cardClass += 'bg-pink-100 dark:bg-pink-900 border-pink-400 dark:border-pink-600';
+                  } else if (invite.status === 'declined') {
+                    cardClass += 'bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700';
+                  } else {
+                    cardClass += 'bg-zinc-50 dark:bg-zinc-800';
+                  }
+                  return (
+                    <div key={invite.id} className={cardClass}>
                     <div className="flex items-center gap-3 text-left" style={{ minWidth: 0 }}>
                       {invite.other.photoUrl ? (
                         <div className="w-12 h-12 flex-shrink-0">
@@ -564,9 +570,15 @@ export default function VillagePage() {
                       {invite.status === 'accepted' && (
                         <span className="text-pink-600 font-semibold">Accepted</span>
                       )}
-                      {/* Declined: show label */}
+                      {/* Declined: show button */}
                       {invite.status === 'declined' && (
-                        <span className="text-zinc-500 font-semibold">Declined</span>
+                        <button
+                          className="px-4 py-2 bg-zinc-400 text-white rounded-lg border border-zinc-500 font-semibold cursor-default"
+                          tabIndex={-1}
+                          disabled
+                        >
+                          Declined
+                        </button>
                       )}
                     </div>
                   </div>
