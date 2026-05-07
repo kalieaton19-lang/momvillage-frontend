@@ -62,6 +62,9 @@ export default function VillagePage() {
         .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
         .order("created_at", { ascending: false });
       if (invitesError) throw invitesError;
+      if (typeof window !== 'undefined') {
+        console.log('[DEBUG] Raw invites from Supabase:', invites);
+      }
       // Step 2: Collect 'other' user ids
       const otherIds = [...new Set((invites ?? []).map((invite: any) => (
         invite.from_user_id === session.user.id ? invite.to_user_id : invite.from_user_id
@@ -92,6 +95,9 @@ export default function VillagePage() {
           },
         };
       });
+      if (typeof window !== 'undefined') {
+        console.log('[DEBUG] invitationsWithOther:', invitationsWithOther);
+      }
       setInvitationsWithOther(invitationsWithOther);
     } catch (e) {
       setInvitationsWithOther([]);
