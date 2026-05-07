@@ -73,12 +73,16 @@ export default function VillagePage() {
         .in("id", otherIds);
       if (profilesError) throw profilesError;
       const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
-      // Step 4: Merge into invitations
+      // Step 4: Merge into invitations, clarify sender/recipient
       const invitationsWithOther = (invites ?? []).map((invite: any) => {
-        const otherUserId = invite.from_user_id === session.user.id ? invite.to_user_id : invite.from_user_id;
+        const isSender = invite.from_user_id === session.user.id;
+        const isRecipient = invite.to_user_id === session.user.id;
+        const otherUserId = isSender ? invite.to_user_id : invite.from_user_id;
         const otherProfile = profileById.get(otherUserId) as any;
         return {
           ...invite,
+          isSender,
+          isRecipient,
           other: {
             id: otherUserId,
             name: otherProfile?.full_name ?? null,
@@ -123,6 +127,7 @@ export default function VillagePage() {
             .eq("status", "pending");
           if (updateError) throw updateError;
           setInviteBanner("Resent invitation!");
+          await fetchUserAndInvitations();
         } else if (existing.status === 'resent') {
           setInviteBanner("You can only resend once.");
         } else if (existing.status === 'accepted') {
@@ -133,6 +138,7 @@ export default function VillagePage() {
           setInviteBanner("Cannot resend invitation.");
         }
         setShowProfileModal(false);
+        await fetchUserAndInvitations();
       } else {
         // No existing invitation, create new
         const { error: insertError } = await supabase
@@ -145,6 +151,7 @@ export default function VillagePage() {
         if (insertError) throw insertError;
         setInviteBanner(`Invitation sent to ${selectedMom.name}!`);
         setShowProfileModal(false);
+        await fetchUserAndInvitations();
       }
     } catch (e: any) {
       setInviteBanner(`Failed to send invitation: ${e?.message || e}`);
@@ -216,8 +223,6 @@ export default function VillagePage() {
             ) : (
               <div className="space-y-4">
                 {invitationsWithOther.map((invite) => {
-                  const isRecipient = invite.to_user_id === user?.id;
-                  const isSender = invite.from_user_id === user?.id;
                   return (
                     <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-xl bg-zinc-50 dark:bg-zinc-800">
                       <div className="flex items-center gap-3 flex-1 text-left">
@@ -233,18 +238,23 @@ export default function VillagePage() {
                             {invite.other.name || invite.other.id}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {invite.isSender
+                              ? `Sent to ${invite.other.name || invite.other.id}`
+                              : `Received from ${invite.other.name || invite.other.id}`}
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             {invite.status === 'pending' ? 'Pending invitation' : invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {invite.status === 'pending' && isRecipient && !isSender && (
+                        {invite.status === 'pending' && invite.isRecipient && !invite.isSender && (
                           <>
                             <button className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Accept logic */}}>Accept</button>
                             <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors" onClick={() => {/* TODO: Decline logic */}}>Decline</button>
                           </>
                         )}
-                        {invite.status === 'pending' && isSender && (
+                        {invite.status === 'pending' && invite.isSender && (
                           <div className="flex items-center gap-2 w-full justify-center">
                             <span className="text-base text-pink-600 font-light text-center">Invitation sent</span>
                             <button
