@@ -187,45 +187,50 @@ export default function VillagePage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     {conversations.map((conv) => {
-                      function getOtherUser(conv: any, userId: string) {
-                        if (conv.user1_id === userId) {
-                          return {
-                            id: conv.user2_id,
-                            name: conv.user2_name || '',
-                            photo: conv.user2_photo || '',
-                            city: conv.user2_city || '',
-                            state: conv.user2_state || '',
-                          };
+                      let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
+                      if (user) {
+                        if (conv.user1_id === user.id) {
+                          otherUserId = conv.user2_id;
+                          otherUserName = conv.user2_name || '';
+                          otherUserPhoto = conv.user2_photo || '';
+                          otherUserCity = conv.user2_city || '';
+                          otherUserState = conv.user2_state || '';
                         } else {
-                          return {
-                            id: conv.user1_id,
-                            name: conv.user1_name || '',
-                            photo: conv.user1_photo || '',
-                            city: conv.user1_city || '',
-                            state: conv.user1_state || '',
-                          };
+                          otherUserId = conv.user1_id;
+                          otherUserName = conv.user1_name || '';
+                          otherUserPhoto = conv.user1_photo || '';
+                          otherUserCity = conv.user1_city || '';
+                          otherUserState = conv.user1_state || '';
                         }
                       }
-                      const other = user ? getOtherUser(conv, user.id) : null;
                       // Skip if the other user is yourself or missing
-                      if (!other || other.id === user?.id) return null;
+                      if (!otherUserId || otherUserId === user?.id) return null;
                       return (
                         <button
                           key={conv.id}
                           className="flex items-center gap-3 p-6 rounded-2xl border-2 border-pink-300 dark:border-pink-600 bg-pink-50 dark:bg-pink-900/20 w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
                           style={{ cursor: 'pointer' }}
-                          onClick={() => { setSelectedMom(other); setShowProfileModal(true); }}
+                          onClick={() => {
+                            setSelectedMom({
+                              id: otherUserId,
+                              name: otherUserName,
+                              photo: otherUserPhoto,
+                              city: otherUserCity,
+                              state: otherUserState,
+                            });
+                            setShowProfileModal(true);
+                          }}
                         >
-                          {other?.photo ? (
-                            <img src={other.photo} alt={other.name} className="w-16 h-16 rounded-full object-cover" />
+                          {otherUserPhoto ? (
+                            <img src={otherUserPhoto} alt={otherUserName} className="w-16 h-16 rounded-full object-cover" />
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
-                              {other?.name?.[0]?.toUpperCase() || '?'}
+                              {otherUserName?.[0]?.toUpperCase() || '?'}
                             </div>
                           )}
                           <div className="flex-1 text-left">
-                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{other?.name}</div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{other?.city}{other?.city && other?.state ? ', ' : ''}{other?.state}</div>
+                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
                           </div>
                         </button>
                       );
