@@ -84,35 +84,6 @@ export default function VillagePage() {
                   </div>
                 </div>
               )}
-
-              {/* Accepted Invitations */}
-              {acceptedInvitations.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
-                    ✓ Accepted ({acceptedInvitations.length})
-                  </h3>
-                  <div className="space-y-4">
-                    {acceptedInvitations.map(invitation => (
-                      <div
-                        key={invitation.id}
-                        className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl"
-                      >
-                        <div className="flex items-start gap-4">
-                          <span className="text-2xl">🤝</span>
-                          <div>
-                            <h4 className="font-semibold text-green-900 dark:text-green-50">
-                              {invitation.from_user_name}
-                            </h4>
-                            <p className="text-sm text-green-700 dark:text-green-300">
-                              Invitation accepted!
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
