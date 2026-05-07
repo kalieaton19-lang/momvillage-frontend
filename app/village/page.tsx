@@ -509,13 +509,16 @@ export default function VillagePage() {
                                       .eq("from_to_low", low)
                                       .eq("from_to_high", high)
                                       .maybeSingle();
+                                    console.log('[DEBUG][Resend] Existing before update:', existing);
                                     if (findError) throw findError;
                                     if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
-                                      const { error: updateError } = await supabase
+                                      const { data: updateData, error: updateError } = await supabase
                                         .from("village_invitations")
                                         .update({ status: "resent" })
                                         .eq("id", existing.id)
-                                        .eq("status", "pending");
+                                        .eq("status", "pending")
+                                        .select();
+                                      console.log('[DEBUG][Resend] Update result:', updateData, updateError);
                                       if (updateError) throw updateError;
                                       setInviteBanner("Resent invitation!");
                                       // Force UI update: fetch latest invitations
