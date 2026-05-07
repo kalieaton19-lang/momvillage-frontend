@@ -1,5 +1,74 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+// InviteByNameForm component (top-level)
+function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: (user: any) => void }) {
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setResults([]);
+    try {
+      const { data, error: searchError } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, profile_photo_url, city, state, is_public")
+        .ilike("full_name", `%${search}%`)
+        .limit(10);
+      if (searchError) throw searchError;
+      setResults(data || []);
+      if ((data || []).length === 0) setError("No users found.");
+    } catch (e: any) {
+      setError("Search failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+        <input
+          type="text"
+          className="flex-1 px-4 py-2 border rounded-lg"
+          placeholder="Enter name..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          required
+        />
+        <button type="submit" className="px-4 py-2 bg-pink-500 text-white rounded-lg" disabled={loading}>
+          {loading ? "Searching..." : "Search"}
+        </button>
+      </form>
+      {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+      <div className="space-y-2">
+        {results.map(user => (
+          <button
+            key={user.id}
+            className="w-full flex items-center gap-3 p-3 border rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-pink-100 dark:hover:bg-pink-900 transition-all"
+            onClick={() => onInvite(user)}
+          >
+            {user.profile_photo_url ? (
+              <img src={user.profile_photo_url} alt={user.full_name} className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg">
+                {user.full_name?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+            <div className="flex-1 text-left">
+              <div className="font-semibold text-zinc-900 dark:text-zinc-50">{user.full_name}</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">{user.city}{user.city && user.state ? ', ' : ''}{user.state}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+      <button className="mt-4 text-sm text-zinc-500 hover:underline" onClick={onBack}>Back</button>
+    </div>
+  );
+}
 import { supabase } from "../../lib/supabase";
 
 export default function VillagePage() {
@@ -611,8 +680,19 @@ export default function VillagePage() {
             {inviteMode === 'name' && (
               <div className="mt-6">
                 <h2 className="text-lg font-bold mb-4">Invite by Name</h2>
-                <p className="text-zinc-400 text-xs mb-4">(Coming soon: search and invite form)</p>
-                <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
+                <InviteByNameForm
+                  onBack={() => setInviteMode('none')}
+                  onInvite={async (user) => {
+                    setSelectedMom({
+                      id: user.id,
+                      name: user.full_name,
+                      photo: user.profile_photo_url,
+                      city: user.city,
+                      state: user.state,
+                    });
+                    setShowProfileModal(true);
+                  }}
+                />
               </div>
             )}
           </div>
