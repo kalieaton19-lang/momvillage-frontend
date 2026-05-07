@@ -503,6 +503,13 @@ export default function VillagePage() {
                                     const toUserId = invite.other.id;
                                     const low = fromUserId < toUserId ? fromUserId : toUserId;
                                     const high = fromUserId < toUserId ? toUserId : fromUserId;
+                                    // Extra debug: log all invitations before update
+                                    const { data: allInvites } = await supabase
+                                      .from("village_invitations")
+                                      .select("id, status, from_user_id, to_user_id");
+                                    if (typeof window !== 'undefined') {
+                                      console.log('[DEBUG][Resend] All invites before update:', allInvites);
+                                    }
                                     const { data: existing, error: findError } = await supabase
                                       .from("village_invitations")
                                       .select("id, status, from_user_id, to_user_id")
@@ -516,7 +523,6 @@ export default function VillagePage() {
                                         .from("village_invitations")
                                         .update({ status: "resent" })
                                         .eq("id", existing.id)
-                                        .eq("status", "pending")
                                         .select();
                                       console.log('[DEBUG][Resend] Update result:', updateData, updateError);
                                       if (updateError) throw updateError;
