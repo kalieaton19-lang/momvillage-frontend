@@ -9,6 +9,7 @@ import { AsyncPendingInvites } from "./AsyncPendingInvites";
 
 type VillageTabType = 'members' | 'invite' | 'invitations';
 
+
 interface VillageMember {
   id: string;
   name: string;
@@ -18,28 +19,6 @@ interface VillageMember {
   state?: string;
   joined_date: string;
 }
-
-// ...existing code...
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      setUser(session.user);
-      setCurrentUserId(session.user.id);
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      // Optionally use currentUser if needed
-      await loadVillageData(session.user.id);
-      await loadAvailableMoms();
-      // (localStorage migration removed, now using Supabase only)
-    } catch (error) {
-      console.error('Error checking user:', error);
-      router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  }
 
   // Main return statement for the component
                             className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium transition-colors"
