@@ -497,53 +497,58 @@ export default function VillagePage() {
                               {`[DEBUG] invite.id: ${invite.id}, status: ${invite.status}, isSender: ${invite.isSender}, from: ${invite.from_user_id}, to: ${invite.to_user_id}, user.id: ${user.id}, invite.other.id: ${invite.other.id}`}
                             </pre>
                             {invite.status === 'pending' ? (
-                              <button
-                                className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
-                                onClick={async () => {
-                                  setSendingInviteId(invite.other.id);
-                                  try {
-                                    // Debug log before resend
-                                    console.log('[DEBUG][Resend] Attempting resend', {
-                                      fromUserId: user.id,
-                                      toUserId: invite.other.id,
-                                      invite
-                                    });
-                                    const fromUserId = user.id;
-                                    const toUserId = invite.other.id;
-                                    const low = fromUserId < toUserId ? fromUserId : toUserId;
-                                    const high = fromUserId < toUserId ? toUserId : fromUserId;
-                                    const { data: existing, error: findError } = await supabase
-                                      .from("village_invitations")
-                                      .select("id, status, from_user_id, to_user_id")
-                                      .eq("from_to_low", low)
-                                      .eq("from_to_high", high)
-                                      .maybeSingle();
-                                    console.log('[DEBUG][Resend] Existing invitation', existing, findError);
-                                    if (findError) throw findError;
-                                    if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
-                                      const { error: updateError } = await supabase
-                                        .from("village_invitations")
-                                        .update({ status: "resent" })
-                                        .eq("id", existing.id)
-                                        .eq("status", "pending");
-                                      console.log('[DEBUG][Resend] Update result', updateError);
-                                      if (updateError) throw updateError;
-                                      setInviteBanner("Resent invitation!");
-                                    } else {
-                                      setInviteBanner("You can only resend once.");
-                                    }
-                                    await fetchUserAndInvitations();
-                                  } catch (e: any) {
-                                    console.error('[DEBUG][Resend] Error', e);
-                                    setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
-                                  } finally {
-                                    setSendingInviteId(null);
-                                  }
-                                }}
-                                disabled={sendingInviteId === invite.other.id}
-                              >
-                                {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
-                              </button>
+                              <>
+                                <div style={{border: '2px solid red', padding: 2, display: 'inline-block'}}>
+                                  <span style={{color: 'red', fontWeight: 'bold', fontSize: 12}}>[DEBUG: Resend Button Rendered]</span>
+                                  <button
+                                    className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-lg border border-pink-300 transition-colors"
+                                    onClick={async () => {
+                                      setSendingInviteId(invite.other.id);
+                                      try {
+                                        // Debug log before resend
+                                        console.log('[DEBUG][Resend] Attempting resend', {
+                                          fromUserId: user.id,
+                                          toUserId: invite.other.id,
+                                          invite
+                                        });
+                                        const fromUserId = user.id;
+                                        const toUserId = invite.other.id;
+                                        const low = fromUserId < toUserId ? fromUserId : toUserId;
+                                        const high = fromUserId < toUserId ? toUserId : fromUserId;
+                                        const { data: existing, error: findError } = await supabase
+                                          .from("village_invitations")
+                                          .select("id, status, from_user_id, to_user_id")
+                                          .eq("from_to_low", low)
+                                          .eq("from_to_high", high)
+                                          .maybeSingle();
+                                        console.log('[DEBUG][Resend] Existing invitation', existing, findError);
+                                        if (findError) throw findError;
+                                        if (existing && existing.status === 'pending' && existing.from_user_id === fromUserId) {
+                                          const { error: updateError } = await supabase
+                                            .from("village_invitations")
+                                            .update({ status: "resent" })
+                                            .eq("id", existing.id)
+                                            .eq("status", "pending");
+                                          console.log('[DEBUG][Resend] Update result', updateError);
+                                          if (updateError) throw updateError;
+                                          setInviteBanner("Resent invitation!");
+                                        } else {
+                                          setInviteBanner("You can only resend once.");
+                                        }
+                                        await fetchUserAndInvitations();
+                                      } catch (e: any) {
+                                        console.error('[DEBUG][Resend] Error', e);
+                                        setInviteBanner(`Failed to resend invitation: ${e?.message || e}`);
+                                      } finally {
+                                        setSendingInviteId(null);
+                                      }
+                                    }}
+                                    disabled={sendingInviteId === invite.other.id}
+                                  >
+                                    {sendingInviteId === invite.other.id ? 'Resending...' : 'Resend invite'}
+                                  </button>
+                                </div>
+                              </>
                             ) : null}
                             {invite.status === 'resent' && (
                               <span className="px-4 py-2 bg-pink-700 text-white rounded-lg border border-pink-800 font-semibold">Resent</span>
