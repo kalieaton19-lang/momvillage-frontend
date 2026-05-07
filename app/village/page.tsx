@@ -166,7 +166,16 @@ export default function VillagePage() {
             to_user_id: toUserId,
             status: "pending",
           });
-        if (insertError) throw insertError;
+        if (insertError) {
+          // If conflict (409), refresh invitations so user sees the existing invite
+          if (insertError.code === '23505' || insertError.status === 409) {
+            setInviteBanner('An invitation already exists.');
+            setShowProfileModal(false);
+            await fetchUserAndInvitations();
+            return;
+          }
+          throw insertError;
+        }
         setInviteBanner(`Invitation sent to ${selectedMom.name}!`);
         setShowProfileModal(false);
         await fetchUserAndInvitations();
