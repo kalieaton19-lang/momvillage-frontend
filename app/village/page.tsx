@@ -158,23 +158,27 @@ export default function VillagePage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     {conversations.map((conv) => {
-                      // Figure out the other user
-                      let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
-                      if (user) {
-                        if (conv.user1_id === user.id) {
-                          otherUserId = conv.user2_id;
-                          otherUserName = conv.user2_name || '';
-                          otherUserPhoto = conv.user2_photo || '';
-                          otherUserCity = conv.user2_city || '';
-                          otherUserState = conv.user2_state || '';
+                      // Helper to extract the other user's profile
+                      function getOtherUser(conv: any, userId: string) {
+                        if (conv.user1_id === userId) {
+                          return {
+                            id: conv.user2_id,
+                            name: conv.user2_name || '',
+                            photo: conv.user2_photo || '',
+                            city: conv.user2_city || '',
+                            state: conv.user2_state || '',
+                          };
                         } else {
-                          otherUserId = conv.user1_id;
-                          otherUserName = conv.user1_name || '';
-                          otherUserPhoto = conv.user1_photo || '';
-                          otherUserCity = conv.user1_city || '';
-                          otherUserState = conv.user1_state || '';
+                          return {
+                            id: conv.user1_id,
+                            name: conv.user1_name || '',
+                            photo: conv.user1_photo || '',
+                            city: conv.user1_city || '',
+                            state: conv.user1_state || '',
+                          };
                         }
                       }
+                      const other = user ? getOtherUser(conv, user.id) : null;
                       return (
                         <button
                           key={conv.id}
@@ -182,16 +186,16 @@ export default function VillagePage() {
                           style={{ cursor: 'pointer' }}
                           // TODO: Add invite logic here
                         >
-                          {otherUserPhoto ? (
-                            <img src={otherUserPhoto} alt={otherUserName} className="w-14 h-14 rounded-full object-cover" />
+                          {other?.photo ? (
+                            <img src={other.photo} alt={other.name} className="w-14 h-14 rounded-full object-cover" />
                           ) : (
                             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
-                              {otherUserName?.[0]?.toUpperCase() || '?'}
+                              {other?.name?.[0]?.toUpperCase() || '?'}
                             </div>
                           )}
                           <div className="flex-1 text-left">
-                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
+                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{other?.name}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{other?.city}{other?.city && other?.state ? ', ' : ''}{other?.state}</div>
                           </div>
                           <span className="ml-4 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-base font-semibold">Invite</span>
                         </button>
