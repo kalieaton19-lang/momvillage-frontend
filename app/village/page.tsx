@@ -11,13 +11,15 @@ type VillageTabType = 'members' | 'invite' | 'invitations';
 
 interface VillageMember {
   id: string;
+  name: string;
+  photo?: string;
+  email?: string;
+  city?: string;
+  state?: string;
+  joined_date: string;
+}
 
-  useEffect(() => {
-    ensureCurrentUserId();
-  }, [activeTab, showInviteForm]);
-
-
-  async function checkUser() {
+// ...existing code...
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
