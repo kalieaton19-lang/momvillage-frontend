@@ -137,24 +137,6 @@
   async function handleRemoveFromVillage(memberId: string) {
     if (!confirm('Remove this mom from your village?')) return;
 
-    }
-  }
-
-  // Helper: enrich pending invites with info from conversations/availableMoms
-  async function enrichPendingInvites(invites: VillageInvitationWithRecipient[]) {
-    const enrichedInvites = await Promise.all(invites.map(async (inv) => {
-      let enriched = { ...inv };
-      // Try to fill missing name/email from conversations
-      if ((!enriched.to_user_name || !enriched.to_user_email) && Array.isArray(conversations)) {
-        const conv = conversations.find(c => c.other_user_id === inv.to_user_id || c.other_user_email === inv.to_user_email);
-        if (conv) {
-          if (!enriched.to_user_name && conv.other_user_name) enriched.to_user_name = conv.other_user_name;
-          if (!enriched.to_user_email && conv.other_user_email) enriched.to_user_email = conv.other_user_email;
-        }
-      }
-      // Try to fill missing name/email/city/state from availableMoms
-      if ((!enriched.to_user_name || !enriched.to_user_email || !enriched.to_user_city || !enriched.to_user_state) && Array.isArray(availableMoms)) {
-        const mom = availableMoms.find(m => m.id === inv.to_user_id || m.email === inv.to_user_email);
         if (mom) {
           if (!enriched.to_user_name && mom.user_metadata?.full_name) enriched.to_user_name = mom.user_metadata.full_name;
           if (!enriched.to_user_email && mom.email) enriched.to_user_email = mom.email;
