@@ -210,6 +210,15 @@ export default function VillagePage() {
                           otherUserState = conv.user1_state || '';
                         }
                       }
+                      if (typeof window !== 'undefined') {
+                        if (!otherUserId) {
+                          console.log('[DEBUG] Skipping conversation: otherUserId is missing', conv);
+                        } else if (otherUserId === user?.id) {
+                          console.log('[DEBUG] Skipping conversation: otherUserId matches user.id', { otherUserId, userId: user?.id, conv });
+                        } else {
+                          console.log('[DEBUG] Rendering conversation for otherUserId:', otherUserId, 'otherUserName:', otherUserName);
+                        }
+                      }
                       // Skip if the other user is yourself or missing
                       if (!otherUserId || otherUserId === user?.id) return null;
                       return (
