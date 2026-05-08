@@ -91,6 +91,7 @@ export default function VillagePage() {
   const [selectedMom, setSelectedMom] = useState<any>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [invitationsWithOther, setInvitationsWithOther] = useState<any[]>([]);
+  const [selectedMomInvitation, setSelectedMomInvitation] = useState<any>(null);
 
   useEffect(() => {
     // Fetch user and conversations/invitations/members when tab is opened
@@ -665,7 +666,7 @@ export default function VillagePage() {
                           key={conv.id}
                           className="flex items-center gap-3 p-6 rounded-2xl border-2 border-pink-300 dark:border-pink-600 bg-pink-50 dark:bg-pink-900/20 w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
                           style={{ cursor: 'pointer' }}
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedMom({
                               id: otherUserId,
                               name: otherUserName,
@@ -673,6 +674,24 @@ export default function VillagePage() {
                               city: otherUserCity,
                               state: otherUserState,
                             });
+                            // Check for existing invitation
+                            let invitation = null;
+                            if (user && user.id && otherUserId && user.id !== otherUserId) {
+                              const fromUserId = user.id;
+                              const toUserId = otherUserId;
+                              const low = fromUserId < toUserId ? fromUserId : toUserId;
+                              const high = fromUserId < toUserId ? toUserId : fromUserId;
+                              const { data: existing } = await supabase
+                                .from("village_invitations")
+                                .select("id, status, from_user_id, to_user_id")
+                                .eq("from_to_low", low)
+                                .eq("from_to_high", high)
+                                .maybeSingle();
+                              if (existing && existing.id) {
+                                invitation = existing;
+                              }
+                            }
+                            setSelectedMomInvitation(invitation);
                             setShowProfileModal(true);
                           }}
                         >
@@ -708,13 +727,25 @@ export default function VillagePage() {
                           <div className="text-center">
                             <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{selectedMom.name}</div>
                             <div className="text-zinc-500 dark:text-zinc-400 mb-2">{selectedMom.city}{selectedMom.city && selectedMom.state ? ', ' : ''}{selectedMom.state}</div>
-                            <button
-                              className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
-                              onClick={handleInviteMom}
-                              disabled={sendingInviteId === selectedMom.id}
-                            >
-                              {sendingInviteId === selectedMom.id ? 'Sending...' : `Invite ${selectedMom.name} to your village`}
-                            </button>
+                            {selectedMomInvitation ? (
+                              <div className="mt-4">
+                                <div className="mb-2">
+                                  {selectedMomInvitation.status === 'pending' && <span className="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800">Pending Invitation</span>}
+                                  {selectedMomInvitation.status === 'resent' && <span className="px-4 py-2 rounded-lg bg-pink-200 text-pink-800">Resent Invitation</span>}
+                                  {selectedMomInvitation.status === 'accepted' && <span className="px-4 py-2 rounded-lg bg-green-200 text-green-800">Accepted</span>}
+                                  {selectedMomInvitation.status === 'declined' && <span className="px-4 py-2 rounded-lg bg-zinc-300 text-zinc-700">Declined</span>}
+                                </div>
+                                <div className="text-xs text-zinc-500">You have already invited this mom.</div>
+                              </div>
+                            ) : (
+                              <button
+                                className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
+                                onClick={handleInviteMom}
+                                disabled={sendingInviteId === selectedMom.id}
+                              >
+                                {sendingInviteId === selectedMom.id ? 'Sending...' : `Invite ${selectedMom.name} to your village`}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -727,7 +758,7 @@ export default function VillagePage() {
                 <h2 className="text-lg font-bold mb-4">Invite by Name</h2>
                 <InviteByNameForm
                   onBack={() => setInviteMode('none')}
-                  onSelect={(user) => {
+                  onSelect={async (user) => {
                     setSelectedMom({
                       id: user.id,
                       name: user.full_name,
@@ -735,6 +766,25 @@ export default function VillagePage() {
                       city: user.city,
                       state: user.state,
                     });
+                    // Check for existing invitation
+                    let invitation = null;
+                    if (user && user.id && user.id !== user?.id && user?.id && user?.id !== undefined) {
+                      // Defensive: avoid self-invite
+                      const fromUserId = user?.id;
+                      const toUserId = user.id;
+                      const low = fromUserId < toUserId ? fromUserId : toUserId;
+                      const high = fromUserId < toUserId ? toUserId : fromUserId;
+                      const { data: existing } = await supabase
+                        .from("village_invitations")
+                        .select("id, status, from_user_id, to_user_id")
+                        .eq("from_to_low", low)
+                        .eq("from_to_high", high)
+                        .maybeSingle();
+                      if (existing && existing.id) {
+                        invitation = existing;
+                      }
+                    }
+                    setSelectedMomInvitation(invitation);
                     setShowProfileModal(true);
                   }}
                 />
