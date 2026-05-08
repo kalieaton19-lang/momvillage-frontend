@@ -102,7 +102,11 @@ export default function Home() {
             <Card title="🤝 Connect Locally">Find like-minded mothers in your area who share your values and parenting style.</Card>
             <Card title="📅 Share Schedules">Coordinate playdates, coffee meetups, and support when you need it most.</Card>
             <Card title="💕 Build Community">Create the network of support that stay-at-home moms deserve.</Card>
-            <Card title="🏘️ Your Village">You don't have to do this alone anymore.</Card>
+            <Card title="🏘️ Your Village">
+              You don't have to do this alone anymore.<br />
+              <Link href="/my-village" className="inline-block mt-2 px-4 py-2 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600">Go to My Village</Link><br />
+              <Link href="/invitations" className="inline-block mt-2 px-4 py-2 rounded-lg bg-yellow-500 text-white font-semibold hover:bg-yellow-600">View Invitations</Link>
+            </Card>
           </div>
         </section>
 
