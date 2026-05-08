@@ -758,20 +758,19 @@ export default function VillagePage() {
                 <h2 className="text-lg font-bold mb-4">Invite by Name</h2>
                 <InviteByNameForm
                   onBack={() => setInviteMode('none')}
-                  onSelect={async (user) => {
+                  onSelect={async (selectedUser) => {
                     setSelectedMom({
-                      id: user.id,
-                      name: user.full_name,
-                      photo: user.profile_photo_url,
-                      city: user.city,
-                      state: user.state,
+                      id: selectedUser.id,
+                      name: selectedUser.full_name,
+                      photo: selectedUser.profile_photo_url,
+                      city: selectedUser.city,
+                      state: selectedUser.state,
                     });
-                    // Check for existing invitation
+                    // Use the logged-in user's ID for invitation lookup
                     let invitation = null;
-                    if (user && user.id && user.id !== user?.id && user?.id && user?.id !== undefined) {
-                      // Defensive: avoid self-invite
-                      const fromUserId = user?.id;
-                      const toUserId = user.id;
+                    if (user && user.id && selectedUser.id && user.id !== selectedUser.id) {
+                      const fromUserId = user.id;
+                      const toUserId = selectedUser.id;
                       const low = fromUserId < toUserId ? fromUserId : toUserId;
                       const high = fromUserId < toUserId ? toUserId : fromUserId;
                       const { data: existing } = await supabase
