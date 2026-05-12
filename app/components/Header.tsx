@@ -15,6 +15,8 @@ export default function Header() {
 
       <nav className="hidden md:flex gap-6 text-sm">
         <Link href="/">Home</Link>
+        <Link href="/my-village">My Village</Link>
+        <Link href="/invitations">Invitations</Link>
         <Link href="/community">Community</Link>
         <Link href="/resources">Resources</Link>
         <Link href="/about">About</Link>
@@ -39,6 +41,8 @@ export default function Header() {
         <div className="absolute inset-x-4 top-20 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg p-4 md:hidden">
           <nav className="flex flex-col gap-3">
             <Link href="/">Home</Link>
+            <Link href="/my-village">My Village</Link>
+            <Link href="/invitations">Invitations</Link>
             <Link href="/community">Community</Link>
             <Link href="/resources">Resources</Link>
             <Link href="/about">About</Link>
