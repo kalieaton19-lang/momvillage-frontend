@@ -23,7 +23,7 @@ export default function ProfilePage() {
       setError("");
       const { data, error } = await supabase
         .from("user_public_profiles")
-        .select("id, full_name, profile_photo_url, city, state, is_public")
+        .select("id, full_name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio")
         .eq("id", id)
         .single();
       if (error) {
@@ -139,6 +139,25 @@ export default function ProfilePage() {
         )}
         <h1 className="text-3xl font-bold mb-2">{profile.full_name}</h1>
         <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
+        {/* Kids & Parenting Info */}
+        <div className="w-full max-w-xs mx-auto mt-2 mb-2 space-y-1">
+          {profile.number_of_kids && (
+            <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Number of kids:</span> {profile.number_of_kids}</div>
+          )}
+          {profile.kids_age_groups && (
+            <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Kids' ages:</span> {Array.isArray(profile.kids_age_groups) ? profile.kids_age_groups.join(", ") : String(profile.kids_age_groups)}</div>
+          )}
+          {profile.parenting_style && (
+            <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Parenting style:</span> {profile.parenting_style}</div>
+          )}
+        </div>
+        {/* Bio */}
+        {profile.bio && (
+          <div className="w-full max-w-xs mx-auto mt-2 mb-2">
+            <div className="font-semibold text-zinc-800 dark:text-zinc-100 mb-1">Bio</div>
+            <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-line">{profile.bio}</div>
+          </div>
+        )}
         {/* Banner/Button for village/invite status */}
         {currentUser && currentUser.id !== id && (
           <div className="my-4 w-full">
@@ -197,7 +216,7 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
-        <div className="mt-4 text-zinc-500 text-sm">User ID: {profile.id}</div>
+        {/* User ID intentionally hidden */}
       </div>
     </div>
   );
