@@ -1,15 +1,22 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
 export default function ProfilePage() {
   const { id } = useParams();
+
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [inviteStatus, setInviteStatus] = useState<"in-village"|"invited-by-me"|"invited-me"|"none">("none");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [villageMembers, setVillageMembers] = useState<any[]>([]);
+  const [showVillageModal, setShowVillageModal] = useState(false);
 
+  // Fetch profile info
   useEffect(() => {
     async function fetchProfile() {
       setLoading(true);
@@ -30,6 +37,92 @@ export default function ProfilePage() {
     if (id) fetchProfile();
   }, [id]);
 
+  // Fetch current user and invitation/village status
+  useEffect(() => {
+    async function fetchStatus() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      if (!user || !id || user.id === id) return;
+      // Check if in village
+      const { data: members } = await supabase
+        .from("village_invitations")
+        .select("id, from_user_id, to_user_id, status")
+        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
+        .eq("status", "accepted");
+      const inVillage = (members ?? []).some((m: any) => (m.from_user_id === id || m.to_user_id === id));
+      if (inVillage) {
+        setInviteStatus("in-village");
+        return;
+      }
+      // Check if invitation sent by me
+      const { data: sentInvites } = await supabase
+        .from("village_invitations")
+        .select("id, status")
+        .eq("from_user_id", user.id)
+        .eq("to_user_id", id)
+        .order("created_at", { ascending: false });
+      if ((sentInvites ?? []).some((i: any) => i.status === "pending" || i.status === "resent")) {
+        setInviteStatus("invited-by-me");
+        return;
+      }
+      // Check if invitation sent to me
+      const { data: receivedInvites } = await supabase
+        .from("village_invitations")
+        .select("id, status")
+        .eq("from_user_id", id)
+        .eq("to_user_id", user.id)
+        .order("created_at", { ascending: false });
+      if ((receivedInvites ?? []).some((i: any) => i.status === "pending" || i.status === "resent")) {
+        setInviteStatus("invited-me");
+        return;
+      }
+      setInviteStatus("none");
+    }
+    fetchStatus();
+  }, [id]);
+
+  // Fetch this user's village members
+  useEffect(() => {
+    async function fetchVillage() {
+      if (!id) return;
+      // Find all accepted invitations where this user is sender or recipient
+      const { data: invites } = await supabase
+        .from("village_invitations")
+        .select("from_user_id, to_user_id, status")
+        .or(`from_user_id.eq.${id},to_user_id.eq.${id}`)
+        .eq("status", "accepted");
+      const memberIds = [...new Set((invites ?? []).map((invite: any) => (
+        invite.from_user_id === id ? invite.to_user_id : invite.from_user_id
+      )))];
+      if (memberIds.length === 0) {
+        setVillageMembers([]);
+        return;
+      }
+      const { data: profiles } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, profile_photo_url, city, state, is_public")
+        .in("id", memberIds);
+      setVillageMembers(profiles ?? []);
+    }
+    fetchVillage();
+  }, [id]);
+
+  async function handleInvite() {
+    if (!currentUser || !id) return;
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .insert({ from_user_id: currentUser.id, to_user_id: id, status: "pending" });
+      if (error) throw error;
+      setInviteStatus("invited-by-me");
+    } catch (e) {
+      alert("Failed to send invitation.");
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
   if (loading) return <div className="p-8 text-center">Loading profile...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!profile) return null;
@@ -46,6 +139,64 @@ export default function ProfilePage() {
         )}
         <h1 className="text-3xl font-bold mb-2">{profile.full_name}</h1>
         <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
+        {/* Banner/Button for village/invite status */}
+        {currentUser && currentUser.id !== id && (
+          <div className="my-4 w-full">
+            {inviteStatus === "in-village" && (
+              <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-center font-semibold mb-2">This mom is in your village!</div>
+            )}
+            {inviteStatus === "invited-by-me" && (
+              <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-center font-semibold mb-2">Invitation sent. Pending acceptance.</div>
+            )}
+            {inviteStatus === "invited-me" && (
+              <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-center font-semibold mb-2">This mom has invited you to her village!</div>
+            )}
+            {inviteStatus === "none" && (
+              <button
+                className="w-full px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg transition-colors"
+                onClick={handleInvite}
+                disabled={inviteLoading}
+              >
+                {inviteLoading ? "Sending..." : "Invite to your village"}
+              </button>
+            )}
+          </div>
+        )}
+        {/* Village count and modal */}
+        <button
+          className="mt-2 text-sm text-pink-600 hover:underline"
+          onClick={() => setShowVillageModal(true)}
+        >
+          {profile.full_name.split(" ")[0]}'s Village ({villageMembers.length})
+        </button>
+        {/* Modal for village members */}
+        {showVillageModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
+              <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowVillageModal(false)}>&times;</button>
+              <h2 className="text-lg font-bold mb-4">{profile.full_name.split(" ")[0]}'s Village Members</h2>
+              {villageMembers.length === 0 ? (
+                <div className="text-zinc-500">No members yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {villageMembers.map((m: any) => (
+                    <div key={m.id} className="flex items-center gap-3">
+                      {m.profile_photo_url ? (
+                        <img src={m.profile_photo_url} alt={m.full_name} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
+                          {m.full_name?.[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                      <span className="font-medium">{m.full_name}</span>
+                      <span className="text-xs text-zinc-500">{m.city}{m.city && m.state ? ', ' : ''}{m.state}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div className="mt-4 text-zinc-500 text-sm">User ID: {profile.id}</div>
       </div>
     </div>
