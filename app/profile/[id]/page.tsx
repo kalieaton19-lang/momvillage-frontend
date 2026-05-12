@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-  const [message, setMessage] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [messageSent, setMessageSent] = useState(false);
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
@@ -20,6 +17,10 @@ export default function ProfilePage() {
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
+  // Move these hooks inside the component
+  const [message, setMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
 
   // Fetch profile info
   useEffect(() => {
