@@ -58,6 +58,7 @@ function ProfileModal({ userId, open, onClose }: { userId: string, open: boolean
   }, [userId, open]);
 
   if (!open) return null;
+  const router = useRouter();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-xl w-full shadow-xl relative">
@@ -86,6 +87,12 @@ function ProfileModal({ userId, open, onClose }: { userId: string, open: boolean
                 <span className="text-xs text-zinc-500 mt-1 tracking-wide uppercase">{profile.full_name.split(" ")[0]}'s Village</span>
               </button>
             </div>
+            <button
+              className="mb-4 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
+              onClick={() => router.push(`/profile/${profile.id}`)}
+            >
+              Go to Profile
+            </button>
             <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
             <div className="w-full max-w-xs mx-auto mt-2 mb-2 space-y-1">
               {profile.number_of_kids && (
