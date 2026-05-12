@@ -53,7 +53,10 @@ function MessagesPageInner() {
     const [messages, setMessages] = useState<any[]>([]);
     const [messageText, setMessageText] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
-    const [villageStatus, setVillageStatus] = useState<{isInVillage: boolean, hasPendingInvite: boolean} | null>(null);
+    const [villageStatus, setVillageStatus] = useState<
+      | { status: 'in-village' | 'invited-by-me' | 'invited-me' | 'none' }
+      | null
+    >(null);
     const [inviteBanner, setInviteBanner] = useState("");
     const [inviteLoading, setInviteLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -96,11 +99,45 @@ function MessagesPageInner() {
     useEffect(() => {
       if (selectedConversation) {
         loadMessages(selectedConversation);
-        // Check village status for the other user in this conversation
+        // Enhanced: Check all invitation statuses
         const conv = conversations.find(c => c.id === selectedConversation);
         if (conv && user) {
           const otherUserId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
-          fetchVillageStatus(user.id, otherUserId).then(setVillageStatus);
+          (async () => {
+            // 1. Check if in village (accepted invitation either direction)
+            const { data: accepted } = await supabase
+              .from('village_invitations')
+              .select('id')
+              .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user.id})`)
+              .eq('status', 'accepted');
+            if (accepted && accepted.length > 0) {
+              setVillageStatus({ status: 'in-village' });
+              return;
+            }
+            // 2. Check if invitation sent by me (pending/resent)
+            const { data: sent } = await supabase
+              .from('village_invitations')
+              .select('id,status')
+              .eq('from_user_id', user.id)
+              .eq('to_user_id', otherUserId)
+              .in('status', ['pending', 'resent']);
+            if (sent && sent.length > 0) {
+              setVillageStatus({ status: 'invited-by-me' });
+              return;
+            }
+            // 3. Check if invitation sent to me (pending/resent)
+            const { data: received } = await supabase
+              .from('village_invitations')
+              .select('id,status')
+              .eq('from_user_id', otherUserId)
+              .eq('to_user_id', user.id)
+              .in('status', ['pending', 'resent']);
+            if (received && received.length > 0) {
+              setVillageStatus({ status: 'invited-me' });
+              return;
+            }
+            setVillageStatus({ status: 'none' });
+          })();
         } else {
           setVillageStatus(null);
         }
@@ -392,11 +429,16 @@ function MessagesPageInner() {
                       {/* Profile indicator and invite button */}
                       {villageStatus && (
                         <div className="ml-auto flex items-center gap-2">
-                          {villageStatus.isInVillage ? (
+                          {villageStatus.status === 'in-village' && (
                             <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">In Your Village</span>
-                          ) : villageStatus.hasPendingInvite ? (
+                          )}
+                          {villageStatus.status === 'invited-by-me' && (
                             <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-semibold">Invitation Pending</span>
-                          ) : (
+                          )}
+                          {villageStatus.status === 'invited-me' && (
+                            <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-semibold">Invited You</span>
+                          )}
+                          {villageStatus.status === 'none' && (
                             <button
                               onClick={handleSendVillageInvitation}
                               disabled={inviteLoading}
