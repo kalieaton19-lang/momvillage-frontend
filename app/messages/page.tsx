@@ -165,7 +165,7 @@ function MessagesPageInner() {
         const { error } = await supabase.from('village_invitations').insert([invitation]);
         if (error) throw error;
         setInviteBanner('Village invitation sent!');
-        setVillageStatus({ isInVillage: false, hasPendingInvite: true });
+        setVillageStatus({ status: 'invited-by-me' });
         setTimeout(() => setInviteBanner(""), 4000);
       } catch (e) {
         setInviteBanner('Failed to send invitation.');
