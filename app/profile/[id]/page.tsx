@@ -233,7 +233,45 @@ export default function ProfilePage() {
           <div className="w-full max-w-xs mx-auto mb-3">
             <button
               className="w-full px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
-              onClick={() => router.push(`/messages?user=${id}`)}
+              onClick={async () => {
+                // Find or create conversation between currentUser and profile user
+                if (!currentUser || !id) return;
+                // 1. Try to find existing conversation
+                let conversationId = null;
+                const { data: existingConvos, error: convoError } = await supabase
+                  .from("conversations")
+                  .select("id,user1_id,user2_id")
+                  .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${id}),and(user1_id.eq.${id},user2_id.eq.${currentUser.id})`)
+                  .limit(1);
+                if (convoError) {
+                  alert("Failed to check conversations");
+                  return;
+                }
+                if (existingConvos && existingConvos.length > 0) {
+                  conversationId = existingConvos[0].id;
+                } else {
+                  // 2. Create new conversation
+                  const { data: newConvo, error: createError } = await supabase
+                    .from("conversations")
+                    .insert({
+                      user1_id: currentUser.id,
+                      user2_id: id,
+                      user1_name: currentUser.user_metadata?.full_name || "",
+                      user2_name: profile.full_name || "",
+                      user1_photo: currentUser.user_metadata?.profile_photo_url || "",
+                      user2_photo: profile.profile_photo_url || "",
+                    })
+                    .select()
+                    .single();
+                  if (createError || !newConvo) {
+                    alert("Failed to create conversation");
+                    return;
+                  }
+                  conversationId = newConvo.id;
+                }
+                // 3. Navigate to messages page with conversation param
+                router.push(`/messages?conversation=${conversationId}`);
+              }}
             >
               Send a Message
             </button>
