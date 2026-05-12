@@ -1,4 +1,5 @@
 "use client";
+console.log("DEBUG: VillagePage loaded");
 export const dynamic = "force-dynamic";
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
