@@ -1,8 +1,9 @@
 
+
 "use client";
 
+import React, { useState as useReactState } from "react";
 // ProfileModal component for displaying user profile info in a modal
-import { useState as useReactState } from "react";
 
 function ProfileModal({ userId, open, onClose }: { userId: string, open: boolean, onClose: () => void }) {
   const [profile, setProfile] = useReactState<any>(null);
