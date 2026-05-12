@@ -186,6 +186,8 @@ export default function VillagePage() {
 
 	return (
 		<div className="p-4">
+			{/* DEBUG MARKER: Tabs should appear below this line */}
+			<div style={{background:'#ffeeba',color:'#856404',padding:'8px',borderRadius:'6px',marginBottom:'8px',fontWeight:'bold'}}>DEBUG: My Village Tabs Rendered</div>
 			<h1 className="text-2xl font-bold mb-4">My Village</h1>
 			<div className="flex gap-4 mb-4">
 				<button
