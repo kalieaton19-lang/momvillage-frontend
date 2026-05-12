@@ -137,7 +137,41 @@ export default function ProfilePage() {
             {profile.full_name?.[0]?.toUpperCase() || '?'}
           </div>
         )}
-        <h1 className="text-3xl font-bold mb-2">{profile.full_name}</h1>
+        <h1 className="text-3xl font-bold mb-1">{profile.full_name}</h1>
+        {/* Village count directly under name */}
+        <div className="flex items-center gap-3 mb-3">
+          <button
+            className="flex flex-col items-center focus:outline-none"
+            onClick={() => setShowVillageModal(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            <span className="text-5xl font-extrabold text-pink-600 leading-none">{villageMembers.length}</span>
+            <span className="text-xs text-zinc-500 mt-1 tracking-wide uppercase">{profile.full_name.split(" ")[0]}'s Village</span>
+          </button>
+          {/* Status badge/button */}
+          {currentUser && currentUser.id !== id && (
+            <div className="ml-1">
+              {inviteStatus === "in-village" && (
+                <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">In Your Village</span>
+              )}
+              {inviteStatus === "invited-by-me" && (
+                <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Invitation Sent</span>
+              )}
+              {inviteStatus === "invited-me" && (
+                <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Invited You</span>
+              )}
+              {inviteStatus === "none" && (
+                <button
+                  className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors"
+                  onClick={handleInvite}
+                  disabled={inviteLoading}
+                >
+                  {inviteLoading ? "Sending..." : "Invite to Village"}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
         {/* Kids & Parenting Info */}
         <div className="w-full max-w-xs mx-auto mt-2 mb-2 space-y-1">
@@ -158,36 +192,8 @@ export default function ProfilePage() {
             <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-line">{profile.bio}</div>
           </div>
         )}
-        {/* Banner/Button for village/invite status */}
-        {currentUser && currentUser.id !== id && (
-          <div className="my-4 w-full">
-            {inviteStatus === "in-village" && (
-              <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-center font-semibold mb-2">This mom is in your village!</div>
-            )}
-            {inviteStatus === "invited-by-me" && (
-              <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-center font-semibold mb-2">Invitation sent. Pending acceptance.</div>
-            )}
-            {inviteStatus === "invited-me" && (
-              <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-center font-semibold mb-2">This mom has invited you to her village!</div>
-            )}
-            {inviteStatus === "none" && (
-              <button
-                className="w-full px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg transition-colors"
-                onClick={handleInvite}
-                disabled={inviteLoading}
-              >
-                {inviteLoading ? "Sending..." : "Invite to your village"}
-              </button>
-            )}
-          </div>
-        )}
-        {/* Village count and modal */}
-        <button
-          className="mt-2 text-sm text-pink-600 hover:underline"
-          onClick={() => setShowVillageModal(true)}
-        >
-          {profile.full_name.split(" ")[0]}'s Village ({villageMembers.length})
-        </button>
+        {/* Status badge/button moved next to village count */}
+        {/* Village modal trigger moved above */}
         {/* Modal for village members */}
         {showVillageModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
