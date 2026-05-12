@@ -164,6 +164,11 @@ interface Conversation {
 }
 
 export default function ConversationPageInner({ conversationId }: { conversationId: string }) {
+  // Debug log for conversationId
+  console.log('[ConversationPageInner] conversationId:', conversationId);
+  if (!conversationId) {
+    return <div className="min-h-screen flex items-center justify-center text-red-600">Error: No conversationId provided in route.</div>;
+  }
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const router = useRouter();
   const { showNotification, NotificationComponent } = useNotification();
