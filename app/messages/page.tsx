@@ -44,6 +44,7 @@ interface Conversation {
 
 
 function MessagesPageInner() {
+  const [showSidebar, setShowSidebar] = useState(true);
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showNotification, NotificationComponent } = useNotification();
@@ -338,8 +339,11 @@ function MessagesPageInner() {
             </Link>
           </header>
           <div className="flex flex-1 overflow-hidden">
-            {/* Sidebar */}
-            <div className="w-full md:w-80 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-y-auto">
+            {/* Sidebar (Conversations List) */}
+            {/* On mobile, hide sidebar if a conversation is open */}
+            <div
+              className={`w-full md:w-80 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-y-auto ${selectedConversation && !showSidebar ? 'hidden md:block' : ''}`}
+            >
               {conversations.length === 0 ? (
                 <div className="p-6 text-center">
                   <div className="text-4xl mb-3">💌</div>
@@ -376,7 +380,10 @@ function MessagesPageInner() {
                             ? 'bg-pink-50 dark:bg-pink-900/20 border-l-2 border-pink-600'
                             : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'
                         }`}
-                        onClick={() => setSelectedConversation(conv.id)}
+                        onClick={() => {
+                          setSelectedConversation(conv.id);
+                          if (window.innerWidth < 768) setShowSidebar(false);
+                        }}
                       >
                         <div className="flex items-start gap-3">
                           {otherUser.photo ? (
@@ -404,6 +411,18 @@ function MessagesPageInner() {
             {/* Main message area */}
             {selectedConversation && (
               <div className="flex-1 flex flex-col">
+                {/* Back to Conversations button for mobile */}
+                <div className="md:hidden p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                  <button
+                    className="text-pink-600 dark:text-pink-400 font-semibold flex items-center gap-2"
+                    onClick={() => setShowSidebar(true)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                    Back to Conversations
+                  </button>
+                </div>
                 {/* Profile header above messages, with invite button/indicator */}
                 {(() => {
                   const conv = conversations.find(c => c.id === selectedConversation);
@@ -430,13 +449,13 @@ function MessagesPageInner() {
                       {villageStatus && (
                         <div className="ml-auto flex items-center gap-2">
                           {villageStatus.status === 'in-village' && (
-                            <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">In Your Village</span>
+                            <span className="px-6 py-2 text-base rounded-full bg-green-100 text-green-800 font-semibold flex items-center justify-center min-w-[180px] text-center">In Your Village</span>
                           )}
                           {villageStatus.status === 'invited-by-me' && (
-                            <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-semibold">Invitation Pending</span>
+                            <span className="px-6 py-2 text-base rounded-full bg-yellow-100 text-yellow-800 font-semibold flex items-center justify-center min-w-[180px] text-center">Invitation Pending</span>
                           )}
                           {villageStatus.status === 'invited-me' && (
-                            <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-semibold">Invited You</span>
+                            <span className="px-6 py-2 text-base rounded-full bg-blue-100 text-blue-800 font-semibold flex items-center justify-center min-w-[180px] text-center">Invited You</span>
                           )}
                           {villageStatus.status === 'none' && (
                             <button
@@ -452,12 +471,12 @@ function MessagesPageInner() {
                     </div>
                   );
                 })()}
-                                {/* Feedback banner for invitation sent */}
-                                {inviteBanner && (
-                                  <div className="mx-6 mt-2 mb-[-8px] p-3 rounded bg-green-100 text-green-800 text-center font-medium">
-                                    {inviteBanner}
-                                  </div>
-                                )}
+                {/* Feedback banner for invitation sent */}
+                {inviteBanner && (
+                  <div className="mx-6 mt-2 mb-[-8px] p-3 rounded bg-green-100 text-green-800 text-center font-medium">
+                    {inviteBanner}
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-black space-y-4">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
