@@ -78,8 +78,10 @@ function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: 
 	);
 }
 
+
 export default function VillagePage() {
-	const [activeTab, setActiveTab] = useState("invitation");
+	const [activeTab, setActiveTab] = useState("village");
+	const [villageUsers, setVillageUsers] = useState<any[]>([]);
 	const [invitedUsers, setInvitedUsers] = useState<any[]>([]);
 	const [allUsers, setAllUsers] = useState<any[]>([]);
 	const [search, setSearch] = useState("");
@@ -88,18 +90,45 @@ export default function VillagePage() {
 	const [loading, setLoading] = useState(false);
 	const [selectedUser, setSelectedUser] = useState<any>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [inviteLoading, setInviteLoading] = useState(false);
+	const [inviteError, setInviteError] = useState("");
+	const [inviteSuccess, setInviteSuccess] = useState("");
 
+
+	// Fetch all users in my village (accepted)
 	useEffect(() => {
-		const fetchUsers = async () => {
+		const fetchVillageUsers = async () => {
 			setLoading(true);
 			setError("");
 			try {
 				const { data: { user } } = await supabase.auth.getUser();
 				if (!user) throw new Error("User not found");
+				// Fetch users who are in my village and accepted
 				const { data, error: fetchError } = await supabase
 					.from("user_public_profiles")
 					.select("id, full_name, profile_photo_url, city, state, is_public")
 					.eq("village_id", user.user_metadata?.village_id)
+					.order("full_name", { ascending: true });
+				if (fetchError) throw fetchError;
+				setVillageUsers(data || []);
+			} catch (e: any) {
+				setError("Failed to load village users. Please try again.");
+			} finally {
+				setLoading(false);
+			}
+		};
+		if (activeTab === "village") fetchVillageUsers();
+	}, [activeTab]);
+
+	// Fetch all users for directory
+	useEffect(() => {
+		const fetchAllUsers = async () => {
+			setLoading(true);
+			setError("");
+			try {
+				const { data, error: fetchError } = await supabase
+					.from("user_public_profiles")
+					.select("id, full_name, profile_photo_url, city, state, is_public")
 					.order("full_name", { ascending: true });
 				if (fetchError) throw fetchError;
 				setAllUsers(data || []);
@@ -109,8 +138,8 @@ export default function VillagePage() {
 				setLoading(false);
 			}
 		};
-		fetchUsers();
-	}, []);
+		if (activeTab === "directory") fetchAllUsers();
+	}, [activeTab]);
 
 	const handleUserSelect = (user: any) => {
 		setSelectedUser(user);
@@ -122,6 +151,8 @@ export default function VillagePage() {
 		setSelectedUser(null);
 	};
 
+
+	// Fetch invitations
 	useEffect(() => {
 		if (activeTab === "invitation") {
 			const fetchInvitedUsers = async () => {
@@ -133,7 +164,7 @@ export default function VillagePage() {
 					const { data, error: fetchError } = await supabase
 						.from("invitations")
 						.select("id, invited_user_id, status, user_public_profiles (id, full_name, profile_photo_url)")
-						.eq("sender_id", user.id)
+						.or(`sender_id.eq.${user.id},invited_user_id.eq.${user.id}`)
 						.order("created_at", { ascending: false });
 					if (fetchError) throw fetchError;
 					setInvitedUsers(data || []);
@@ -187,31 +218,25 @@ export default function VillagePage() {
 
 	return (
 		<div className="p-4">
-			{/* DEBUG MARKER: Tabs should appear below this line */}
-			<div style={{background:'#ffeeba',color:'#856404',padding:'8px',borderRadius:'6px',marginBottom:'8px',fontWeight:'bold'}}>DEBUG: My Village Tabs Rendered</div>
 			<h1 className="text-2xl font-bold mb-4">My Village</h1>
 			<div className="flex gap-4 mb-4">
+				<button
+					onClick={() => setActiveTab("village")}
+					className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2
+					${activeTab === "village" ? "bg-pink-500 text-white shadow-md" : "bg-zinc-100 text-zinc-900 hover:bg-pink-50"}
+					`}
+				>
+					<span role="img" aria-label="village">👩‍👩‍👧‍👦</span>
+					My Village
+				</button>
 				<button
 					onClick={() => setActiveTab("invitation")}
 					className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2
 					${activeTab === "invitation" ? "bg-pink-500 text-white shadow-md" : "bg-zinc-100 text-zinc-900 hover:bg-pink-50"}
 					`}
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9 7 9-7M3 11l9 7 9-7" />
-					</svg>
+					<span role="img" aria-label="invites">✉️</span>
 					Invitations
-				</button>
-				<button
-					onClick={() => setActiveTab("directory")}
-					className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2
-					${activeTab === "directory" ? "bg-pink-500 text-white shadow-md" : "bg-zinc-100 text-zinc-900 hover:bg-pink-50"}
-					`}
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9 7 9-7M3 11l9 7 9-7" />
-					</svg>
-					User Directory
 				</button>
 				<button
 					onClick={() => setActiveTab("invite")}
@@ -219,13 +244,41 @@ export default function VillagePage() {
 					${activeTab === "invite" ? "bg-pink-500 text-white shadow-md" : "bg-zinc-100 text-zinc-900 hover:bg-pink-50"}
 					`}
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12h6m0 0l-3-3m3 3l-3 3M8 12H2m0 0l3-3m-3 3l3 3" />
-					</svg>
-					Invite Friends
+					<span role="img" aria-label="invite">➕</span>
+					Invite a Mom
 				</button>
 			</div>
 
+			{/* My Village Tab */}
+			{activeTab === "village" && (
+				<div>
+					<h2 className="text-xl font-semibold mb-4">Moms in My Village</h2>
+					{loading && <div className="text-center py-4">Loading...</div>}
+					{error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+					<div className="space-y-2">
+						{villageUsers.length === 0 && !loading && (
+							<div className="text-center text-zinc-500 text-sm py-4">No moms in your village yet.</div>
+						)}
+						{villageUsers.map(user => (
+							<div key={user.id} className="flex items-center gap-3 p-3 border rounded-lg bg-zinc-50 dark:bg-zinc-800">
+								{user.profile_photo_url ? (
+									<img src={user.profile_photo_url} alt={user.full_name} className="w-10 h-10 rounded-full object-cover" />
+								) : (
+									<div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg">
+										{user.full_name?.[0]?.toUpperCase() || '?'}
+									</div>
+								)}
+								<div className="flex-1 text-left">
+									<div className="font-semibold text-zinc-900 dark:text-zinc-50">{user.full_name}</div>
+									<div className="text-xs text-zinc-500 dark:text-zinc-400">{user.city}{user.city && user.state ? ', ' : ''}{user.state}</div>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Invitations Tab */}
 			{activeTab === "invitation" && (
 				<div>
 					<h2 className="text-xl font-semibold mb-4">Pending Invitations</h2>
@@ -301,6 +354,7 @@ export default function VillagePage() {
 				</div>
 			)}
 
+			{/* Directory Tab */}
 			{activeTab === "directory" && (
 				<div>
 					<h2 className="text-xl font-semibold mb-4">User Directory</h2>
@@ -353,6 +407,7 @@ export default function VillagePage() {
 				</div>
 			)}
 
+			{/* Invite a Mom Tab */}
 			{activeTab === "invite" && (
 				<div>
 					<h2 className="text-xl font-semibold mb-4">Invite Friends</h2>
@@ -363,6 +418,7 @@ export default function VillagePage() {
 				</div>
 			)}
 
+			{/* Invite Modal */}
 			{isModalOpen && selectedUser && (
 				<div className="fixed inset-0 flex items-center justify-center z-50">
 					<div className="bg-white dark:bg-zinc-800 rounded-lg shadow-lg p-6 max-w-sm w-full">
@@ -397,10 +453,35 @@ export default function VillagePage() {
 							</button>
 							<button
 								className="px-4 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600"
-								// onClick={handleInvite} // Implement invite logic here
+								disabled={inviteLoading}
+								onClick={async () => {
+									setInviteLoading(true);
+									setInviteError("");
+									setInviteSuccess("");
+									try {
+										const { data: { user } } = await supabase.auth.getUser();
+										if (!user) throw new Error("User not found");
+										// Insert invitation
+										const { error: inviteError } = await supabase
+											.from("invitations")
+											.insert({ sender_id: user.id, invited_user_id: selectedUser.id, status: "pending" });
+										if (inviteError) throw inviteError;
+										setInviteSuccess("Invitation sent!");
+										setTimeout(() => {
+											setIsModalOpen(false);
+											setSelectedUser(null);
+										}, 1000);
+									} catch (e: any) {
+										setInviteError("Failed to send invite. Try again.");
+									} finally {
+										setInviteLoading(false);
+									}
+								}}
 							>
-								Send Invite
+								{inviteLoading ? "Sending..." : "Send Invite"}
 							</button>
+							{inviteError && <div className="text-red-500 text-xs mt-2">{inviteError}</div>}
+							{inviteSuccess && <div className="text-green-500 text-xs mt-2">{inviteSuccess}</div>}
 						</div>
 					</div>
 				</div>
