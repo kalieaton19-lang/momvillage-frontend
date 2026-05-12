@@ -78,6 +78,7 @@ function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: 
 }
 
 export default function VillagePage() {
+  const [activeTab, setActiveTab] = useState("invitation");
   const [invitedUsers, setInvitedUsers] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
