@@ -185,6 +185,8 @@ interface Conversation {
 
 function MessagesPageInner() {
   const [showSidebar, setShowSidebar] = useState(true);
+  // Profile modal state for conversation user
+  const [profileModalOpen, setProfileModalOpen] = useReactState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showNotification, NotificationComponent } = useNotification();
@@ -590,16 +592,10 @@ function MessagesPageInner() {
                         )}
                         <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUser.name}</span>
                       </button>
-                                      {/* Profile modal for conversation user */}
-                                      {(() => {
-                                        const conv = conversations.find(c => c.id === selectedConversation);
-                                        const otherUserId = conv ? (conv.user1_id === user?.id ? conv.user2_id : conv.user1_id) : null;
-                                        const [profileModalOpen, setProfileModalOpen] = useReactState(false);
-                                        return otherUserId ? (
-                                          <ProfileModal userId={otherUserId} open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
-                                        ) : null;
-                                      })()}
-                      {/* Profile indicator and invite button */}
+                      {/* Profile modal for conversation user */}
+                      {otherUserId ? (
+                        <ProfileModal userId={otherUserId} open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
+                      ) : null}
                       {villageStatus && (
                         <div className="ml-auto flex items-center gap-2">
                           {villageStatus.status === 'in-village' && (
