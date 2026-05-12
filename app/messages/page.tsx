@@ -1,3 +1,139 @@
+// ProfileModal component for displaying user profile info in a modal
+import { useState as useReactState } from "react";
+
+function ProfileModal({ userId, open, onClose }: { userId: string, open: boolean, onClose: () => void }) {
+  const [profile, setProfile] = useReactState<any>(null);
+  const [loading, setLoading] = useReactState(true);
+  const [error, setError] = useReactState("");
+  const [villageMembers, setVillageMembers] = useReactState<any[]>([]);
+  const [showVillageModal, setShowVillageModal] = useReactState(false);
+
+  // Fetch profile info
+  React.useEffect(() => {
+    if (!userId || !open) return;
+    setLoading(true);
+    setError("");
+    supabase
+      .from("user_public_profiles")
+      .select("id, full_name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio")
+      .eq("id", userId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          setError("Profile not found.");
+          setProfile(null);
+        } else {
+          setProfile(data);
+        }
+        setLoading(false);
+      });
+  }, [userId, open]);
+
+  // Fetch this user's village members
+  React.useEffect(() => {
+    if (!userId || !open) return;
+    supabase
+      .from("village_invitations")
+      .select("from_user_id, to_user_id, status")
+      .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+      .eq("status", "accepted")
+      .then(({ data: invites }) => {
+        const memberIds = [...new Set((invites ?? []).map((invite: any) => (
+          invite.from_user_id === userId ? invite.to_user_id : invite.from_user_id
+        )))];
+        if (memberIds.length === 0) {
+          setVillageMembers([]);
+          return;
+        }
+        supabase
+          .from("user_public_profiles")
+          .select("id, full_name, profile_photo_url, city, state, is_public")
+          .in("id", memberIds)
+          .then(({ data: profiles }) => setVillageMembers(profiles ?? []));
+      });
+  }, [userId, open]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-xl w-full shadow-xl relative">
+        <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={onClose}>&times;</button>
+        {loading ? (
+          <div className="p-8 text-center">Loading profile...</div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-500">{error}</div>
+        ) : !profile ? null : (
+          <div className="flex flex-col items-center">
+            {profile.profile_photo_url ? (
+              <img src={profile.profile_photo_url} alt={profile.full_name} className="w-32 h-32 rounded-full object-cover mb-4" />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-4xl mb-4">
+                {profile.full_name?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+            <h1 className="text-3xl font-bold mb-1">{profile.full_name}</h1>
+            <div className="flex items-center gap-4 mb-3">
+              <button
+                className="flex flex-col items-center focus:outline-none"
+                onClick={() => setShowVillageModal(true)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <span className="text-2xl font-extrabold text-pink-600 leading-none">{villageMembers.length}</span>
+                <span className="text-xs text-zinc-500 mt-1 tracking-wide uppercase">{profile.full_name.split(" ")[0]}'s Village</span>
+              </button>
+            </div>
+            <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
+            <div className="w-full max-w-xs mx-auto mt-2 mb-2 space-y-1">
+              {profile.number_of_kids && (
+                <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Number of kids:</span> {profile.number_of_kids}</div>
+              )}
+              {profile.kids_age_groups && (
+                <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Kids' ages:</span> {Array.isArray(profile.kids_age_groups) ? profile.kids_age_groups.join(", ") : String(profile.kids_age_groups)}</div>
+              )}
+              {profile.parenting_style && (
+                <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Parenting style:</span> {profile.parenting_style}</div>
+              )}
+            </div>
+            {profile.bio && (
+              <div className="w-full max-w-xs mx-auto mt-2 mb-2">
+                <div className="font-semibold text-zinc-800 dark:text-zinc-100 mb-1">Bio</div>
+                <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-line">{profile.bio}</div>
+              </div>
+            )}
+            {/* Village modal for members */}
+            {showVillageModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
+                  <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowVillageModal(false)}>&times;</button>
+                  <h2 className="text-lg font-bold mb-4">{profile.full_name.split(" ")[0]}'s Village Members</h2>
+                  {villageMembers.length === 0 ? (
+                    <div className="text-zinc-500">No members yet.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {villageMembers.map((m: any) => (
+                        <div key={m.id} className="flex items-center gap-3">
+                          {m.profile_photo_url ? (
+                            <img src={m.profile_photo_url} alt={m.full_name} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
+                              {m.full_name?.[0]?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                          <span className="font-medium">{m.full_name}</span>
+                          <span className="text-xs text-zinc-500">{m.city}{m.city && m.state ? ', ' : ''}{m.state}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 // Force redeploy after Vercel plan upgrade
 // Trigger redeploy: trivial comment
 "use client";
@@ -431,7 +567,12 @@ function MessagesPageInner() {
                   const otherUserId = conv.user1_id === user?.id ? conv.user2_id : conv.user1_id;
                   return (
                     <div className="flex items-center gap-4 p-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                      <Link href={`/mom-profile?id=${otherUserId}`} className="flex items-center gap-4 no-underline hover:opacity-80">
+                      <button
+                        type="button"
+                        className="flex items-center gap-4 no-underline hover:opacity-80 bg-transparent border-none p-0"
+                        onClick={() => setProfileModalOpen(true)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         {otherUser.photo ? (
                           <img
                             src={otherUser.photo}
@@ -444,7 +585,16 @@ function MessagesPageInner() {
                           </div>
                         )}
                         <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUser.name}</span>
-                      </Link>
+                      </button>
+                                      {/* Profile modal for conversation user */}
+                                      {(() => {
+                                        const conv = conversations.find(c => c.id === selectedConversation);
+                                        const otherUserId = conv ? (conv.user1_id === user?.id ? conv.user2_id : conv.user1_id) : null;
+                                        const [profileModalOpen, setProfileModalOpen] = useReactState(false);
+                                        return otherUserId ? (
+                                          <ProfileModal userId={otherUserId} open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
+                                        ) : null;
+                                      })()}
                       {/* Profile indicator and invite button */}
                       {villageStatus && (
                         <div className="ml-auto flex items-center gap-2">
