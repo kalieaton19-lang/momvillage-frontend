@@ -90,6 +90,7 @@ export default function VillagePage() {
   const [loadingInvitations, setLoadingInvitations] = useState(false);
   const [selectedMom, setSelectedMom] = useState<any>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileModalMember, setProfileModalMember] = useState<any>(null);
   const [invitationsWithOther, setInvitationsWithOther] = useState<any[]>([]);
 
   useEffect(() => {
@@ -369,10 +370,8 @@ export default function VillagePage() {
           </p>
         </header>
 
-        {/* DEBUG: Tabs Visibility */}
-        <div style={{background:'#ffeeba',color:'#856404',padding:'8px',borderRadius:'6px',marginBottom:'8px',fontWeight:'bold',textAlign:'center'}}>DEBUG: Tabs should appear below this line</div>
         {/* Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto" style={{background:'#fffbe6',border:'2px solid #ffb300',zIndex:1000}}>
+        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
           <button
             onClick={() => setActiveTab('members')}
             className={`px-4 py-2 font-medium text-sm transition-colors whitespace-nowrap ${
@@ -415,7 +414,11 @@ export default function VillagePage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {villageMembers.map((member: any) => (
-                  <div key={member.id} className="flex items-center gap-4 p-4 border rounded-xl bg-pink-50 dark:bg-pink-900/20">
+                  <button
+                    key={member.id}
+                    className="flex items-center gap-4 p-4 border rounded-xl bg-pink-50 dark:bg-pink-900/20 w-full text-left hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    onClick={() => { setProfileModalMember(member); setShowProfileModal(true); }}
+                  >
                     {member.profile_photo_url ? (
                       <img src={member.profile_photo_url} alt={member.full_name} className="w-12 h-12 rounded-full object-cover" />
                     ) : (
@@ -427,8 +430,35 @@ export default function VillagePage() {
                       <div className="font-semibold text-zinc-900 dark:text-zinc-50">{member.full_name}</div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400">{member.city}{member.city && member.state ? ', ' : ''}{member.state}</div>
                     </div>
-                  </div>
+                  </button>
                 ))}
+              </div>
+            )}
+            {/* Profile Modal */}
+            {showProfileModal && profileModalMember && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
+                  <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowProfileModal(false)}>&times;</button>
+                  {profileModalMember.profile_photo_url ? (
+                    <img src={profileModalMember.profile_photo_url} alt={profileModalMember.full_name} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-4xl mx-auto mb-4">
+                      {profileModalMember.full_name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{profileModalMember.full_name}</div>
+                    <div className="text-zinc-500 dark:text-zinc-400 mb-2">{profileModalMember.city}{profileModalMember.city && profileModalMember.state ? ', ' : ''}{profileModalMember.state}</div>
+                    <button
+                      className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
+                      onClick={() => {
+                        window.location.href = `/profile/${profileModalMember.id}`;
+                      }}
+                    >
+                      Go to {profileModalMember.full_name.split(' ')[0]}'s Profile
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
