@@ -254,10 +254,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
       if (error) throw error;
       setInviteBanner('Village invitation sent!');
       setVillageStatus({ status: 'invited-by-me' });
-      setTimeout(() => setInviteBanner("");, 4000);
+      setTimeout(() => setInviteBanner("") , 4000);
     } catch (e) {
       setInviteBanner('Failed to send invitation.');
-      setTimeout(() => setInviteBanner("");, 4000);
+      setTimeout(() => setInviteBanner("") , 4000);
     } finally {
       setInviteLoading(false);
     }
