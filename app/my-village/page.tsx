@@ -1,16 +1,15 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
+export default function VillagePage() {
 
-// InviteByNameForm component (top-level)
 function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: (user: any) => void }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Live search as user types (debounced)
-  React.useEffect(() => {
+  useEffect(() => {
     const trimmed = search.trim();
     setError("");
     setResults([]);
@@ -37,6 +36,8 @@ function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: 
       }
     }, 300);
     return () => clearTimeout(handler);
+  }, [search]);
+
   return (
     <div>
       <div className="flex gap-2 mb-4">
@@ -72,12 +73,10 @@ function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: 
         ))}
       </div>
       <button className="mt-4 text-sm text-zinc-500 hover:underline" onClick={onBack}>Back</button>
-    </div>
+    
+  );
   );
 }
-
-export default function VillagePage() {
-  const [activeTab, setActiveTab] = useState("invitation");
   const [invitedUsers, setInvitedUsers] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
