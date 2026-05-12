@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 // InviteByNameForm component (top-level)
 function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: (user: any) => void }) {
   const [search, setSearch] = useState("");
@@ -449,14 +450,13 @@ export default function VillagePage() {
                   <div className="text-center">
                     <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{profileModalMember.full_name}</div>
                     <div className="text-zinc-500 dark:text-zinc-400 mb-2">{profileModalMember.city}{profileModalMember.city && profileModalMember.state ? ', ' : ''}{profileModalMember.state}</div>
-                    <button
-                      className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
-                      onClick={() => {
-                        window.location.href = `/profile/${profileModalMember.id}`;
-                      }}
+                    <Link
+                      href={`/profile/${profileModalMember.id}`}
+                      className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full inline-block text-center"
+                      onClick={() => setShowProfileModal(false)}
                     >
                       Go to {profileModalMember.full_name.split(' ')[0]}'s Profile
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
