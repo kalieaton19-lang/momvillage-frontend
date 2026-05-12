@@ -1,3 +1,6 @@
+
+"use client";
+
 // ProfileModal component for displaying user profile info in a modal
 import { useState as useReactState } from "react";
 
