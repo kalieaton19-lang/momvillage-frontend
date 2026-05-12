@@ -1,46 +1,4 @@
-"use client";
-console.log("DEBUG: VillagePage loaded");
-export const dynamic = "force-dynamic";
-import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
-
-function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: (user: any) => void }) {
-	const [search, setSearch] = useState("");
-	const [results, setResults] = useState<any[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState("");
-
-	useEffect(() => {
-		const trimmed = search.trim();
-		setError("");
-		setResults([]);
-		if (!trimmed || trimmed.split(/\s+/)[0].length < 2) {
-			if (trimmed.length > 0) setError("Please enter at least a first name (2+ letters). ");
-			setLoading(false);
-			return;
-		}
-		setLoading(true);
-		const handler = setTimeout(async () => {
-			try {
-				const { data, error: searchError } = await supabase
-					.from("user_public_profiles")
-					.select("id, full_name, profile_photo_url, city, state, is_public")
-					.or(`full_name.ilike.%${trimmed}%,city.ilike.%${trimmed}%`)
-					.limit(10);
-				if (searchError) throw searchError;
-				setResults(data || []);
-				if ((data || []).length === 0) setError("No users found.");
-			} catch (e: any) {
-				setError("Search failed. Try again.");
-			} finally {
-				setLoading(false);
-			}
-		}, 300);
-		return () => clearTimeout(handler);
-
-	// Re-export the main VillagePage so /my-village uses the same page as /village
-	import VillagePage from "../village/page";
-	export default VillagePage;
+export { default } from "../village/page";
 								onClick={closeModal}
 							>
 								Cancel
