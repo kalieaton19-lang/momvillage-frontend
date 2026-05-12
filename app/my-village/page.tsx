@@ -1,2 +1,3 @@
 "use client";
+export const dynamic = "force-dynamic";
 // ...existing code from app/village/page.tsx, with all three tabs and logic...
