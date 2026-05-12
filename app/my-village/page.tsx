@@ -1,4 +1,2 @@
 "use client";
-
-"use client";
 // ...existing code from app/village/page.tsx, with all three tabs and logic...
