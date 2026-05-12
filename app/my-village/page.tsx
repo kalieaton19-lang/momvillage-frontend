@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
-export default function VillagePage() {
 
 function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: (user: any) => void }) {
   const [search, setSearch] = useState("");
@@ -73,10 +72,12 @@ function InviteByNameForm({ onBack, onSelect }: { onBack: () => void; onSelect: 
         ))}
       </div>
       <button className="mt-4 text-sm text-zinc-500 hover:underline" onClick={onBack}>Back</button>
+    </div>
     
   );
-  );
 }
+
+export default function VillagePage() {
   const [invitedUsers, setInvitedUsers] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
