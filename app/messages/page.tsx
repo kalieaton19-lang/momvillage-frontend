@@ -137,9 +137,9 @@ function ProfileModal({ userId, open, onClose }: { userId: string, open: boolean
     </div>
   );
 }
+
 // Force redeploy after Vercel plan upgrade
 // Trigger redeploy: trivial comment
-"use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useNotification } from "../components/useNotification";
