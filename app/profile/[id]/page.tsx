@@ -292,5 +292,7 @@ export default function ProfilePage() {
         {/* User ID intentionally hidden */}
       </div>
     </div>
+
   );
+}
 
