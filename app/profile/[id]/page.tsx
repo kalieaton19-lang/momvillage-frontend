@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+  const [message, setMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
@@ -15,6 +18,8 @@ export default function ProfilePage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [villageMembers, setVillageMembers] = useState<any[]>([]);
   const [showVillageModal, setShowVillageModal] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
   // Fetch profile info
   useEffect(() => {
@@ -139,30 +144,79 @@ export default function ProfilePage() {
         )}
         <h1 className="text-3xl font-bold mb-1">{profile.full_name}</h1>
         {/* Village count directly under name */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-4 mb-3">
           <button
             className="flex flex-col items-center focus:outline-none"
             onClick={() => setShowVillageModal(true)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            <span className="text-5xl font-extrabold text-pink-600 leading-none">{villageMembers.length}</span>
+            <span className="text-2xl font-extrabold text-pink-600 leading-none">{villageMembers.length}</span>
             <span className="text-xs text-zinc-500 mt-1 tracking-wide uppercase">{profile.full_name.split(" ")[0]}'s Village</span>
           </button>
           {/* Status badge/button */}
           {currentUser && currentUser.id !== id && (
             <div className="ml-1">
               {inviteStatus === "in-village" && (
-                <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">In Your Village</span>
+                <button
+                  className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap hover:bg-green-200 transition-colors focus:outline-none"
+                  onClick={() => setShowRemoveModal(true)}
+                  type="button"
+                >
+                  In Your Village
+                </button>
               )}
+                      {/* Remove from village modal */}
+                      {showRemoveModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
+                            <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowRemoveModal(false)}>&times;</button>
+                            <h2 className="text-lg font-bold mb-4">Remove from Your Village?</h2>
+                            <p className="mb-6 text-zinc-700 dark:text-zinc-300">Are you sure you want to remove {profile.full_name.split(" ")[0]} from your village?</p>
+                            <div className="flex gap-4">
+                              <button
+                                className="flex-1 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 rounded-lg font-semibold"
+                                onClick={() => setShowRemoveModal(false)}
+                                disabled={removeLoading}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold"
+                                onClick={async () => {
+                                  setRemoveLoading(true);
+                                  try {
+                                    // Remove the accepted invitation (either direction)
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (!user) throw new Error("Not authenticated");
+                                    await supabase
+                                      .from("village_invitations")
+                                      .delete()
+                                      .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${id},status.eq.accepted),and(from_user_id.eq.${id},to_user_id.eq.${user.id},status.eq.accepted)`);
+                                    setInviteStatus("none");
+                                    setShowRemoveModal(false);
+                                  } catch (e) {
+                                    alert("Failed to remove from village.");
+                                  } finally {
+                                    setRemoveLoading(false);
+                                  }
+                                }}
+                                disabled={removeLoading}
+                              >
+                                {removeLoading ? "Removing..." : "Remove"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
               {inviteStatus === "invited-by-me" && (
-                <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Invitation Sent</span>
+                <span className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</span>
               )}
               {inviteStatus === "invited-me" && (
-                <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Invited You</span>
+                <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invited You</span>
               )}
               {inviteStatus === "none" && (
                 <button
-                  className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors"
+                  className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors"
                   onClick={handleInvite}
                   disabled={inviteLoading}
                 >
@@ -172,6 +226,55 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+        {/* Send a Message Bar */}
+        {currentUser && currentUser.id !== id && (
+          <div className="w-full max-w-xs mx-auto mb-3">
+            <form
+              className="flex gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!message.trim()) return;
+                setSendingMessage(true);
+                try {
+                  // Insert message into a 'messages' table or trigger a conversation (customize as needed)
+                  await supabase.from("messages").insert({
+                    senderUserId: currentUser.id,
+                    recipientUserId: id,
+                    content: message.trim(),
+                    createdAt: new Date().toISOString(),
+                  });
+                  setMessage("");
+                  setMessageSent(true);
+                  setTimeout(() => setMessageSent(false), 2000);
+                } catch (e) {
+                  alert("Failed to send message.");
+                } finally {
+                  setSendingMessage(false);
+                }
+              }}
+            >
+              <input
+                type="text"
+                className="flex-1 px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                placeholder={`Send a message to ${profile.full_name.split(" ")[0]}`}
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                disabled={sendingMessage}
+                maxLength={500}
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-sm disabled:opacity-60"
+                disabled={sendingMessage || !message.trim()}
+              >
+                {sendingMessage ? "Sending..." : "Send"}
+              </button>
+            </form>
+            {messageSent && (
+              <div className="text-green-600 text-xs mt-1">Message sent!</div>
+            )}
+          </div>
+        )}
         <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
         {/* Kids & Parenting Info */}
         <div className="w-full max-w-xs mx-auto mt-2 mb-2 space-y-1">
