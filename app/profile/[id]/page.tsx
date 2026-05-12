@@ -1,11 +1,14 @@
 "use client";
 
+
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
 export default function ProfilePage() {
   const { id } = useParams();
+  const router = useRouter();
 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -17,10 +20,8 @@ export default function ProfilePage() {
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
-  // Move these hooks inside the component
-  const [message, setMessage] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [messageSent, setMessageSent] = useState(false);
+
+  // (All logic and hooks are now inside the component)
 
   // Fetch profile info
   useEffect(() => {
@@ -227,53 +228,15 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-        {/* Send a Message Bar */}
+        {/* Send a Message Button */}
         {currentUser && currentUser.id !== id && (
           <div className="w-full max-w-xs mx-auto mb-3">
-            <form
-              className="flex gap-2"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!message.trim()) return;
-                setSendingMessage(true);
-                try {
-                  // Insert message into a 'messages' table or trigger a conversation (customize as needed)
-                  await supabase.from("messages").insert({
-                    senderUserId: currentUser.id,
-                    recipientUserId: id,
-                    content: message.trim(),
-                    createdAt: new Date().toISOString(),
-                  });
-                  setMessage("");
-                  setMessageSent(true);
-                  setTimeout(() => setMessageSent(false), 2000);
-                } catch (e) {
-                  alert("Failed to send message.");
-                } finally {
-                  setSendingMessage(false);
-                }
-              }}
+            <button
+              className="w-full px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
+              onClick={() => router.push(`/messages?user=${id}`)}
             >
-              <input
-                type="text"
-                className="flex-1 px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
-                placeholder={`Send a message to ${profile.full_name.split(" ")[0]}`}
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                disabled={sendingMessage}
-                maxLength={500}
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-sm disabled:opacity-60"
-                disabled={sendingMessage || !message.trim()}
-              >
-                {sendingMessage ? "Sending..." : "Send"}
-              </button>
-            </form>
-            {messageSent && (
-              <div className="text-green-600 text-xs mt-1">Message sent!</div>
-            )}
+              Send a Message
+            </button>
           </div>
         )}
         <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
@@ -330,4 +293,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-}
+
