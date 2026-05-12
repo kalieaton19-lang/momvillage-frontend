@@ -64,16 +64,34 @@ function MessagesPageInner() {
     }, []);
 
     // When user loads, load conversations and select from param if present
+
+    // Track if we've set the conversation from the param
+    const [conversationParamApplied, setConversationParamApplied] = useState(false);
+
     useEffect(() => {
       if (user) {
         console.log('DEBUG: Calling loadConversations with user.id:', user.id);
         loadConversations(user.id);
-        const conversationParam = searchParams.get("conversation");
-        if (conversationParam) {
+      }
+    }, [user]);
+
+    // After conversations load, apply conversation param if present
+    useEffect(() => {
+      const conversationParam = searchParams.get("conversation");
+      if (conversationParam && conversations.length > 0 && !conversationParamApplied) {
+        // Only set if the conversation exists
+        const exists = conversations.some(c => c.id === conversationParam);
+        if (exists) {
           setSelectedConversation(conversationParam);
+          setConversationParamApplied(true);
         }
       }
-    }, [user, searchParams]);
+    }, [conversations, searchParams, conversationParamApplied]);
+
+    // Reset flag if param changes
+    useEffect(() => {
+      setConversationParamApplied(false);
+    }, [searchParams.get("conversation")]);
 
     useEffect(() => {
       if (selectedConversation) {
@@ -153,7 +171,9 @@ function MessagesPageInner() {
         if (convosRes.error) throw convosRes.error;
         setConversations(convosRes.data || []);
         // Auto-select first conversation if none selected
-        if (!selectedConversation && convosRes.data && convosRes.data.length > 0) {
+        // Only auto-select if no conversation param is present
+        const conversationParam = searchParams.get("conversation");
+        if (!selectedConversation && !conversationParam && convosRes.data && convosRes.data.length > 0) {
           setSelectedConversation(convosRes.data[0].id);
         }
       } catch (error) {
