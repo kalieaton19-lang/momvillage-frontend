@@ -383,10 +383,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
         <header className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
           <button
             className="text-sm text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-2"
-            onClick={() => {
-              router.replace('/messages');
-              setTimeout(() => { window.location.href = '/messages'; }, 100);
-            }}
+            onClick={() => { window.location.href = '/messages'; }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
