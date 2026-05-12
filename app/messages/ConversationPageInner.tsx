@@ -285,8 +285,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
       const convosRes = await supabase
         .from("conversations")
         .select("*")
-        .eq("id", conversationId)
-        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+        .eq("id", conversationId);
       if (convosRes.error) throw convosRes.error;
       setConversation(convosRes.data && convosRes.data.length > 0 ? convosRes.data[0] : null);
     } catch (error) {
