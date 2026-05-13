@@ -271,12 +271,12 @@
               {profile.full_name?.[0]?.toUpperCase() || '?'}
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 mb-0.5">
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
               <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
               <button
                 onClick={() => setEditing(true)}
-                className="ml-1 p-1.5 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                className="p-1.5 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
                 aria-label="Edit Profile"
               >
                 {/* Pencil Icon */}
@@ -284,14 +284,19 @@
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914l-9.193 9.193-3.122.208.208-3.122 9.192-9.193Z" />
                 </svg>
               </button>
-              {profile.preferred_language && (
-                <span>Preferred Language: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.preferred_language}</span></span>
+            </div>
+            <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400">
+              {profile.city && (
+                <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
               )}
               {(profile.number_of_kids !== undefined && profile.number_of_kids !== null && profile.number_of_kids !== 0) && (
                 <span>Children: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.number_of_kids}</span></span>
               )}
               {profile.kids_age_groups && profile.kids_age_groups.length > 0 && (
                 <span>Ages: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.kids_age_groups.join(', ')}</span></span>
+              )}
+              {profile.preferred_language && (
+                <span>Preferred Language: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.preferred_language}</span></span>
               )}
             </div>
           </div>
