@@ -308,152 +308,153 @@ export default function ProfilePage() {
               <button
                 onClick={() => setEditing(true)}
                 className="px-4 py-2 text-sm bg-pink-600 text-white rounded-full hover:bg-pink-700"
+                aria-label="Edit Profile"
               >
-                Edit Profile
+                ✏️ Edit
               </button>
             )}
           </div>
 
           {message && (
             <Alert variant="success" className="mb-4" title="Saved">
-              {message}
-            </Alert>
-          )}
-
-          {error && (
-            <Alert variant="error" className="mb-4" title="Error">
-              {error}
-            </Alert>
-          )}
-
-          {/* Profile Form */}
-          <div className="space-y-4">
-            <Input
-              label="Full Name"
-              type="text"
-              value={profile.full_name || ""}
-              onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-              disabled={!editing}
-              placeholder="Your full name"
-            />
-
-            <Input
-              label="Phone"
-              type="tel"
-              value={profile.phone || ""}
-              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              disabled={!editing}
-              placeholder="(123) 456-7890"
-            />
-
-            <Input
-              label="Address"
-              type="text"
-              value={profile.address || ""}
-              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-              disabled={!editing}
-              placeholder="Street address"
-            />
-
-            <div className="grid grid-cols-2 gap-4">
+              {/* Profile Form (public view by default, editable when editing) */}
+              <div className="space-y-4">
                 <Input
-                  label="City"
+                  label="Full Name"
                   type="text"
-                  value={profile.city || ""}
-                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                  value={profile.full_name || ""}
+                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                   disabled={!editing}
-                  placeholder="City"
+                  placeholder="Your full name"
                 />
 
                 <Input
-                  label="State"
-                  type="text"
-                  value={profile.state || ""}
-                  onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                  label="Phone"
+                  type="tel"
+                  value={profile.phone || ""}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   disabled={!editing}
-                  placeholder="State"
+                  placeholder="(123) 456-7890"
                 />
-            </div>
 
-            <Input
-              label="ZIP Code"
-              type="text"
-              value={profile.zip_code || ""}
-              onChange={(e) => setProfile({ ...profile, zip_code: e.target.value })}
-              disabled={!editing}
-              placeholder="12345"
-            />
+                <Input
+                  label="Address"
+                  type="text"
+                  value={profile.address || ""}
+                  onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                  disabled={!editing}
+                  placeholder="Street address"
+                />
 
-            <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Family Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="City"
+                      type="text"
+                      value={profile.city || ""}
+                      onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                      disabled={!editing}
+                      placeholder="City"
+                    />
+
+                    <Input
+                      label="State"
+                      type="text"
+                      value={profile.state || ""}
+                      onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                      disabled={!editing}
+                      placeholder="State"
+                    />
+                </div>
+
+                <Input
+                  label="ZIP Code"
+                  type="text"
+                  value={profile.zip_code || ""}
+                  onChange={(e) => setProfile({ ...profile, zip_code: e.target.value })}
+                  disabled={!editing}
+                  placeholder="12345"
+                />
+
+                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Family Information</h3>
               
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Number of Kids
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={profile.number_of_kids || 0}
-                    onChange={(e) => setProfile({ ...profile, number_of_kids: parseInt(e.target.value) || 0 })}
-                    disabled={!editing}
-                    className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Preferred Language
-                  </label>
-                  <select
-                    value={profile.preferred_language || ""}
-                    onChange={(e) => setProfile({ ...profile, preferred_language: e.target.value })}
-                    disabled={!editing}
-                    className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <option value="">Select...</option>
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                    <option value="Mandarin">Mandarin</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Kids Age Groups (select all that apply)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['0-1 years', '1-3 years', '3-5 years', '5-8 years', '8-12 years', '12+ years'].map((ageGroup) => (
-                    <label key={ageGroup} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Number of Kids
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={profile.kids_age_groups?.includes(ageGroup) || false}
-                        onChange={(e) => {
-                          const current = profile.kids_age_groups || [];
-                          if (e.target.checked) {
-                            setProfile({ ...profile, kids_age_groups: [...current, ageGroup] });
-                          } else {
-                            setProfile({ ...profile, kids_age_groups: current.filter(g => g !== ageGroup) });
-                          }
-                        }}
+                        type="number"
+                        min="0"
+                        value={profile.number_of_kids || 0}
+                        onChange={(e) => setProfile({ ...profile, number_of_kids: parseInt(e.target.value) || 0 })}
                         disabled={!editing}
-                        className="w-4 h-4 rounded border-zinc-300 text-pink-600 focus:ring-pink-300 disabled:opacity-60"
+                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
-                      {ageGroup}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Preferred Language
+                      </label>
+                      <select
+                        value={profile.preferred_language || ""}
+                        onChange={(e) => setProfile({ ...profile, preferred_language: e.target.value })}
+                        disabled={!editing}
+                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select...</option>
+                        <option value="English">English</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="French">French</option>
+                        <option value="Mandarin">Mandarin</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Kids Age Groups
                     </label>
-                  ))}
+                    <input
+                      type="text"
+                      value={profile.kids_age_groups?.join(", ") || ""}
+                      onChange={(e) => setProfile({ ...profile, kids_age_groups: e.target.value.split(/,\s*/) })}
+                      disabled={!editing}
+                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="e.g. Infant, Toddler, Teen"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Parenting Style
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.parenting_style || ""}
+                      onChange={(e) => setProfile({ ...profile, parenting_style: e.target.value })}
+                      disabled={!editing}
+                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="e.g. Gentle, Structured, Free-Range"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Other Info
+                    </label>
+                    <textarea
+                      value={profile.other_info || ""}
+                      onChange={(e) => setProfile({ ...profile, other_info: e.target.value })}
+                      disabled={!editing}
+                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="Anything else you'd like to share?"
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Parenting Style
-                </label>
-                <select
                   value={profile.parenting_style || ""}
                   onChange={(e) => setProfile({ ...profile, parenting_style: e.target.value })}
                   disabled={!editing}
