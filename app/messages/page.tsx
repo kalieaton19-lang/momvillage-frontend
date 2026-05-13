@@ -138,7 +138,7 @@ function MessagesPageInner() {
                 return (
                   <button
                     key={conv.id}
-                    className="w-full text-left p-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm flex items-center gap-3 border border-pink-100 dark:border-pink-900 hover:bg-pink-50 dark:hover:bg-pink-950 transition"
+                    className="w-full text-left py-2 px-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm flex items-center gap-3 border border-pink-100 dark:border-pink-900 hover:bg-pink-50 dark:hover:bg-pink-950 transition"
                     style={{ borderBottom: '2px solid #fce4ec' }}
                     onClick={() => router.push(`/messages/${conv.id}`)}
                   >
