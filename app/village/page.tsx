@@ -9,6 +9,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!search.trim()) {
@@ -48,7 +49,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
       <div className="flex gap-2 mb-4">
         <input
           type="text"
-          className="flex-1 px-4 py-2 border rounded-lg"
+          className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
           placeholder="Enter name or city..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -57,25 +58,33 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
       </div>
       {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
       <div className="space-y-2">
-        {results.map((user: any) => (
-          <button
-            key={user.id}
-            className="w-full flex items-center gap-3 p-3 border rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-pink-100 dark:hover:bg-pink-900 transition-all"
-            onClick={() => onInvite(user)}
-          >
-            {user.profile_photo_url ? (
-              <img src={user.profile_photo_url} alt={user.full_name} className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg">
-                {user.full_name?.[0]?.toUpperCase() || '?'}
+        {results.map((user: any) => {
+          const isSelected = selectedId === user.id;
+          return (
+            <button
+              key={user.id}
+              className={`w-full flex items-center gap-3 p-3 border-2 rounded-2xl transition-all
+                bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600
+                ${isSelected ? 'ring-2 ring-pink-600 border-pink-600' : ''}`}
+              onClick={() => {
+                setSelectedId(user.id);
+                onInvite(user);
+              }}
+            >
+              {user.profile_photo_url ? (
+                <img src={user.profile_photo_url} alt={user.full_name} className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg">
+                  {user.full_name?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
+              <div className="flex-1 text-left">
+                <div className="font-semibold text-zinc-900 dark:text-zinc-50">{user.full_name}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">{user.city}{user.city && user.state ? ', ' : ''}{user.state}</div>
               </div>
-            )}
-            <div className="flex-1 text-left">
-              <div className="font-semibold text-zinc-900 dark:text-zinc-50">{user.full_name}</div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">{user.city}{user.city && user.state ? ', ' : ''}{user.state}</div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       <button className="mt-4 text-sm text-zinc-500 hover:underline" onClick={onBack}>Back</button>
     </div>
@@ -84,7 +93,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
 
 export default function VillagePage() {
   // Only show invite UI
-  const [inviteMode, setInviteMode] = useState<'none' | 'conversations' | 'name'>('none');
+  const [inviteMode, setInviteMode] = useState<'none' | 'conversations' | 'name'>('name');
 
   // Remove all tab logic and references to activeTab/setActiveTab
   const [conversations, setConversations] = useState<any[]>([]);
@@ -218,11 +227,11 @@ export default function VillagePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" className="" />
           </svg>
         </button>
-        <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-0 overflow-hidden">
-          <div className="w-full bg-white py-6 px-6 border-b border-zinc-100 dark:border-zinc-800 text-center">
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
-          </div>
-          {/* Browser-like tab bar */}
+        {/* Full-width title banner */}
+        <div className="-mx-6 px-6 py-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 text-center rounded-t-2xl">
+          <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
+        </div>
+        {/* Browser-like tab bar */}
           <div className="flex gap-0 px-0 pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800">
             <button
               className={`flex-1 py-2 px-4 font-medium text-base border-t border-l border-r rounded-t-2xl transition-all
@@ -250,6 +259,7 @@ export default function VillagePage() {
           <div className="px-6 pb-6 pt-4 bg-white dark:bg-zinc-900 rounded-b-2xl">
             {inviteMode === 'name' && (
               <div className="mt-4">
+                {/* InviteByNameForm with pink profile cards and highlight */}
                 <InviteByNameForm
                   onBack={() => setInviteMode('none')}
                   onInvite={async (user) => {
@@ -291,10 +301,13 @@ export default function VillagePage() {
                         }
                       }
                       if (!otherUserId || otherUserId === user?.id) return null;
+                      const isSelected = selectedMom && selectedMom.id === otherUserId;
                       return (
                         <button
                           key={conv.id}
-                          className="flex items-center gap-3 p-6 rounded-2xl border-2 border-pink-300 dark:border-pink-600 bg-pink-50 dark:bg-pink-900/20 w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          className={`flex items-center gap-3 p-6 rounded-2xl border-2 w-full transition-all focus:outline-none focus:ring-2 focus:ring-pink-500
+                            bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600
+                            ${isSelected ? 'ring-2 ring-pink-600 border-pink-600' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => {
                             setSelectedMom({
@@ -353,7 +366,7 @@ export default function VillagePage() {
               </div>
             )}
           </div>
-        </div> {/* <-- This closes the white card container */}
+        </div>
         {inviteBanner && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-6 py-3 rounded-xl shadow-lg z-50">
             {inviteBanner}
@@ -363,5 +376,4 @@ export default function VillagePage() {
       </div>
     </div>
   );
-
 }
