@@ -119,9 +119,9 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
       <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col pt-8 sm:pt-4">
         <header className="mb-4 flex items-center gap-4 justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {profile?.profile_photo_url ? (
-              <div className="w-14 h-14 min-w-[3.5rem] min-h-[3.5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
+              <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
                 <img
                   src={profile.profile_photo_url}
                   alt={profile?.full_name || "Profile"}
@@ -129,13 +129,13 @@ export default function HomePage() {
                 />
               </div>
             ) : (
-              <div className="w-14 h-14 min-w-[3.5rem] min-h-[3.5rem] aspect-square rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold border-2 border-pink-400 shadow">
+              <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-3xl font-semibold border-2 border-pink-400 shadow">
                 {profile?.full_name?.[0]?.toUpperCase() || "?"}
               </div>
             )}
             <div>
               <Link href="/profile">
-                <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 hover:underline cursor-pointer">
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 hover:underline cursor-pointer">
                   {profile?.full_name || 'Mom'}
                 </h1>
               </Link>
@@ -233,10 +233,10 @@ export default function HomePage() {
                 <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
               </button>
         {/* Feed type toggle */}
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
-          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
-          <button onClick={() => { setFeedType('groups'); }} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
+        <div className="flex gap-3 mb-4">
+          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
+          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
+          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
         </div>
         {/* Feed logic: Local, Village, Groups */}
         <div className="flex-1 overflow-y-auto">
