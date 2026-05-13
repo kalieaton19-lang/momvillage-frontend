@@ -231,6 +231,12 @@ export default function HomePage() {
               >
                 <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
               </button>
+        {/* Feed type toggle */}
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
+          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
+          <button onClick={() => { setFeedType('groups'); }} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
+        </div>
         {/* Feed logic: Local, Village, Groups */}
         <div className="flex-1 overflow-y-auto">
           {feedType === 'groups' ? (
