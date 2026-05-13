@@ -265,7 +265,7 @@ export default function ProfilePage() {
           >
             Sign Out
           </button>
-        </div>
+        
 
         {/* Profile Card */}
         <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-8 shadow-sm">
@@ -505,6 +505,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </div>
+    
   );
 }
