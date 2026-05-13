@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, createPost } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
+import type { JSX } from "react";
 
 export default function HomePage() {
   const router = useRouter();
