@@ -1,5 +1,5 @@
 // Fetch the count of village members for a user
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../lib/supabase";
 
 export async function getVillageCount(userId: string): Promise<number> {
   const { data, error } = await supabase
