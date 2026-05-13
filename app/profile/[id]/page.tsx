@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { getPostsCount } from "../../../utils";
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -17,13 +18,14 @@ export default function ProfilePage() {
   const [inviteStatus, setInviteStatus] = useState<"in-village"|"invited-by-me"|"invited-me"|"none">("none");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [villageMembers, setVillageMembers] = useState<any[]>([]);
+  const [postsCount, setPostsCount] = useState<number | null>(null);
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
 
   // (All logic and hooks are now inside the component)
 
-  // Fetch profile info
+  // Fetch profile info and posts count
   useEffect(() => {
     async function fetchProfile() {
       setLoading(true);
@@ -38,6 +40,7 @@ export default function ProfilePage() {
         setProfile(null);
       } else {
         setProfile(data);
+        getPostsCount(data.id).then(count => setPostsCount(count));
       }
       setLoading(false);
     }
@@ -135,202 +138,147 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="max-w-xl mx-auto p-8">
-      <div className="flex flex-col items-center">
-        {profile.profile_photo_url ? (
-          <img src={profile.profile_photo_url} alt={profile.full_name} className="w-32 h-32 rounded-full object-cover mb-4" />
-        ) : (
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-4xl mb-4">
-            {profile.full_name?.[0]?.toUpperCase() || '?'}
-          </div>
-        )}
-        <h1 className="text-3xl font-bold mb-1">{profile.full_name}</h1>
-        {/* Village count directly under name */}
-        <div className="flex items-center gap-4 mb-3">
-          <button
-            className="flex flex-col items-center focus:outline-none"
-            onClick={() => setShowVillageModal(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            <span className="text-2xl font-extrabold text-pink-600 leading-none">{villageMembers.length}</span>
-            <span className="text-xs text-zinc-500 mt-1 tracking-wide uppercase">{profile.full_name.split(" ")[0]}'s Village</span>
-          </button>
-          {/* Status badge/button */}
-          {currentUser && currentUser.id !== id && (
-            <div className="ml-1">
-              {inviteStatus === "in-village" && (
-                <button
-                  className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap hover:bg-green-200 transition-colors focus:outline-none"
-                  onClick={() => setShowRemoveModal(true)}
-                  type="button"
-                >
-                  In Your Village
-                </button>
-              )}
-                      {/* Remove from village modal */}
-                      {showRemoveModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
-                            <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowRemoveModal(false)}>&times;</button>
-                            <h2 className="text-lg font-bold mb-4">Remove from Your Village?</h2>
-                            <p className="mb-6 text-zinc-700 dark:text-zinc-300">Are you sure you want to remove {profile.full_name.split(" ")[0]} from your village?</p>
-                            <div className="flex gap-4">
-                              <button
-                                className="flex-1 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 rounded-lg font-semibold"
-                                onClick={() => setShowRemoveModal(false)}
-                                disabled={removeLoading}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold"
-                                onClick={async () => {
-                                  setRemoveLoading(true);
-                                  try {
-                                    // Remove the accepted invitation (either direction)
-                                    const { data: { user } } = await supabase.auth.getUser();
-                                    if (!user) throw new Error("Not authenticated");
-                                    await supabase
-                                      .from("village_invitations")
-                                      .delete()
-                                      .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${id},status.eq.accepted),and(from_user_id.eq.${id},to_user_id.eq.${user.id},status.eq.accepted)`);
-                                    setInviteStatus("none");
-                                    setShowRemoveModal(false);
-                                  } catch (e) {
-                                    alert("Failed to remove from village.");
-                                  } finally {
-                                    setRemoveLoading(false);
-                                  }
-                                }}
-                                disabled={removeLoading}
-                              >
-                                {removeLoading ? "Removing..." : "Remove"}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-              {inviteStatus === "invited-by-me" && (
-                <span className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</span>
-              )}
-              {inviteStatus === "invited-me" && (
-                <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invited You</span>
-              )}
-              {inviteStatus === "none" && (
-                <button
-                  className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors"
-                  onClick={handleInvite}
-                  disabled={inviteLoading}
-                >
-                  {inviteLoading ? "Sending..." : "Invite to Village"}
-                </button>
-              )}
+    <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0 sm:p-4">
+      <div className="w-full max-w-2xl mx-auto flex items-center pt-4 pb-2 px-2 sm:px-0">
+        <button
+          onClick={() => router.push('/home')}
+          className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+          aria-label="Back to Home"
+        >
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="w-full flex flex-row items-center gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
+          {profile.profile_photo_url ? (
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-400 shadow">
+              <img src={profile.profile_photo_url} alt={profile.full_name || 'Profile'} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-bold border-2 border-pink-400 shadow">
+              {profile.full_name?.[0]?.toUpperCase() || '?'}
             </div>
           )}
-        </div>
-        {/* Send a Message Button */}
-        {currentUser && currentUser.id !== id && (
-          <div className="w-full max-w-xs mx-auto mb-3">
-            <button
-              className="w-full px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
-              onClick={async () => {
-                // Find or create conversation between currentUser and profile user
-                if (!currentUser || !id) return;
-                // 1. Try to find existing conversation
-                let conversationId = null;
-                const { data: existingConvos, error: convoError } = await supabase
-                  .from("conversations")
-                  .select("id,user1_id,user2_id")
-                  .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${id}),and(user1_id.eq.${id},user2_id.eq.${currentUser.id})`)
-                  .limit(1);
-                if (convoError) {
-                  alert("Failed to check conversations");
-                  return;
-                }
-                if (existingConvos && existingConvos.length > 0) {
-                  conversationId = existingConvos[0].id;
-                } else {
-                  // 2. Create new conversation
-                  const { data: newConvo, error: createError } = await supabase
-                    .from("conversations")
-                    .insert({
-                      user1_id: currentUser.id,
-                      user2_id: id,
-                      user1_name: currentUser.user_metadata?.full_name || "",
-                      user2_name: profile.full_name || "",
-                      user1_photo: currentUser.user_metadata?.profile_photo_url || "",
-                      user2_photo: profile.profile_photo_url || "",
-                    })
-                    .select()
-                    .single();
-                  if (createError || !newConvo) {
-                    alert("Failed to create conversation");
-                    return;
-                  }
-                  conversationId = newConvo.id;
-                }
-                // 3. Navigate to messages page with conversation param
-                router.push(`/messages?conversation=${conversationId}`);
-              }}
-            >
-              Send a Message
-            </button>
-          </div>
-        )}
-        <div className="text-zinc-600 dark:text-zinc-400 mb-2">{profile.city}{profile.city && profile.state ? ', ' : ''}{profile.state}</div>
-        {/* Kids & Parenting Info */}
-        <div className="w-full max-w-xs mx-auto mt-2 mb-2 space-y-1">
-          {profile.number_of_kids && (
-            <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Number of kids:</span> {profile.number_of_kids}</div>
-          )}
-          {profile.kids_age_groups && (
-            <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Kids' ages:</span> {Array.isArray(profile.kids_age_groups) ? profile.kids_age_groups.join(", ") : String(profile.kids_age_groups)}</div>
-          )}
-          {profile.parenting_style && (
-            <div className="text-sm text-zinc-700 dark:text-zinc-300"><span className="font-semibold">Parenting style:</span> {profile.parenting_style}</div>
-          )}
-        </div>
-        {/* Bio */}
-        {profile.bio && (
-          <div className="w-full max-w-xs mx-auto mt-2 mb-2">
-            <div className="font-semibold text-zinc-800 dark:text-zinc-100 mb-1">Bio</div>
-            <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-line">{profile.bio}</div>
-          </div>
-        )}
-        {/* Status badge/button moved next to village count */}
-        {/* Village modal trigger moved above */}
-        {/* Modal for village members */}
-        {showVillageModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
-              <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowVillageModal(false)}>&times;</button>
-              <h2 className="text-lg font-bold mb-4">{profile.full_name.split(" ")[0]}'s Village Members</h2>
-              {villageMembers.length === 0 ? (
-                <div className="text-zinc-500">No members yet.</div>
-              ) : (
-                <div className="space-y-3">
-                  {villageMembers.map((m: any) => (
-                    <div key={m.id} className="flex items-center gap-3">
-                      {m.profile_photo_url ? (
-                        <img src={m.profile_photo_url} alt={m.full_name} className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
-                          {m.full_name?.[0]?.toUpperCase() || '?'}
-                        </div>
-                      )}
-                      <span className="font-medium">{m.full_name}</span>
-                      <span className="text-xs text-zinc-500">{m.city}{m.city && m.state ? ', ' : ''}{m.state}</span>
-                    </div>
-                  ))}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
+            </div>
+            <div className="flex flex-row items-center justify-center gap-8 mt-1 mb-2 w-full">
+              <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillageModal(true)} title="Show Village">
+                <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center group-hover:underline">{villageMembers.length}</span>
+                <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">Village</span>
+              </button>
+              {typeof postsCount === "number" && (
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-300 leading-none text-center">{postsCount}</span>
+                  <span className="text-[10px] font-medium text-pink-400 uppercase tracking-wide mt-0.5 text-center">Posts</span>
                 </div>
               )}
             </div>
+            {/* Status banner or invite button */}
+            {currentUser && currentUser.id !== id && (
+              <div className="mb-2">
+                {inviteStatus === "in-village" && (
+                  <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">In Your Village</div>
+                )}
+                {inviteStatus === "invited-by-me" && (
+                  <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</div>
+                )}
+                {inviteStatus === "invited-me" && (
+                  <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invited You</div>
+                )}
+                {inviteStatus === "none" && (
+                  <button
+                    className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors"
+                    onClick={handleInvite}
+                    disabled={inviteLoading}
+                  >
+                    {inviteLoading ? "Sending..." : "Invite to Village"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Bio Section (below profile info, above posts) */}
+        {profile.bio && (
+          <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-md shadow-sm px-4 py-3 mt-2 mb-4 border border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200">
+            <div className="font-semibold text-pink-700 mb-1">Bio</div>
+            <div className="whitespace-pre-line text-sm">{profile.bio}</div>
           </div>
         )}
-        {/* User ID intentionally hidden */}
+        <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+          {profile.city && (
+            <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
+          )}
+          {(profile.number_of_kids !== undefined && profile.number_of_kids !== null && profile.number_of_kids !== 0) && (
+            <span>Children: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.number_of_kids}</span></span>
+          )}
+          {profile.kids_age_groups && profile.kids_age_groups.length > 0 && (
+            <span>Ages: <span className="font-medium text-zinc-700 dark:text-zinc-200">{Array.isArray(profile.kids_age_groups) ? profile.kids_age_groups.join(', ') : String(profile.kids_age_groups)}</span></span>
+          )}
+          {profile.parenting_style && (
+            <span>Parenting Style: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.parenting_style}</span></span>
+          )}
+        </div>
+        {/* Profile posts or other content can go here */}
+        <div className="w-full flex flex-col gap-4 py-8">
+          {/* TODO: Render user's posts here in a visually appealing way */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
+            <div className="text-zinc-400 italic">(Their posts will appear here)</div>
+          </div>
+        </div>
+        {/* Village Members Modal */}
+        {showVillageModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 shadow-xl w-full max-w-md relative">
+              <button
+                onClick={() => setShowVillageModal(false)}
+                className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                aria-label="Close Villagers"
+              >
+                &times;
+              </button>
+              <div className="text-center mb-4">
+                <div className="text-lg font-bold text-pink-700">Village Members</div>
+                {villageMembers.length === 0 ? (
+                  <div className="text-zinc-500 mt-4">No villagers yet.</div>
+                ) : (
+                  <div className="mt-4 space-y-3 max-h-72 overflow-y-auto">
+                    {villageMembers.map((m: any) => (
+                      <button
+                        key={m.id}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900 transition w-full text-left"
+                        onClick={() => {
+                          setShowVillageModal(false);
+                          router.push(`/profile/${m.id}`);
+                        }}
+                        tabIndex={0}
+                        aria-label={`View ${m.full_name}'s profile`}
+                      >
+                        {m.profile_photo_url ? (
+                          <img src={m.profile_photo_url} alt={m.full_name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
+                            {m.full_name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50">{m.full_name}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{m.city}{m.city && m.state ? ', ' : ''}{m.state}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
-
   );
 }
 
