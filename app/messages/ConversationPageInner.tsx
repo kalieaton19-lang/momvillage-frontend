@@ -329,7 +329,16 @@ export default function ConversationPageInner({ conversationId }: { conversation
 
   function formatTime(dateString: string) {
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours > 24) {
+      // Show date as e.g. May 13
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } else {
+      // Show time as e.g. 2:30 PM
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
   }
 
   async function sendMessage() {
