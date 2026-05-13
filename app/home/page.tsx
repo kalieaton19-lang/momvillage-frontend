@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, createPost } from "../../lib/posts";
@@ -29,6 +29,7 @@ const MOCK_GROUP_POSTS = {
 
 export default function HomePage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -338,6 +339,11 @@ export default function HomePage() {
 
 function NavButton({ href, icon, label, className = "" }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus' | 'alarm'; label?: string; className?: string }) {
   const isIconOnly = !label;
+  // Highlight if the button's href matches the current path (for main nav pages)
+  const pathname = usePathname ? usePathname() : undefined;
+  const isActive = pathname && (pathname === href || (href === "/find-moms" && pathname.startsWith("/find-moms")) || (href === "/messages" && pathname.startsWith("/messages")) || (href === "/notifications" && pathname.startsWith("/notifications")));
+  // Add pink highlight if active
+  const activeClass = isActive ? "bg-pink-600 text-white border-pink-600 dark:bg-pink-700 dark:border-pink-700" : "";
   const iconMap: Record<string, JSX.Element> = {
     user: (
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7"><circle cx="12" cy="8" r="4" strokeWidth="1.5"/><path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/></svg>
@@ -354,15 +360,15 @@ function NavButton({ href, icon, label, className = "" }: { href: string; icon: 
     alarm: (
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7">
         <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9Z" />
+        <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M4 17h16" />
         <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M13.73 21a2 2 0 0 1-3.46 0" />
-        <circle cx="12" cy="8" r="3" strokeWidth="1.5" />
       </svg>
     ),
   };
   return (
     <Link
       href={href}
-      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 active:scale-95 active:ring-4 active:ring-pink-300 ${className}`}
+      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 active:scale-95 active:ring-4 active:ring-pink-300 ${activeClass} ${className}`}
       aria-label={label || icon}
     >
       {iconMap[icon]}
