@@ -256,23 +256,24 @@
   const myVillageCount = 8; // TODO: Replace with real count from backend
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-0 sm:p-4">
-      {/* Profile Banner */}
-      <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
-        <div className="w-full flex flex-col sm:flex-row items-center sm:items-end bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-8 pt-8 pb-6 sm:rounded-t-2xl shadow-sm">
+
+    <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0 sm:p-4">
+      <div className="w-full max-w-2xl mx-auto">
+        {/* Profile Banner - horizontal, full width, not a card */}
+        <div className="w-full flex flex-row items-center gap-6 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-8 pb-6">
           {/* Profile Photo */}
           {profile.profile_photo_url ? (
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow mr-0 sm:mr-6 mb-4 sm:mb-0">
-              <img src={profile.profile_photo_url} alt={profile.full_name || "Profile"} className="w-full h-full object-cover" />
+            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow">
+              <img src={profile.profile_photo_url} alt={profile.full_name || 'Profile'} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-4xl font-bold border-2 border-pink-400 shadow mr-0 sm:mr-6 mb-4 sm:mb-0">
-              {profile.full_name?.[0]?.toUpperCase() || "?"}
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-4xl font-bold border-2 border-pink-400 shadow">
+              {profile.full_name?.[0]?.toUpperCase() || '?'}
             </div>
           )}
-          <div className="flex-1 flex flex-col gap-2 w-full">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{profile.full_name || "Mom"}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
               <button
                 onClick={() => setEditing(true)}
                 className="ml-2 p-2 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -293,15 +294,17 @@
                 <span>Children: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.number_of_kids}</span></span>
               )}
               {profile.kids_age_groups && profile.kids_age_groups.length > 0 && (
-                <span>Ages: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.kids_age_groups.join(", ")}</span></span>
+                <span>Ages: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.kids_age_groups.join(', ')}</span></span>
               )}
             </div>
           </div>
         </div>
         {/* Profile posts or other content can go here */}
-        <div className="w-full bg-transparent min-h-[200px] flex flex-col items-center justify-center">
+        <div className="w-full flex flex-col gap-4 py-8">
           {/* TODO: Render user's posts here in a visually appealing way */}
-          <div className="text-zinc-400 italic">(Your posts will appear here)</div>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
+            <div className="text-zinc-400 italic">(Your posts will appear here)</div>
+          </div>
         </div>
         {/* Edit Profile Modal (if editing) */}
         {editing && (
