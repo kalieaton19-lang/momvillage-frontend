@@ -301,6 +301,14 @@
             </div>
           </div>
         </div>
+
+        {/* Bio Section (below profile info, above posts) */}
+        {profile.other_info && profile.other_info.trim() !== "" && (
+          <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-md shadow-sm px-4 py-3 mt-2 mb-4 border border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200">
+            <div className="font-semibold text-pink-700 mb-1">Bio</div>
+            <div className="whitespace-pre-line text-sm">{profile.other_info}</div>
+          </div>
+        )}
         {/* Profile posts or other content can go here */}
         <div className="w-full flex flex-col gap-4 py-8">
           {/* TODO: Render user's posts here in a visually appealing way */}
