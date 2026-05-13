@@ -224,7 +224,7 @@ export default function HomePage() {
         <NavButton href="/calendar" icon="📅" label="Calendar" />
       </div>
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
-        <NavButton href="/messages" icon="💬" label="Messages" />
+        <NavButton href="/messages" icon="💬" label="" />
         <NavButton href="/village" icon="🏘️" label="Village" />
       </div>
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
@@ -235,9 +235,15 @@ export default function HomePage() {
 }
 
 function NavButton({ href, icon, label }: { href: string; icon: string; label: string }) {
+  const isIconOnly = !label;
   return (
-    <Link href={href} className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-full px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all">
-      <span className="text-lg">{icon}</span> {label}
+    <Link
+      href={href}
+      className={`flex items-center ${isIconOnly ? 'justify-center p-3 w-12 h-12' : 'gap-2 px-4 py-2'} bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-full text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all`}
+      aria-label={label || 'Messages'}
+    >
+      <span className="text-2xl">{icon}</span>
+      {!isIconOnly && label}
     </Link>
   );
 }
