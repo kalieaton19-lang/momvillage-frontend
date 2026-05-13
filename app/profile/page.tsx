@@ -1,13 +1,15 @@
 "use client";
 
-              import { useState, useEffect } from "react";
-              import { useRouter } from "next/navigation";
-              import Link from "next/link";
-              import { supabase } from "../../lib/supabase";
-              import { getVillageCount } from "../../utils/getVillageCount";
-              import { Button } from "@/app/components/ui/Button";
-              import { Alert } from "@/app/components/ui/Alert";
-              import { Input } from "@/app/components/ui/Input";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "../../lib/supabase";
+// import { getVillageCount } from "../../utils/getVillageCount";
+import { getPostsCount } from "../../utils/getPostsCount";
+import { Button } from "@/app/components/ui/Button";
+import { Alert } from "@/app/components/ui/Alert";
+import { Input } from "@/app/components/ui/Input";
+
 
               interface UserProfile {
                 id?: string;
@@ -32,20 +34,20 @@
                   const router = useRouter();
                   const [user, setUser] = useState<any>(null);
                   const [loading, setLoading] = useState(true);
-                const [profile, setProfile] = useState<UserProfile>({
-                  full_name: "",
-                  phone: "",
-                  address: "",
-                  city: "",
-                  state: "",
-                  zip_code: "",
-                  number_of_kids: 0,
-                  kids_age_groups: [],
-                  preferred_language: "",
-                  parenting_style: "",
-                  other_info: "",
-                  profile_photo_url: "",
-                });
+                  const [profile, setProfile] = useState<UserProfile>({
+                    full_name: "",
+                    phone: "",
+                    address: "",
+                    city: "",
+                    state: "",
+                    zip_code: "",
+                    number_of_kids: 0,
+                    kids_age_groups: [],
+                    preferred_language: "",
+                    parenting_style: "",
+                    other_info: "",
+                    profile_photo_url: "",
+                  });
                 const [editing, setEditing] = useState(false);
                 const [saving, setSaving] = useState(false);
                 const [uploading, setUploading] = useState(false);
@@ -53,6 +55,7 @@
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [villageCount, setVillageCount] = useState<number | null>(null);
+  const [postsCount, setPostsCount] = useState<number | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -60,20 +63,38 @@
 
   useEffect(() => {
     if (user?.id) {
-      getVillageCount(user.id).then(count => setVillageCount(count));
+      fetchVillageCount(user.id);
+      getPostsCount(user.id).then(count => setPostsCount(count));
     }
   }, [user]);
+
+  // Fetch village count using invitations logic (same as VillagePage)
+  async function fetchVillageCount(userId: string) {
+    // Fetch all accepted invitations where user is sender or recipient
+    const { data: invites, error: invitesError } = await supabase
+      .from("village_invitations")
+      .select("from_user_id, to_user_id, status")
+      .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+      .eq("status", "accepted");
+    if (invitesError) {
+      setVillageCount(0);
+      return;
+    }
+    // Get the other user's IDs
+    const memberIds = [...new Set((invites ?? []).map((invite: any) => (
+      invite.from_user_id === userId ? invite.to_user_id : invite.from_user_id
+    )))];
+    setVillageCount(memberIds.length);
+  }
 
   async function checkUser() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Session:', session);
-      
       if (!session) {
         router.push('/login');
         return;
       }
-      
       setUser(session.user);
       await loadUserProfile(session.user.id);
     } catch (error) {
@@ -87,7 +108,6 @@
   async function loadUserProfile(userId: string) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (user?.user_metadata) {
         console.log('Loaded user metadata:', user.user_metadata);
         setProfile({
@@ -305,12 +325,20 @@
                 </svg>
               </button>
             </div>
-            {typeof villageCount === "number" && (
-              <div className="flex flex-col items-center justify-center mt-1 mb-2 w-full">
-                <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center">{villageCount}</span>
-                <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">My Village</span>
-              </div>
-            )}
+            <div className="flex flex-row items-center justify-center gap-8 mt-1 mb-2 w-full">
+              {typeof villageCount === "number" && (
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center">{villageCount}</span>
+                  <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">My Village</span>
+                </div>
+              )}
+              {typeof postsCount === "number" && (
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-purple-600 leading-none text-center">{postsCount}</span>
+                  <span className="text-[10px] font-medium text-purple-700 uppercase tracking-wide mt-0.5 text-center">Posts</span>
+                </div>
+              )}
+            </div>
             <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400">
               {profile.city && (
                 <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
