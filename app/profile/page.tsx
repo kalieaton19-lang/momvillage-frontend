@@ -250,6 +250,7 @@ export default function ProfilePage() {
       </div>
     );
   }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
