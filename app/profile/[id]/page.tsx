@@ -253,18 +253,18 @@ export default function ProfilePage() {
                       </div>
                     )}
             {inviteStatus === "invited-by-me" && (
-              <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</div>
+              <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-base font-semibold whitespace-nowrap">Invitation Sent</div>
             )}
             {inviteStatus === "invited-me" && (
-              <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invited You</div>
+              <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-base font-semibold whitespace-nowrap">Invited You</div>
             )}
             {inviteStatus === "none" && (
               <button
-                className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors"
+                className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg text-base font-semibold whitespace-nowrap transition-colors"
                 onClick={handleInvite}
                 disabled={inviteLoading}
               >
-                {inviteLoading ? "Sending..." : "Invite to Village"}
+                {inviteLoading ? 'Sending...' : 'Invite to Village'}
               </button>
             )}
             {/* Message button */}
