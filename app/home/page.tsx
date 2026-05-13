@@ -8,6 +8,25 @@ import { fetchPosts, createPost } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
 import type { JSX } from "react";
 
+// Mock group and group post data
+const MOCK_GROUPS = [
+  { id: '1', name: 'Single Moms Support' },
+  { id: '2', name: 'Moms of Toddlers' },
+  { id: '3', name: 'Working Moms' },
+];
+const MOCK_GROUP_POSTS = {
+  '1': [
+    { id: 'g1p1', title: 'Welcome to Single Moms!', content: 'Introduce yourself!', author_name: 'Alice', created_at: new Date().toISOString() },
+    { id: 'g1p2', title: 'Meetup this weekend', content: 'Anyone up for coffee?', author_name: 'Beth', created_at: new Date().toISOString() },
+  ],
+  '2': [
+    { id: 'g2p1', title: 'Toddler tantrums', content: 'Share your tips!', author_name: 'Cara', created_at: new Date().toISOString() },
+  ],
+  '3': [
+    { id: 'g3p1', title: 'Work/life balance', content: 'How do you manage?', author_name: 'Dana', created_at: new Date().toISOString() },
+  ],
+};
+
 export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -17,6 +36,7 @@ export default function HomePage() {
   const [feedType, setFeedType] = useState<'local' | 'village' | 'groups'>('local');
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -209,15 +229,60 @@ export default function HomePage() {
               >
                 <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
               </button>
-        {/* Feed toggle */}
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setFeedType('local')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
-          <button onClick={() => setFeedType('village')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
-          <button onClick={() => setFeedType('groups')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
-        </div>
-        {/* Feed */}
+        {/* Feed logic: Local, Village, Groups */}
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
+          {feedType === 'groups' ? (
+            selectedGroupId ? (
+              (() => {
+                // Type assertion to satisfy TS: selectedGroupId is '1' | '2' | '3' when set
+                const groupId = selectedGroupId as keyof typeof MOCK_GROUP_POSTS;
+                const posts = MOCK_GROUP_POSTS[groupId] || [];
+                return (
+                  <div>
+                    <button
+                      className="mb-4 text-pink-600 hover:underline text-sm"
+                      onClick={() => setSelectedGroupId(null)}
+                    >
+                      ← Back to Groups
+                    </button>
+                    <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
+                      {MOCK_GROUPS.find(g => g.id === selectedGroupId)?.name}
+                    </h2>
+                    {/* TODO: Replace MOCK_GROUP_POSTS with real group posts from backend */}
+                    {posts.length === 0 ? (
+                      <div className="text-center text-zinc-500 py-8">No posts in this group yet.</div>
+                    ) : (
+                      posts.map((post: any) => (
+                        <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
+                          <div className="font-bold text-lg mb-1">{post.title}</div>
+                          <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
+                        </div>
+                      ))
+                    )}
+                    {/* TODO: Add create post to group functionality */}
+                  </div>
+                );
+              })()
+            ) : (
+              <div>
+                <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Your Groups</h2>
+                {/* TODO: Replace MOCK_GROUPS with real groups from backend */}
+                <div className="grid gap-3">
+                  {MOCK_GROUPS.map(group => (
+                    <button
+                      key={group.id}
+                      className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
+                      onClick={() => setSelectedGroupId(group.id)}
+                    >
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs text-zinc-500 mt-4">(TODO: Show real groups and allow joining/leaving groups)</div>
+              </div>
+            )
+          ) : loading ? (
             <div className="text-center text-zinc-500 py-8">Loading feed...</div>
           ) : posts.length === 0 ? (
             <div className="text-center text-zinc-500 py-8">No posts yet. Be the first to post!</div>
@@ -230,6 +295,11 @@ export default function HomePage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.visibility === 'public' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>{post.visibility === 'public' ? 'Public' : 'Village Only'}</span>
                 </div>
                 <div className="font-bold text-lg mb-1">{post.title}</div>
+                <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
+              </div>
+            ))
+          )}
                 <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
               </div>
