@@ -153,13 +153,13 @@ function MessagesPageInner() {
                         {otherUser.name?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
-                    <div className="flex flex-col justify-center flex-1 min-w-0">
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base text-center w-full">{otherUser.name}</div>
+                    <div className="flex flex-col items-center justify-center flex-1 min-w-0">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base text-center w-full flex items-center justify-center min-h-[28px]">{otherUser.name}</div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[140px] mx-auto text-center">{conv.last_message}</div>
                     </div>
                     <div className="flex items-center ml-2">
                       <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-400">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                       </svg>
                     </div>
                   </button>
