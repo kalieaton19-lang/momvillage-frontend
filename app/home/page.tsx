@@ -106,48 +106,76 @@ export default function HomePage() {
         </header>
         {/* Post creation modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-lg w-full max-w-md relative">
-              <button onClick={() => setShowCreateModal(false)} className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-2xl">&times;</button>
-              <h2 className="text-lg font-bold mb-2 text-zinc-900 dark:text-zinc-50">Create a Post</h2>
-              <form onSubmit={handleCreatePost} className="flex flex-col gap-3">
-                <input
-                  className="border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  placeholder="Title (e.g. Need help with school pickup)"
-                  value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  required
-                />
-                <textarea
-                  className="border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  placeholder="What's on your mind?"
-                  value={form.content}
-                  onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-                  required
-                />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn">
+            <div className="ds-card relative w-full max-w-md p-8 shadow-xl animate-modalIn">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                aria-label="Close"
+              >
+                &times;
+              </button>
+              <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 dark:text-pink-300 tracking-tight">Create a Post</h2>
+              <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Title</label>
+                  <input
+                    className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                    placeholder="e.g. Need help with school pickup"
+                    value={form.title}
+                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Content</label>
+                  <textarea
+                    className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition min-h-[80px]"
+                    placeholder="What's on your mind?"
+                    value={form.content}
+                    onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                    required
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PostType }))} className="rounded border px-2 py-1">
-                    <option value="general">General</option>
-                    <option value="support">Support</option>
-                  </select>
-                  <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value as PostScope }))} className="rounded border px-2 py-1">
-                    <option value="local">Local</option>
-                    <option value="village">My Village</option>
-                  </select>
-                  <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))} className="rounded border px-2 py-1">
-                    <option value="public">Public</option>
-                    <option value="village">Village Only</option>
-                  </select>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Type</label>
+                    <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PostType }))} className="rounded-lg border px-2 py-1">
+                      <option value="general">General</option>
+                      <option value="support">Support</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Scope</label>
+                    <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value as PostScope }))} className="rounded-lg border px-2 py-1">
+                      <option value="local">Local</option>
+                      <option value="village">My Village</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Visibility</label>
+                    <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))} className="rounded-lg border px-2 py-1">
+                      <option value="public">Public</option>
+                      <option value="village">Village Only</option>
+                    </select>
+                  </div>
                   {form.scope === 'local' && (
-                    <input
-                      className="rounded border px-2 py-1"
-                      placeholder="Location (optional)"
-                      value={form.location}
-                      onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Location</label>
+                      <input
+                        className="rounded-lg border px-2 py-1"
+                        placeholder="Location (optional)"
+                        value={form.location}
+                        onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                      />
+                    </div>
                   )}
                 </div>
-                <button type="submit" className="bg-pink-600 text-white rounded px-4 py-2 font-semibold hover:bg-pink-700 transition-colors" disabled={creating}>
+                <button
+                  type="submit"
+                  className="ds-button-primary w-full rounded-lg py-3 text-lg font-bold shadow-md hover:scale-105 transition-transform disabled:opacity-60"
+                  disabled={creating}
+                >
                   {creating ? 'Posting...' : 'Post'}
                 </button>
               </form>
