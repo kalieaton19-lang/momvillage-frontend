@@ -164,8 +164,8 @@ export default function ProfilePage() {
           )}
           {/* Profile Info */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="flex items-center gap-2 mb-1 justify-center w-full">
-              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate text-center w-full">{profile.full_name || 'Mom'}</span>
+            <div className="flex items-center gap-2 mb-1 w-full">
+              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate w-full text-left">{profile.full_name || 'Mom'}</span>
             </div>
             <div className="flex flex-row items-center gap-8 mt-1 mb-2 w-full">
               <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillageModal(true)} title="Show Village">
