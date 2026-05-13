@@ -501,7 +501,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-          </div> {/* end profile card */}
-        </div> {/* end page container */}
+          </div>
+        </div>
       );
 }
