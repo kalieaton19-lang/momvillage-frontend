@@ -247,7 +247,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
         <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
-      
+      </div>
     );
   }
 
@@ -505,6 +505,5 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    
   );
 }
