@@ -1,43 +1,44 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "../../lib/supabase";
-import { Button } from "@/app/components/ui/Button";
-import { Alert } from "@/app/components/ui/Alert";
-import { Input } from "@/app/components/ui/Input";
-
-interface UserProfile {
-  id?: string;
-  user_id?: string;
-  full_name?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  number_of_kids?: number;
-  kids_age_groups?: string[];
-  preferred_language?: string;
-  parenting_style?: string;
-  other_info?: string;
-  profile_photo_url?: string;
-  created_at?: string;
-  updated_at?: string;
+              {editing && (
+                <div className="flex gap-3 pt-4">
+                  <Button onClick={handleSave} disabled={saving} fullWidth>
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditing(false);
+                      setMessage("");
+                    }}
+                    disabled={saving}
+                    fullWidth
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+              {/* Account Info */}
+              <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
+                  Account Information
+                </h3>
+                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="flex justify-between">
+                    <span>Email:</span>
+                    <span className="font-medium">{user?.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Member since:</span>
+                    <span className="font-medium">
+                      {user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
 }
-
-export default function ProfilePage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<UserProfile>({
-    full_name: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zip_code: "",
     number_of_kids: 0,
     kids_age_groups: [],
     preferred_language: "",
@@ -502,5 +503,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-          );
+          </div>
+        );
 }
