@@ -117,7 +117,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
-      <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col">
+      <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col pt-8 sm:pt-4">
         <header className="mb-4 flex items-center gap-4 justify-between">
           <div className="flex items-center gap-3">
             {profile?.profile_photo_url ? (
@@ -142,7 +142,7 @@ export default function HomePage() {
             </div>
           </div>
           {/* Messages button beside profile image */}
-          <div className="flex items-center">
+          <div className="flex items-center mt-2 sm:mt-0">
             <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" />
           </div>
         </header>
