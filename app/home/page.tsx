@@ -100,13 +100,15 @@ export default function HomePage() {
         <header className="mb-4 flex items-center gap-4 justify-between">
           <div className="flex items-center gap-4">
             {profile?.profile_photo_url ? (
-              <img
-                src={profile.profile_photo_url}
-                alt={profile?.full_name || "Profile"}
-                className="w-14 h-14 rounded-full object-cover border-2 border-pink-400 shadow"
-              />
+              <div className="w-14 h-14 min-w-[3.5rem] min-h-[3.5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
+                <img
+                  src={profile.profile_photo_url}
+                  alt={profile?.full_name || "Profile"}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
             ) : (
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold border-2 border-pink-400 shadow">
+              <div className="w-14 h-14 min-w-[3.5rem] min-h-[3.5rem] aspect-square rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold border-2 border-pink-400 shadow">
                 {profile?.full_name?.[0]?.toUpperCase() || "?"}
               </div>
             )}
