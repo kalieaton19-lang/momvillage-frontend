@@ -28,16 +28,23 @@
               }
 
               export default function ProfilePage() {
-                // ...existing code...
-    number_of_kids: 0,
-    kids_age_groups: [],
-    preferred_language: "",
-    parenting_style: "",
-    other_info: "",
-  });
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+                const [profile, setProfile] = useState<UserProfile>({
+                  full_name: "",
+                  phone: "",
+                  address: "",
+                  city: "",
+                  state: "",
+                  zip_code: "",
+                  number_of_kids: 0,
+                  kids_age_groups: [],
+                  preferred_language: "",
+                  parenting_style: "",
+                  other_info: "",
+                  profile_photo_url: "",
+                });
+                const [editing, setEditing] = useState(false);
+                const [saving, setSaving] = useState(false);
+                const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
