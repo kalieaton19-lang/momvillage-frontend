@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 // InviteByNameForm component (top-level)
 function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: (user: any) => void }) {
@@ -203,45 +204,50 @@ export default function VillagePage() {
     }
   }
 
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 p-6">
       <div className="max-w-2xl mx-auto">
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center w-10 h-10 mb-6 bg-pink-500 text-white rounded-full shadow hover:bg-pink-600 transition-colors"
-          aria-label="Back to Home"
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center justify-center w-10 h-10 mb-6 bg-white text-pink-500 border border-pink-200 rounded-full shadow hover:bg-pink-50 transition-colors"
+          aria-label="Back"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" className="" />
           </svg>
-        </Link>
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-0 overflow-hidden">
+        </button>
+        <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-0 overflow-hidden">
           <div className="w-full bg-white py-6 px-6 border-b border-zinc-100 dark:border-zinc-800 text-center">
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
           </div>
-          <div className="flex gap-2 px-6 pt-6 pb-2 bg-white">
+          {/* Browser-like tab bar */}
+          <div className="flex gap-0 px-0 pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800">
             <button
-              className={`flex-1 py-2 rounded-lg font-medium transition-all text-base
+              className={`flex-1 py-2 px-4 font-medium text-base border-t border-l border-r rounded-t-2xl transition-all
                 ${inviteMode === 'name'
-                  ? 'bg-pink-600 text-white shadow'
-                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-200 hover:bg-pink-100 dark:hover:bg-zinc-700'}
+                  ? 'bg-white dark:bg-zinc-900 text-pink-600 border-pink-500 z-10'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-200 border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700'}
               `}
+              style={{ marginBottom: inviteMode === 'name' ? '-1px' : '0' }}
               onClick={() => setInviteMode('name')}
             >
               Invite by Name
             </button>
             <button
-              className={`flex-1 py-2 rounded-lg font-medium transition-all text-base
+              className={`flex-1 py-2 px-4 font-medium text-base border-t border-l border-r rounded-t-2xl transition-all
                 ${inviteMode === 'conversations'
-                  ? 'bg-pink-600 text-white shadow'
-                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-200 hover:bg-pink-100 dark:hover:bg-zinc-700'}
+                  ? 'bg-white dark:bg-zinc-900 text-pink-600 border-pink-500 z-10'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-200 border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700'}
               `}
+              style={{ marginBottom: inviteMode === 'conversations' ? '-1px' : '0' }}
               onClick={() => setInviteMode('conversations')}
             >
               Invite from Conversations
             </button>
           </div>
-          <div className="px-6 pb-6">
+          <div className="px-6 pb-6 pt-4 bg-white dark:bg-zinc-900 rounded-b-2xl">
             {inviteMode === 'name' && (
               <div className="mt-4">
                 <InviteByNameForm
