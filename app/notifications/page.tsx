@@ -113,7 +113,7 @@ export default function NotificationsPage() {
             />
           ) : (
             <InvitationsTab
-              invitations={invitations.filter(inv => inv.from_user_id === user?.id && (inv.status === 'pending' || inv.status === 'resent'))}
+              invitations={invitations.filter(inv => inv.from_user_id === user?.id && (inv.status === 'pending' || inv.status === 'resent' || inv.status === 'accepted'))}
               user={user}
             />
           )}
