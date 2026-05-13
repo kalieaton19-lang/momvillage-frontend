@@ -386,13 +386,13 @@ export default function ConversationPageInner({ conversationId }: { conversation
       <div className="max-w-2xl mx-auto h-screen flex flex-col">
         <header className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
           <button
-            className="text-sm text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-2"
+            className="text-pink-600 dark:text-pink-400 hover:opacity-80 flex items-center"
             onClick={() => { window.location.href = '/messages'; }}
+            aria-label="Back to Conversations"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
-            Back to Conversations
           </button>
         </header>
         {/* Profile header above messages, with invite button/indicator */}
@@ -423,19 +423,19 @@ export default function ConversationPageInner({ conversationId }: { conversation
           {villageStatus && (
             <div className="ml-auto flex items-center gap-2">
               {villageStatus.status === 'in-village' && (
-                <span className="px-6 py-2 text-base rounded-full bg-green-100 text-green-800 font-semibold flex items-center justify-center min-w-[180px] text-center">In Your Village</span>
+                <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold flex items-center justify-center min-w-[90px] text-center">In Your Village</span>
               )}
               {villageStatus.status === 'invited-by-me' && (
-                <span className="px-6 py-2 text-base rounded-full bg-yellow-100 text-yellow-800 font-semibold flex items-center justify-center min-w-[180px] text-center">Invitation Pending</span>
+                <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invitation Pending</span>
               )}
               {villageStatus.status === 'invited-me' && (
-                <span className="px-6 py-2 text-base rounded-full bg-blue-100 text-blue-800 font-semibold flex items-center justify-center min-w-[180px] text-center">Invited You</span>
+                <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invited You</span>
               )}
               {villageStatus.status === 'none' && (
                 <button
                   onClick={handleSendVillageInvitation}
                   disabled={inviteLoading}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 text-xs bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {inviteLoading ? 'Sending...' : 'Send Village Invitation'}
                 </button>
@@ -481,7 +481,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                     <div
                       className={`px-2 py-1 rounded-2xl sm:px-3 sm:py-2 ${
                         msg.sender_id === user?.id
-                          ? 'bg-pink-600 text-white rounded-br-none ml-2 sm:ml-32 max-w-[96vw] sm:max-w-xs'
+                          ? 'bg-pink-100 text-pink-900 rounded-br-none ml-2 sm:ml-32 max-w-[96vw] sm:max-w-xs'
                           : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-2 sm:mr-32 max-w-[96vw] sm:max-w-xs'
                       }`}
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
@@ -492,7 +492,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       <p className="break-words text-base leading-snug">{msg.message_text}</p>
                       <p className={`text-xs mt-1 ${
                         msg.sender_id === user?.id
-                          ? 'text-pink-100'
+                          ? 'text-pink-400'
                           : 'text-zinc-500 dark:text-zinc-400'
                       }`}>
                         {formatTime(msg.created_at)}
