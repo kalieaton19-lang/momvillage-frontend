@@ -80,7 +80,6 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
     </div>
   );
 
-// (removed duplicate broken InviteByNameForm JSX and import)
 
 export default function VillagePage() {
   // Only show invite UI
