@@ -201,8 +201,57 @@ export default function ProfilePage() {
           <div className="flex flex-row justify-center items-center gap-3 mt-3 mb-2">
             {/* Status/invite button */}
             {inviteStatus === "in-village" && (
-              <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">In Your Village</div>
+              <button
+                className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-semibold text-base transition-colors whitespace-nowrap border border-green-300 shadow"
+                onClick={() => setShowRemoveModal(true)}
+                type="button"
+              >
+                In Your Village
+              </button>
             )}
+                    {/* Remove from Village Modal */}
+                    {showRemoveModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 shadow-xl w-full max-w-md relative">
+                          <button
+                            onClick={() => setShowRemoveModal(false)}
+                            className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            aria-label="Close Remove Modal"
+                          >
+                            &times;
+                          </button>
+                          <div className="text-center mb-4">
+                            <div className="text-lg font-bold text-pink-700 mb-2">Remove from Your Village?</div>
+                            <div className="text-zinc-700 dark:text-zinc-200 mb-6">Are you sure you want to remove this mom from your village? This action cannot be undone.</div>
+                            <div className="flex gap-4 justify-center">
+                              <button
+                                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-lg font-semibold text-base transition-colors"
+                                onClick={() => setShowRemoveModal(false)}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
+                                onClick={async () => {
+                                  setRemoveLoading(true);
+                                  // Remove both directions of invitation
+                                  await supabase
+                                    .from('village_invitations')
+                                    .delete()
+                                    .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${id}),and(from_user_id.eq.${id},to_user_id.eq.${currentUser.id})`);
+                                  setRemoveLoading(false);
+                                  setInviteStatus('none');
+                                  setShowRemoveModal(false);
+                                }}
+                                disabled={removeLoading}
+                              >
+                                {removeLoading ? 'Removing...' : 'Remove'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
             {inviteStatus === "invited-by-me" && (
               <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</div>
             )}
