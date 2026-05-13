@@ -216,8 +216,8 @@ export default function VillagePage() {
 
   const router = useRouter();
   return (
-    <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 p-6">
-      <div className="max-w-xs w-full mx-auto">
+    <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 p-0">
+      <div className="w-full">
         <button
           type="button"
           onClick={() => router.back()}
@@ -229,7 +229,7 @@ export default function VillagePage() {
           </svg>
         </button>
         {/* Full-width title banner */}
-        <div className="-mx-6 px-6 py-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 text-center rounded-t-2xl">
+        <div className="w-full py-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 text-center rounded-none">
           <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
         </div>
         {/* Browser-like tab bar */}
@@ -307,11 +307,11 @@ export default function VillagePage() {
                         <button
                           key={conv.id}
                           className={
-                            `flex items-center gap-3 p-6 rounded-2xl border-2 w-full transition-all focus:outline-none focus:ring-2 focus:ring-pink-500 ` +
-                            `bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600 ` +
+                            `flex items-center gap-2 p-2 rounded-lg border w-full transition-all focus:outline-none focus:ring-1 focus:ring-pink-400 ` +
+                            `bg-pink-50 dark:bg-pink-950 border-pink-200 dark:border-pink-700 ` +
                             (isSelected ? 'ring-2 ring-pink-600 border-pink-600' : '')
                           }
-                          style={{ cursor: 'pointer' }}
+                          style={{ cursor: 'pointer', minHeight: '44px' }}
                           onClick={() => {
                             setSelectedMom({
                               id: otherUserId,
@@ -324,15 +324,15 @@ export default function VillagePage() {
                           }}
                         >
                           {otherUserPhoto ? (
-                            <img src={otherUserPhoto} alt={otherUserName} className="w-10 h-10 rounded-full object-cover" />
+                            <img src={otherUserPhoto} alt={otherUserName} className="w-8 h-8 rounded-full object-cover" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-base">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
                               {otherUserName?.[0]?.toUpperCase() || '?'}
                             </div>
                           )}
                           <div className="flex-1 text-left">
-                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
+                            <div className="font-semibold text-base text-zinc-900 dark:text-zinc-50 leading-tight">{otherUserName}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
                           </div>
                         </button>
                       );
