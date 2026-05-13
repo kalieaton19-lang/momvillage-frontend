@@ -97,13 +97,26 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
       <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col">
-        <header className="mb-4">
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            Welcome, {profile?.full_name?.split(' ')[0] || 'Mom'}! 💕
-          </h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Your feed brings together your local area and your village.
-          </p>
+        <header className="mb-4 flex items-center gap-4">
+          {profile?.profile_photo_url ? (
+            <img
+              src={profile.profile_photo_url}
+              alt={profile?.full_name || "Profile"}
+              className="w-14 h-14 rounded-full object-cover border-2 border-pink-400 shadow"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold border-2 border-pink-400 shadow">
+              {profile?.full_name?.[0]?.toUpperCase() || "?"}
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+              {profile?.full_name || 'Mom'}
+            </h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Your feed brings together your local area and your village.
+            </p>
+          </div>
         </header>
         {/* Post creation modal */}
         {showCreateModal && (
@@ -225,11 +238,11 @@ export default function HomePage() {
       </div>
         <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
           {/* Conversations (chat) upper right */}
-          <NavButton href="/messages" icon="chat" label="" />
+          <NavButton href="/messages" icon="chat" label="" className="fixed top-6 right-6 z-50" />
         </div>
         {/* Search lower left */}
         <div className="fixed bottom-8 left-8 z-50">
-          <NavButton href="/find-moms" icon="search" label="" />
+          <NavButton href="/find-moms" icon="search" label="" className="fixed bottom-8 left-8 z-50" />
         </div>
         {/* Add post button center bottom */}
         <button
@@ -264,7 +277,7 @@ export default function HomePage() {
   );
 }
 
-function NavButton({ href, icon, label }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus'; label: string }) {
+function NavButton({ href, icon, label, className = "" }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus'; label?: string; className?: string }) {
   const isIconOnly = !label;
   const iconMap: Record<string, JSX.Element> = {
     user: (
@@ -283,7 +296,7 @@ function NavButton({ href, icon, label }: { href: string; icon: 'user' | 'chat' 
   return (
     <Link
       href={href}
-      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-20 h-20 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400`}
+      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-20 h-20 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 ${className}`}
       aria-label={label || icon}
     >
       {iconMap[icon]}
