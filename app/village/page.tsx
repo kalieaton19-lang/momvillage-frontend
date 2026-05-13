@@ -307,7 +307,7 @@ export default function VillagePage() {
                         <button
                           key={conv.id}
                           className={
-                            `flex items-center gap-2 p-2 rounded-lg border max-w-[10rem] w-full mx-auto transition-all focus:outline-none focus:ring-1 focus:ring-pink-400 ` +
+                            `flex items-center gap-2 p-2 rounded-lg border max-w-sm w-full mx-auto transition-all focus:outline-none focus:ring-1 focus:ring-pink-400 ` +
                             `bg-pink-50 dark:bg-pink-950 border-pink-200 dark:border-pink-700 ` +
                             (isSelected ? 'ring-2 ring-pink-600 border-pink-600' : '')
                           }
