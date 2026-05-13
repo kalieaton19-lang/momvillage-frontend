@@ -260,32 +260,32 @@
     <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0 sm:p-4">
       <div className="w-full max-w-2xl mx-auto">
         {/* Profile Banner - horizontal, full width, not a card */}
-        <div className="w-full flex flex-row items-center gap-6 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-8 pb-6">
+        <div className="w-full flex flex-row items-center gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
           {/* Profile Photo */}
           {profile.profile_photo_url ? (
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-400 shadow">
               <img src={profile.profile_photo_url} alt={profile.full_name || 'Profile'} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-4xl font-bold border-2 border-pink-400 shadow">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-bold border-2 border-pink-400 shadow">
               {profile.full_name?.[0]?.toUpperCase() || '?'}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
+            <div className="flex items-center gap-1 mb-0.5">
+              <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
               <button
                 onClick={() => setEditing(true)}
-                className="ml-2 p-2 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                className="ml-1 p-1 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
                 aria-label="Edit Profile"
               >
                 {/* Pencil Icon */}
-                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914l-9.193 9.193-3.122.208.208-3.122 9.192-9.193Z" />
                 </svg>
               </button>
             </div>
-            <div className="flex gap-6 flex-wrap text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               <span>My Village: <span className="font-semibold text-pink-600">{myVillageCount}</span></span>
               {profile.preferred_language && (
                 <span>Preferred Language: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.preferred_language}</span></span>
