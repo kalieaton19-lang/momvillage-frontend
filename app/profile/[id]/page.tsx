@@ -151,21 +151,23 @@ export default function ProfilePage() {
         </button>
       </div>
       <div className="w-full max-w-2xl mx-auto">
-        <div className="w-full flex flex-row items-center gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
+        <div className="w-full flex flex-row items-stretch gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
+          {/* Profile Photo */}
           {profile.profile_photo_url ? (
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-400 shadow">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow flex-shrink-0">
               <img src={profile.profile_photo_url} alt={profile.full_name || 'Profile'} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-bold border-2 border-pink-400 shadow">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold border-2 border-pink-400 shadow flex-shrink-0">
               {profile.full_name?.[0]?.toUpperCase() || '?'}
             </div>
           )}
-          <div className="flex-1 min-w-0 flex flex-col">
+          {/* Profile Info */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
+              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
             </div>
-            <div className="flex flex-row items-center justify-center gap-8 mt-1 mb-2 w-full">
+            <div className="flex flex-row items-center gap-8 mt-1 mb-2 w-full">
               <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillageModal(true)} title="Show Village">
                 <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center group-hover:underline">{villageMembers.length}</span>
                 <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">Village</span>
@@ -177,31 +179,91 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            {/* Status banner or invite button */}
-            {currentUser && currentUser.id !== id && (
-              <div className="mb-2">
-                {inviteStatus === "in-village" && (
-                  <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">In Your Village</div>
-                )}
-                {inviteStatus === "invited-by-me" && (
-                  <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</div>
-                )}
-                {inviteStatus === "invited-me" && (
-                  <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invited You</div>
-                )}
-                {inviteStatus === "none" && (
-                  <button
-                    className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors"
-                    onClick={handleInvite}
-                    disabled={inviteLoading}
-                  >
-                    {inviteLoading ? "Sending..." : "Invite to Village"}
-                  </button>
-                )}
-              </div>
+            <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              {profile.city && (
+                <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
+              )}
+              {(profile.number_of_kids !== undefined && profile.number_of_kids !== null && profile.number_of_kids !== 0) && (
+                <span>Children: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.number_of_kids}</span></span>
+              )}
+              {profile.kids_age_groups && profile.kids_age_groups.length > 0 && (
+                <span>Ages: <span className="font-medium text-zinc-700 dark:text-zinc-200">{Array.isArray(profile.kids_age_groups) ? profile.kids_age_groups.join(', ') : String(profile.kids_age_groups)}</span></span>
+              )}
+              {profile.parenting_style && (
+                <span>Parenting Style: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.parenting_style}</span></span>
+              )}
+            </div>
+          </div>
+          {/* Message Button */}
+          {currentUser && currentUser.id !== id && (
+            <div className="flex flex-col justify-center items-end ml-2">
+              <button
+                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors whitespace-nowrap"
+                onClick={async () => {
+                  // Find or create conversation between currentUser and profile user
+                  if (!currentUser || !id) return;
+                  let conversationId = null;
+                  const { data: existingConvos, error: convoError } = await supabase
+                    .from("conversations")
+                    .select("id,user1_id,user2_id")
+                    .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${id}),and(user1_id.eq.${id},user2_id.eq.${currentUser.id})`)
+                    .limit(1);
+                  if (convoError) {
+                    alert("Failed to check conversations");
+                    return;
+                  }
+                  if (existingConvos && existingConvos.length > 0) {
+                    conversationId = existingConvos[0].id;
+                  } else {
+                    const { data: newConvo, error: createError } = await supabase
+                      .from("conversations")
+                      .insert({
+                        user1_id: currentUser.id,
+                        user2_id: id,
+                        user1_name: currentUser.user_metadata?.full_name || "",
+                        user2_name: profile.full_name || "",
+                        user1_photo: currentUser.user_metadata?.profile_photo_url || "",
+                        user2_photo: profile.profile_photo_url || "",
+                      })
+                      .select()
+                      .single();
+                    if (createError || !newConvo) {
+                      alert("Failed to create conversation");
+                      return;
+                    }
+                    conversationId = newConvo.id;
+                  }
+                  router.push(`/messages?conversation=${conversationId}`);
+                }}
+              >
+                Message
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Status banner or invite button below banner */}
+        {currentUser && currentUser.id !== id && (
+          <div className="flex justify-center mt-3 mb-2">
+            {inviteStatus === "in-village" && (
+              <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">In Your Village</div>
+            )}
+            {inviteStatus === "invited-by-me" && (
+              <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invitation Sent</div>
+            )}
+            {inviteStatus === "invited-me" && (
+              <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">Invited You</div>
+            )}
+            {inviteStatus === "none" && (
+              <button
+                className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors"
+                onClick={handleInvite}
+                disabled={inviteLoading}
+              >
+                {inviteLoading ? "Sending..." : "Invite to Village"}
+              </button>
             )}
           </div>
-        </div>
+        )}
         {/* Bio Section (below profile info, above posts) */}
         {profile.bio && (
           <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-md shadow-sm px-4 py-3 mt-2 mb-4 border border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200">
