@@ -495,11 +495,13 @@ export default function ProfilePage() {
                 <div className="flex justify-between">
                   <span>Member since:</span>
                   <span className="font-medium">
-                    {new Date(user?.created_at).toLocaleDateString()}
+                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}
                   </span>
                 </div>
               </div>
             </div>
-            </div>
-          );
+          </div> {/* end profile card */}
+        </div>   {/* end max-w-3xl mx-auto */}
+      </div>     {/* end min-h-screen */}
+    );
 }
