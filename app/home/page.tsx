@@ -221,9 +221,8 @@ export default function HomePage() {
       </div>
       {/* Floating nav buttons */}
       <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
-          {/* Profile lower right */}
-          <NavButton href="/profile" icon="user" label="" />
-        </div>
+        {/* Only search button in bottom left */}
+      </div>
         <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
           {/* Conversations (chat) upper right */}
           <NavButton href="/messages" icon="chat" label="" />
