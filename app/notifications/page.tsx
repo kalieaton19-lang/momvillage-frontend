@@ -1,13 +1,31 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-
-const InvitationsTab = dynamic(() => import("./InvitationsTab"), { ssr: false });
+import InvitationsTab from "./InvitationsTab";
+import { supabase } from "../../lib/supabase";
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'invitations'>('all');
+  const [user, setUser] = useState<any>(null);
+  const [invitations, setInvitations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserAndInvitations = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      if (!currentUser) return setLoading(false);
+      const { data, error } = await supabase
+        .from("village_invitations")
+        .select("*, to_user:to_user_id(*), from_user:from_user_id(*)")
+        .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`);
+      if (data) setInvitations(data);
+      setLoading(false);
+    };
+    fetchUserAndInvitations();
+  }, []);
+
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 w-full">
       {/* Back Button - top left */}
@@ -53,10 +71,13 @@ export default function NotificationsPage() {
       </div>
       <div className="flex flex-col items-center justify-start pt-12">
         <div className="bg-white dark:bg-zinc-800 rounded-xl shadow p-6 w-full max-w-2xl min-h-[300px]">
-          {activeTab === 'all' && (
-            <div className="text-zinc-500 dark:text-zinc-300 text-center">You have no notifications yet.</div>
+          {loading ? (
+            <div className="text-zinc-500 dark:text-zinc-300 text-center">Loading...</div>
+          ) : activeTab === 'all' ? (
+            <InvitationsTab invitations={invitations} user={user} />
+          ) : (
+            <InvitationsTab invitations={invitations} user={user} />
           )}
-          {activeTab === 'invitations' && <InvitationsTab />}
         </div>
       </div>
     </div>
