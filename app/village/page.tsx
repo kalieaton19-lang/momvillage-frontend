@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { createNotification } from "../../lib/notifications";
 // InviteByNameForm component (top-level)
 function InviteByNameForm({ onBack, onInvite }: { onBack?: () => void; onInvite: (user: any) => void }) {
   const [search, setSearch] = useState("");
@@ -172,6 +173,12 @@ export default function VillagePage() {
             .eq("id", existing.id)
             .eq("status", "pending");
           if (updateError) throw updateError;
+          // Notify the recipient
+          await createNotification({
+            userId: existing.to_user_id,
+            type: "village_invite_resent",
+            data: { from_user_id: fromUserId, to_user_id: toUserId }
+          });
           setInviteBanner("Resent invitation!");
         } else if (existing.status === 'resent') {
           setInviteBanner("You can only resend once.");
@@ -195,6 +202,14 @@ export default function VillagePage() {
             to_user_id: toUserId,
             status: "pending",
           });
+        if (!insertError) {
+          // Notify the recipient
+          await createNotification({
+            userId: toUserId,
+            type: "village_invite_sent",
+            data: { from_user_id: fromUserId, to_user_id: toUserId }
+          });
+        }
         if (insertError) {
           // If unique constraint violation, refresh invitations so user sees the existing invite
           if (insertError.code === '23505') {
