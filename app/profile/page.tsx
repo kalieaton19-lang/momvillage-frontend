@@ -431,14 +431,23 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                       Parenting Style
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={profile.parenting_style || ""}
                       onChange={(e) => setProfile({ ...profile, parenting_style: e.target.value })}
                       disabled={!editing}
                       className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="e.g. Gentle, Structured, Free-Range"
-                    />
+                    >
+                      <option value="">Select...</option>
+                      <option value="Authoritative">Authoritative</option>
+                      <option value="Permissive">Permissive</option>
+                      <option value="Authoritarian">Authoritarian</option>
+                      <option value="Uninvolved">Uninvolved</option>
+                      <option value="Gentle Parenting">Gentle Parenting</option>
+                      <option value="Attachment Parenting">Attachment Parenting</option>
+                      <option value="Free-Range">Free-Range</option>
+                      <option value="Helicopter">Helicopter</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
 
                   <div>
