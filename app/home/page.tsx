@@ -14,7 +14,7 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [feedType, setFeedType] = useState<'local' | 'village' | 'all'>('all');
+  const [feedType, setFeedType] = useState<'local' | 'village' | 'groups'>('local');
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState({
@@ -206,9 +206,9 @@ export default function HomePage() {
               </button>
         {/* Feed toggle */}
         <div className="flex gap-2 mb-4">
-          <button onClick={() => setFeedType('all')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'all' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>All</button>
           <button onClick={() => setFeedType('local')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
           <button onClick={() => setFeedType('village')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
+          <button onClick={() => setFeedType('groups')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
         </div>
         {/* Feed */}
         <div className="flex-1 overflow-y-auto">
