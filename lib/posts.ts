@@ -54,8 +54,6 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
   if (error) throw error;
   return data as Post[];
 }
-}
-
 // Create a new post
 export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at">): Promise<Post> {
   const { data, error } = await supabase
