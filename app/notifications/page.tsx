@@ -107,9 +107,15 @@ export default function NotificationsPage() {
           {loading ? (
             <div className="text-zinc-500 dark:text-zinc-300 text-center">Loading...</div>
           ) : activeTab === 'all' ? (
-            <InvitationsTab invitations={invitations} user={user} />
+            <InvitationsTab
+              invitations={invitations.filter(inv => inv.to_user_id === user?.id)}
+              user={user}
+            />
           ) : (
-            <InvitationsTab invitations={invitations} user={user} />
+            <InvitationsTab
+              invitations={invitations.filter(inv => inv.from_user_id === user?.id && (inv.status === 'pending' || inv.status === 'resent'))}
+              user={user}
+            />
           )}
         </div>
       </div>
