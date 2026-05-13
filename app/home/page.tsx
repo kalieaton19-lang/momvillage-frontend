@@ -221,7 +221,6 @@ export default function HomePage() {
       {/* Floating nav buttons */}
       <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
         <NavButton href="/profile" icon="👤" label="Profile" />
-        <NavButton href="/calendar" icon="📅" label="Calendar" />
       </div>
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
         <NavButton href="/messages" icon="💬" label="" />
