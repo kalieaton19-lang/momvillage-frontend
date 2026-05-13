@@ -234,9 +234,9 @@ export default function HomePage() {
       </div>
       {/* Floating nav buttons - consistent format and alignment */}
       <div className="fixed inset-0 pointer-events-none z-50">
-        {/* Top right: Messages */}
-        <div className="absolute top-6 right-6 pointer-events-auto">
-          <NavButton href="/messages" icon="chat" label="" />
+        {/* Top right: Messages (smaller and lower) */}
+        <div className="absolute top-24 right-6 pointer-events-auto">
+          <NavButton href="/messages" icon="chat" label="" className="w-14 h-14" />
         </div>
         {/* Bottom right: Profile */}
         <div className="absolute bottom-8 right-8 pointer-events-auto">
