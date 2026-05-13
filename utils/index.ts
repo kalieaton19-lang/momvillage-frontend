@@ -1,3 +1,5 @@
+export * from "./getPostsCount";
+export * from "./getVillageCount";
 export const formatDate = (iso: string) => {
   try {
     const d = new Date(iso);
