@@ -304,7 +304,7 @@ export default function ProfilePage() {
                   }
                   conversationId = newConvo.id;
                 }
-                router.push(`/messages?conversation=${conversationId}`);
+                   router.push(`/messages/${conversationId}`);
               }}
             >
               Message
