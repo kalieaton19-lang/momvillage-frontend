@@ -220,7 +220,7 @@ export default function VillagePage() {
         </button>
         <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-0 overflow-hidden">
           <div className="w-full bg-white py-6 px-6 border-b border-zinc-100 dark:border-zinc-800 text-center">
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
+            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
           </div>
           {/* Browser-like tab bar */}
           <div className="flex gap-0 px-0 pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800">
