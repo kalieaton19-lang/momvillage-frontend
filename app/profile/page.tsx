@@ -354,7 +354,7 @@ import { Input } from "@/app/components/ui/Input";
                 </svg>
               </button>
             </div>
-            <div className="flex flex-row items-center justify-center gap-8 mt-1 mb-2 w-full">
+            <div className="flex flex-row items-center gap-8 mt-1 mb-2 w-full pl-1">
               {typeof villageCount === "number" && (
                 <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillagersModal(true)} title="Show My Village">
                   <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center group-hover:underline">{villageCount}</span>
