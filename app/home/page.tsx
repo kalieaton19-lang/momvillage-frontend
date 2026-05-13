@@ -185,10 +185,10 @@ export default function HomePage() {
               {/* Floating create post button */}
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="fixed bottom-4 right-4 z-50 bg-pink-600 hover:bg-pink-700 text-white rounded-full w-16 h-16 flex items-center justify-center text-4xl shadow-lg border-4 border-white dark:border-zinc-900"
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
                 aria-label="Create Post"
               >
-                +
+                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
               </button>
         {/* Feed toggle */}
         <div className="flex gap-2 mb-4">
@@ -220,28 +220,52 @@ export default function HomePage() {
       </div>
       {/* Floating nav buttons */}
       <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
-        <NavButton href="/profile" icon="👤" label="" />
-      </div>
-      <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
-        <NavButton href="/messages" icon="💬" label="" />
-      </div>
-      {/* Find Moms icon-only button at the top right */}
-      <div className="fixed top-4 right-4 z-50">
-        <NavButton href="/find-moms" icon="🔍" label="" />
-      </div>
+          {/* Profile lower right */}
+          <NavButton href="/profile" icon="user" label="" />
+        </div>
+        <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
+          {/* Conversations (chat) upper right */}
+          <NavButton href="/messages" icon="chat" label="" />
+        </div>
+        {/* Search lower left */}
+        <div className="fixed bottom-8 left-8 z-50">
+          <NavButton href="/find-moms" icon="search" label="" />
+        </div>
+        {/* Add post button center bottom */}
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          aria-label="Create Post"
+        >
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
+        </button>
     </div>
   );
 }
 
-function NavButton({ href, icon, label }: { href: string; icon: string; label: string }) {
+function NavButton({ href, icon, label }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus'; label: string }) {
   const isIconOnly = !label;
+  const iconMap: Record<string, JSX.Element> = {
+    user: (
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-9 h-9"><circle cx="12" cy="8" r="4" strokeWidth="1.5"/><path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/></svg>
+    ),
+    chat: (
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-9 h-9"><path strokeWidth="1.5" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    ),
+    search: (
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-9 h-9"><circle cx="11" cy="11" r="7" strokeWidth="1.5"/><path strokeWidth="1.5" d="M21 21l-4.35-4.35"/></svg>
+    ),
+    plus: (
+      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-10 h-10"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
+    ),
+  };
   return (
     <Link
       href={href}
-      className={`flex items-center ${isIconOnly ? 'justify-center p-3 w-12 h-12' : 'gap-2 px-4 py-2'} bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-full text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all`}
-      aria-label={label || 'Messages'}
+      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-20 h-20 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400`}
+      aria-label={label || icon}
     >
-      <span className="text-2xl">{icon}</span>
+      {iconMap[icon]}
       {!isIconOnly && label}
     </Link>
   );
