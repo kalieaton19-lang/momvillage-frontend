@@ -114,8 +114,8 @@ function MessagesPageInner() {
         </button>
       </div>
       <div className="max-w-2xl mx-auto h-screen flex flex-col">
-        <header className="flex items-center justify-between px-4 sm:px-10 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Messages</h1>
+        <header className="relative flex items-center justify-center px-4 sm:px-10 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 text-center w-full tracking-tight">Messages</h1>
         </header>
         <div className="flex-1 overflow-y-auto bg-pink-50 dark:bg-pink-950 py-2">
           {conversations.length === 0 ? (
@@ -138,7 +138,7 @@ function MessagesPageInner() {
                 return (
                   <button
                     key={conv.id}
-                    className="w-full text-left p-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm flex items-start gap-3 border border-pink-100 dark:border-pink-900 hover:bg-pink-50 dark:hover:bg-pink-950 transition"
+                    className="w-full text-left p-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm flex items-center gap-3 border border-pink-100 dark:border-pink-900 hover:bg-pink-50 dark:hover:bg-pink-950 transition"
                     style={{ borderBottom: '2px solid #fce4ec' }}
                     onClick={() => router.push(`/messages/${conv.id}`)}
                   >
@@ -153,9 +153,14 @@ function MessagesPageInner() {
                         {otherUser.name?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
-                    <div className="flex flex-col justify-center">
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{otherUser.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[140px]">{conv.last_message}</div>
+                    <div className="flex flex-col justify-center flex-1 min-w-0">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base text-center w-full">{otherUser.name}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[140px] mx-auto text-center">{conv.last_message}</div>
+                    </div>
+                    <div className="flex items-center ml-2">
+                      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </button>
                 );
