@@ -386,7 +386,16 @@ import { Input } from "@/app/components/ui/Input";
                             ) : (
                               <div className="mt-4 space-y-3 max-h-72 overflow-y-auto">
                                 {villagers.map((m: any) => (
-                                  <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-pink-50 dark:hover:bg-pink-900 transition">
+                                  <button
+                                    key={m.id}
+                                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900 transition w-full text-left"
+                                    onClick={() => {
+                                      setShowVillagersModal(false);
+                                      router.push(`/profile/${m.id}`);
+                                    }}
+                                    tabIndex={0}
+                                    aria-label={`View ${m.full_name}'s profile`}
+                                  >
                                     {m.profile_photo_url ? (
                                       <img src={m.profile_photo_url} alt={m.full_name} className="w-10 h-10 rounded-full object-cover" />
                                     ) : (
@@ -398,7 +407,7 @@ import { Input } from "@/app/components/ui/Input";
                                       <div className="font-semibold text-zinc-900 dark:text-zinc-50">{m.full_name}</div>
                                       <div className="text-xs text-zinc-500 dark:text-zinc-400">{m.city}{m.city && m.state ? ', ' : ''}{m.state}</div>
                                     </div>
-                                  </div>
+                                  </button>
                                 ))}
                               </div>
                             )}
