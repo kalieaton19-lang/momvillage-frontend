@@ -276,12 +276,12 @@
               <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
               <button
                 onClick={() => setEditing(true)}
-                className="ml-auto px-4 py-2 rounded-lg border-2 border-pink-400 bg-pink-100 text-pink-700 text-sm font-semibold shadow-sm hover:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
-                style={{ minWidth: '120px' }}
+                className="ml-auto px-4 py-2 rounded-md border border-pink-300 bg-pink-50 text-pink-700 text-base font-medium hover:bg-pink-100 transition shadow-sm"
+                style={{ minWidth: '110px' }}
                 aria-label="Edit Profile"
               >
                 {/* Pencil Icon */}
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600 inline mr-1 align-text-bottom">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600 inline mr-1 align-text-bottom">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914l-9.193 9.193-3.122.208.208-3.122 9.192-9.193Z" />
                 </svg>
                 Edit Profile
