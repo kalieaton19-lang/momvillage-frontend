@@ -1,12 +1,27 @@
+"use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const InvitationsTab = dynamic(() => import("./InvitationsTab"), { ssr: false });
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'invitations'>('all');
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 w-full">
+      {/* Back Button - top left */}
+      <div className="w-full max-w-2xl mx-auto flex items-center pt-4 pb-2 px-2 sm:px-0">
+        <button
+          onClick={() => router.back()}
+          className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+          aria-label="Back"
+        >
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
       {/* White title banner */}
       <div className="w-full py-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 text-center rounded-none">
         <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Notifications</h1>
