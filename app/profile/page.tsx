@@ -4,6 +4,7 @@
               import { useRouter } from "next/navigation";
               import Link from "next/link";
               import { supabase } from "../../lib/supabase";
+              import { getVillageCount } from "../../utils/getVillageCount";
               import { Button } from "@/app/components/ui/Button";
               import { Alert } from "@/app/components/ui/Alert";
               import { Input } from "@/app/components/ui/Input";
@@ -51,10 +52,17 @@
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [villageCount, setVillageCount] = useState<number | null>(null);
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      getVillageCount(user.id).then(count => setVillageCount(count));
+    }
+  }, [user]);
 
   async function checkUser() {
     try {
@@ -298,6 +306,9 @@
               </button>
             </div>
             <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400">
+              {typeof villageCount === "number" && (
+                <span>My Village: <span className="font-semibold text-pink-600">{villageCount}</span></span>
+              )}
               {profile.city && (
                 <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
               )}
