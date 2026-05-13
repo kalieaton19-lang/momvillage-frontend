@@ -232,47 +232,32 @@ export default function HomePage() {
           )}
         </div>
       </div>
-      {/* Floating nav buttons */}
-      <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
-        {/* Only search button in bottom left */}
+      {/* Floating nav buttons - consistent format and alignment */}
+      <div className="fixed inset-0 pointer-events-none z-50">
+        {/* Top right: Messages */}
+        <div className="absolute top-6 right-6 pointer-events-auto">
+          <NavButton href="/messages" icon="chat" label="" />
+        </div>
+        {/* Bottom right: Profile */}
+        <div className="absolute bottom-8 right-8 pointer-events-auto">
+          <NavButton href="/profile" icon="user" label="" />
+        </div>
+        {/* Bottom left: Search */}
+        <div className="absolute bottom-8 left-8 pointer-events-auto">
+          <NavButton href="/find-moms" icon="search" label="" />
+        </div>
+        {/* Center bottom: Add post */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Create Post"
+            type="button"
+          >
+            <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
+          </button>
+        </div>
       </div>
-        <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
-          {/* Conversations (chat) upper right */}
-          <NavButton href="/messages" icon="chat" label="" className="fixed top-6 right-6 z-50" />
-        </div>
-        {/* Search lower left */}
-        <div className="fixed bottom-8 left-8 z-50">
-          <NavButton href="/find-moms" icon="search" label="" className="fixed bottom-8 left-8 z-50" />
-        </div>
-        {/* Add post button center bottom */}
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
-          aria-label="Create Post"
-        >
-          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
-        </button>
-        {/* Floating Messages Button */}
-      <Link
-        href="/messages"
-        className="fixed top-6 right-6 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-full w-16 h-16 flex items-center justify-center hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400"
-        aria-label="Messages"
-      >
-        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
-          <path strokeWidth="1.5" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-      </Link>
-      {/* Floating Profile Button */}
-      <Link
-        href="/profile"
-        className="fixed bottom-6 right-6 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-full w-16 h-16 flex items-center justify-center hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400"
-        aria-label="Profile"
-      >
-        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
-          <circle cx="12" cy="8" r="4" strokeWidth="1.5" />
-          <path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4" />
-        </svg>
-      </Link>
     </div>
   );
 }
