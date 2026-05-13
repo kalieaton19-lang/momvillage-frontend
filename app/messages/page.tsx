@@ -114,7 +114,7 @@ function MessagesPageInner() {
         </button>
       </div>
       <div className="max-w-2xl mx-auto h-screen flex flex-col">
-        <header className="relative flex items-center justify-center px-4 sm:px-10 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+        <header className="relative flex items-center justify-center px-4 sm:px-10 pt-3 pb-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 text-center w-full tracking-tight">Messages</h1>
         </header>
         <div className="flex-1 overflow-y-auto bg-pink-50 dark:bg-pink-950 py-2">
