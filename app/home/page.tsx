@@ -98,7 +98,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
       <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col">
         <header className="mb-4 flex items-center gap-4 justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {profile?.profile_photo_url ? (
               <div className="w-14 h-14 min-w-[3.5rem] min-h-[3.5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
                 <img
@@ -113,12 +113,9 @@ export default function HomePage() {
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+              <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                 {profile?.full_name || 'Mom'}
               </h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Your feed brings together your local area and your village.
-              </p>
             </div>
           </div>
           {/* Messages button beside profile image */}
