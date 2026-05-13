@@ -90,7 +90,6 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
     </div>
   );
 }
-
 export default function VillagePage() {
   // Only show invite UI
   const [inviteMode, setInviteMode] = useState<'none' | 'conversations' | 'name'>('name');
