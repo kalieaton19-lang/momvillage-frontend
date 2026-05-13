@@ -449,7 +449,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             {inviteBanner}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-black space-y-4">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-white dark:bg-black space-y-3 sm:space-y-4">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -475,19 +475,21 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 return (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex w-full ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    style={{ marginBottom: 2 }}
                   >
                     <div
-                      className={`max-w-xs px-4 py-2 rounded-2xl ${
+                      className={`px-3 py-2 rounded-2xl sm:px-4 sm:py-2 ${
                         msg.sender_id === user?.id
-                          ? 'bg-pink-600 text-white rounded-br-none'
-                          : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none'
+                          ? 'bg-pink-600 text-white rounded-br-none ml-8 sm:ml-32 max-w-[90vw] sm:max-w-xs'
+                          : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-8 sm:mr-32 max-w-[90vw] sm:max-w-xs'
                       }`}
+                      style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
                       {msg.sender_id !== user?.id && (
                         <div className="text-xs font-semibold mb-1 text-zinc-700 dark:text-zinc-200">{senderName}</div>
                       )}
-                      <p className="break-words">{msg.message_text}</p>
+                      <p className="break-words text-base leading-snug">{msg.message_text}</p>
                       <p className={`text-xs mt-1 ${
                         msg.sender_id === user?.id
                           ? 'text-pink-100'
