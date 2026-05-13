@@ -356,7 +356,7 @@ function NavButton({ href, icon, label, className = "" }: { href: string; icon: 
   return (
     <Link
       href={href}
-      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 ${className}`}
+      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 active:scale-95 active:ring-4 active:ring-pink-300 ${className}`}
       aria-label={label || icon}
     >
       {iconMap[icon]}
