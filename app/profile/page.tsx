@@ -276,17 +276,16 @@
               <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 truncate">{profile.full_name || 'Mom'}</span>
               <button
                 onClick={() => setEditing(true)}
-                className="ml-1 p-1 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                className="ml-auto px-4 py-2 rounded-lg border-2 border-pink-400 bg-pink-100 text-pink-700 text-sm font-semibold shadow-sm hover:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
+                style={{ minWidth: '120px' }}
                 aria-label="Edit Profile"
               >
                 {/* Pencil Icon */}
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600 inline mr-1 align-text-bottom">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914l-9.193 9.193-3.122.208.208-3.122 9.192-9.193Z" />
                 </svg>
+                Edit Profile
               </button>
-            </div>
-            <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              <span>My Village: <span className="font-semibold text-pink-600">{myVillageCount}</span></span>
               {profile.preferred_language && (
                 <span>Preferred Language: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.preferred_language}</span></span>
               )}
