@@ -63,9 +63,11 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
           return (
             <button
               key={user.id}
-              className={`w-full flex items-center gap-3 p-3 border-2 rounded-2xl transition-all
-                bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600
-                ${isSelected ? 'ring-2 ring-pink-600 border-pink-600' : ''}`}
+              className={
+                `w-full flex items-center gap-3 p-3 border-2 rounded-2xl transition-all ` +
+                `bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600 ` +
+                (isSelected ? 'ring-2 ring-pink-600 border-pink-600' : '')
+              }
               onClick={() => {
                 setSelectedId(user.id);
                 onInvite(user);
@@ -304,9 +306,11 @@ export default function VillagePage() {
                       return (
                         <button
                           key={conv.id}
-                          className={`flex items-center gap-3 p-6 rounded-2xl border-2 w-full transition-all focus:outline-none focus:ring-2 focus:ring-pink-500
-                            bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600
-                            ${isSelected ? 'ring-2 ring-pink-600 border-pink-600' : ''}`}
+                          className={
+                            `flex items-center gap-3 p-6 rounded-2xl border-2 w-full transition-all focus:outline-none focus:ring-2 focus:ring-pink-500 ` +
+                            `bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-600 ` +
+                            (isSelected ? 'ring-2 ring-pink-600 border-pink-600' : '')
+                          }
                           style={{ cursor: 'pointer' }}
                           onClick={() => {
                             setSelectedMom({
