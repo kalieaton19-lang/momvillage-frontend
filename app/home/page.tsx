@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, createPost } from "../../lib/posts";
-import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
+import { Post, PostType, PostScope, PostVisibility } from "@/types/post";
 
 export default function HomePage() {
   const router = useRouter();
