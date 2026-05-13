@@ -461,44 +461,29 @@ export default function ProfilePage() {
                       className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                       placeholder="Anything else you'd like to share?"
                     />
-                  </div>
+
                 </div>
-
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Other Important Info
-                </label>
-                <textarea
-                  value={profile.other_info || ""}
-                  onChange={(e) => setProfile({ ...profile, other_info: e.target.value })}
-                  disabled={!editing}
-                  rows={4}
-                  className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                  placeholder="Any additional information you'd like to share..."
-                />
               </div>
+
+              {editing && (
+                <div className="flex gap-3 pt-4">
+                  <Button onClick={handleSave} disabled={saving} fullWidth>
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditing(false);
+                      setMessage("");
+                    }}
+                    disabled={saving}
+                    fullWidth
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
-
-            {editing && (
-              <div className="flex gap-3 pt-4">
-                <Button onClick={handleSave} disabled={saving} fullWidth>
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setEditing(false);
-                    setMessage("");
-                  }}
-                  disabled={saving}
-                  fullWidth
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
 
           {/* Account Info */}
           <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
