@@ -4,18 +4,33 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
-import { BannerAd } from "@/app/components/ads/BannerAd";
-import { PopupAd } from "@/app/components/ads/PopupAd";
+import { fetchPosts, createPost } from "../../lib/posts";
+import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
 
 export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [feedType, setFeedType] = useState<'local' | 'village' | 'all'>('all');
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    content: '',
+    type: 'general' as PostType,
+    scope: 'local' as PostScope,
+    visibility: 'public' as PostVisibility,
+    location: '',
+  });
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (user) loadPosts();
+  }, [user, feedType]);
 
   async function checkUser() {
     try {
@@ -24,10 +39,7 @@ export default function HomePage() {
         router.push('/login');
         return;
       }
-      
       setUser(session.user);
-      
-      // Load user profile
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser?.user_metadata) {
         setProfile(currentUser.user_metadata);
@@ -40,9 +52,36 @@ export default function HomePage() {
     }
   }
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push('/');
+  async function loadPosts() {
+    setLoading(true);
+    try {
+      let options: any = {};
+      if (feedType === 'local') options.scope = 'local';
+      if (feedType === 'village') options.scope = 'village';
+      setPosts(await fetchPosts(options));
+    } catch (e) {
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreatePost(e: React.FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await createPost({
+        ...form,
+        author_id: user.id,
+        author_name: profile?.full_name || 'Anonymous',
+      });
+      setForm({ title: '', content: '', type: 'general', scope: 'local', visibility: 'public', location: '' });
+      await loadPosts();
+    } catch (e) {
+      alert('Failed to create post');
+    } finally {
+      setCreating(false);
+    }
   }
 
   if (loading) {
@@ -54,144 +93,106 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
-      <div className="max-w-6xl mx-auto p-6">
-        <BannerAd />
-        <PopupAd />
-        {/* Header */}
-        <header className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              Welcome back, {profile?.full_name?.split(' ')[0] || 'Mom'}! 💕
-            </h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              Your village is ready to support you
-            </p>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="text-sm px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 dark:hover:border-pink-700 transition-colors"
-          >
-            Sign Out
-          </button>
+    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
+      <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col">
+        <header className="mb-4">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            Welcome, {profile?.full_name?.split(' ')[0] || 'Mom'}! 💕
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Your feed brings together your local area and your village.
+          </p>
         </header>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border border-pink-200 dark:border-pink-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="text-3xl">👶</div>
-              <div className="text-sm font-medium text-pink-700 dark:text-pink-300">Little Ones</div>
-            </div>
-            <div className="text-3xl font-bold text-pink-900 dark:text-pink-50">
-              {profile?.number_of_kids || 0}
-            </div>
+        {/* Post creation form */}
+        <form onSubmit={handleCreatePost} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-6 shadow-sm flex flex-col gap-3">
+          <input
+            className="border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 mb-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+            placeholder="Title (e.g. Need help with school pickup)"
+            value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            required
+          />
+          <textarea
+            className="border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 mb-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+            placeholder="What's on your mind?"
+            value={form.content}
+            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+            required
+          />
+          <div className="flex flex-wrap gap-2 mb-2">
+            <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PostType }))} className="rounded border px-2 py-1">
+              <option value="general">General</option>
+              <option value="support">Support</option>
+            </select>
+            <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value as PostScope }))} className="rounded border px-2 py-1">
+              <option value="local">Local</option>
+              <option value="village">My Village</option>
+            </select>
+            <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))} className="rounded border px-2 py-1">
+              <option value="public">Public</option>
+              <option value="village">Village Only</option>
+            </select>
+            {form.scope === 'local' && (
+              <input
+                className="rounded border px-2 py-1"
+                placeholder="Location (optional)"
+                value={form.location}
+                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+              />
+            )}
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="text-3xl">📍</div>
-              <div className="text-sm font-medium text-purple-700 dark:text-purple-300">Your Neighborhood</div>
-            </div>
-            <div className="text-lg font-semibold text-purple-900 dark:text-purple-50 truncate">
-              {profile?.city || 'Not set'}, {profile?.state || ''}
-            </div>
-          </div>
-          {/* Removed Village Friends stat for clarity; use only 'My Village' */}
+          <button type="submit" className="bg-pink-600 text-white rounded px-4 py-2 font-semibold hover:bg-pink-700 transition-colors" disabled={creating}>
+            {creating ? 'Posting...' : 'Post'}
+          </button>
+        </form>
+        {/* Feed toggle */}
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => setFeedType('all')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'all' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>All</button>
+          <button onClick={() => setFeedType('local')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
+          <button onClick={() => setFeedType('village')} className={`px-3 py-1 rounded-full text-sm font-medium ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
         </div>
-
-        {/* Main Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ActionCard
-            title="My Profile ✨"
-            description="Update your personal information, contact details, family info, and preferences. Keep your profile current so other moms can get to know you better."
-            href="/profile"
-            color="pink"
-          />
-          <ActionCard
-            title="Calendar 📅"
-            description="See your availability and events by date in one place."
-            href="/calendar"
-            color="purple"
-          />
-          <ActionCard
-            title="Create Meetups 👋"
-            description="Invite moms from your conversations or village to coordinate meetups and service exchanges together."
-            href="/meetups-services"
-            color="pink"
-          />
-          <ActionCard
-            title="Services Exchange 🔄"
-            description="Share what services you offer and what help you need. Find moms who can help with childcare, household tasks, advice, and activities."
-            href="/services"
-            color="blue"
-          />
-          <ActionCard
-            title="Find Moms Nearby 🔍"
-            description="Connect with like-minded mothers in your area. Filter by kids' ages, parenting style, location, and shared interests to find your perfect mom friends."
-            href="/find-moms"
-            color="teal"
-          />
-          <ActionCard
-            title="Messages 💬"
-            description="Chat with your village members, plan meetups, share parenting tips, and stay connected. Keep all your mom conversations in one place."
-            href="/messages"
-            color="green"
-          />
-          <ActionCard
-            title="My Village 🏘️"
-            description="See your growing network of mom friends, manage connections, and view profiles of the mothers supporting you on your parenting journey."
-            href="/village"
-            color="orange"
-          />
+        {/* Feed */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="text-center text-zinc-500 py-8">Loading feed...</div>
+          ) : posts.length === 0 ? (
+            <div className="text-center text-zinc-500 py-8">No posts yet. Be the first to post!</div>
+          ) : (
+            posts.map(post => (
+              <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.type === 'support' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'}`}>{post.type === 'support' ? 'Support' : 'General'}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.scope === 'village' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>{post.scope === 'village' ? 'My Village' : 'Local'}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.visibility === 'public' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>{post.visibility === 'public' ? 'Public' : 'Village Only'}</span>
+                </div>
+                <div className="font-bold text-lg mb-1">{post.title}</div>
+                <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
+              </div>
+            ))
+          )}
         </div>
+      </div>
+      {/* Floating nav buttons */}
+      <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
+        <NavButton href="/profile" icon="👤" label="Profile" />
+        <NavButton href="/calendar" icon="📅" label="Calendar" />
+      </div>
+      <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
+        <NavButton href="/messages" icon="💬" label="Messages" />
+        <NavButton href="/village" icon="🏘️" label="Village" />
+      </div>
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+        <NavButton href="/find-moms" icon="🔍" label="Find Moms" />
       </div>
     </div>
   );
 }
 
-interface ActionCardProps {
-  title: string;
-  description: string;
-  href: string;
-  color?: 'pink' | 'purple' | 'blue' | 'green' | 'orange' | 'teal';
-  comingSoon?: boolean;
-}
-
-function ActionCard({ title, description, href, color = 'pink', comingSoon }: ActionCardProps) {
-  const colorClasses = {
-    pink: 'from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border-pink-200 dark:border-pink-800',
-    purple: 'from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800',
-    blue: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800',
-    green: 'from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800',
-    orange: 'from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800',
-    teal: 'from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 border-teal-200 dark:border-teal-800',
-  };
-
-  const cardContent = (
-    <>
-      {comingSoon && (
-        <div className="absolute top-4 right-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs px-3 py-1.5 rounded-full font-medium shadow-sm">
-          Coming Soon
-        </div>
-      )}
-      <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-3">{title}</h3>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{description}</p>
-    </>
-  );
-
-  const cardClasses = `relative bg-gradient-to-br ${colorClasses[color]} border rounded-2xl p-6 transition-all shadow-sm ${
-    comingSoon
-      ? 'opacity-70 cursor-not-allowed'
-      : 'hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer'
-  }`;
-
-  if (comingSoon) {
-    return <div className={cardClasses}>{cardContent}</div>;
-  }
-
+function NavButton({ href, icon, label }: { href: string; icon: string; label: string }) {
   return (
-    <Link href={href} className={cardClasses}>
-      {cardContent}
+    <Link href={href} className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-full px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all">
+      <span className="text-lg">{icon}</span> {label}
     </Link>
   );
 }
