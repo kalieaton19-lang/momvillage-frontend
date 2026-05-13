@@ -225,10 +225,10 @@ export default function HomePage() {
       </div>
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
         <NavButton href="/messages" icon="💬" label="" />
-        <NavButton href="/village" icon="🏘️" label="Village" />
       </div>
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <NavButton href="/find-moms" icon="🔍" label="Find Moms" />
+      {/* Find Moms icon-only button at the top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <NavButton href="/find-moms" icon="🔍" label="" />
       </div>
     </div>
   );
