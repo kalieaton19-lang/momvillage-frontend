@@ -1,4 +1,4 @@
-              "use client";
+"use client";
 
               import { useState, useEffect } from "react";
               import { useRouter } from "next/navigation";
@@ -28,6 +28,9 @@
               }
 
               export default function ProfilePage() {
+                  const router = useRouter();
+                  const [user, setUser] = useState<any>(null);
+                  const [loading, setLoading] = useState(true);
                 const [profile, setProfile] = useState<UserProfile>({
                   full_name: "",
                   phone: "",
@@ -248,260 +251,23 @@
       </div>
     );
   }
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Link href="/home" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-pink-600">
-            ← Back to Home
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-pink-600"
-          >
-            Sign Out
-          </button>
-        
-
-        {/* Profile Card */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-8 shadow-sm">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4">
-              {/* Profile Photo */}
-              <div className="relative">
-                {previewUrl || profile.profile_photo_url ? (
-                  <img
-                    src={previewUrl || profile.profile_photo_url}
-                    alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-pink-300"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold">
-                    {user?.email?.[0].toUpperCase() || "?"}
-                  </div>
-                )}
-                {editing && (
-                  <label className="absolute bottom-0 right-0 bg-pink-600 text-white p-2 rounded-full cursor-pointer hover:bg-pink-700 text-xs">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      disabled={uploading}
-                      className="hidden"
-                    />
-                    📷
-                  </label>
-                )}
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-                  {editing ? "Edit Profile" : (profile.full_name || "Your Profile")}
-                </h1>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">{user?.email}</p>
-              </div>
-            </div>
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="px-4 py-2 text-sm bg-pink-600 text-white rounded-full hover:bg-pink-700"
-                aria-label="Edit Profile"
-              >
-                ✏️ Edit
-              </button>
-            )}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-8 shadow-sm w-full max-w-xl">
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Profile Page</h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-8">Welcome to your profile!</p>
+        <div className="space-y-4">
+          <div className="flex justify-between">
+            <span>Email:</span>
+            <span className="font-medium">{user?.email ?? "(no email)"}</span>
           </div>
-
-          {message && (
-            <Alert variant="success" className="mb-4" title="Saved">
-              {/* Profile Form (public view by default, editable when editing) */}
-              <div className="space-y-4">
-                <Input
-                  label="Full Name"
-                  type="text"
-                  value={profile.full_name || ""}
-                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                  disabled={!editing}
-                  placeholder="Your full name"
-                />
-
-                <Input
-                  label="Phone"
-                  type="tel"
-                  value={profile.phone || ""}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  disabled={!editing}
-                  placeholder="(123) 456-7890"
-                />
-
-                <Input
-                  label="Address"
-                  type="text"
-                  value={profile.address || ""}
-                  onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                  disabled={!editing}
-                  placeholder="Street address"
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="City"
-                      type="text"
-                      value={profile.city || ""}
-                      onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                      disabled={!editing}
-                      placeholder="City"
-                    />
-
-                    <Input
-                      label="State"
-                      type="text"
-                      value={profile.state || ""}
-                      onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                      disabled={!editing}
-                      placeholder="State"
-                    />
-                </div>
-
-                <Input
-                  label="ZIP Code"
-                  type="text"
-                  value={profile.zip_code || ""}
-                  onChange={(e) => setProfile({ ...profile, zip_code: e.target.value })}
-                  disabled={!editing}
-                  placeholder="12345"
-                />
-
-                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Family Information</h3>
-              
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        Number of Kids
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={profile.number_of_kids || 0}
-                        onChange={(e) => setProfile({ ...profile, number_of_kids: parseInt(e.target.value) || 0 })}
-                        disabled={!editing}
-                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        Preferred Language
-                      </label>
-                      <select
-                        value={profile.preferred_language || ""}
-                        onChange={(e) => setProfile({ ...profile, preferred_language: e.target.value })}
-                        disabled={!editing}
-                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        <option value="">Select...</option>
-                        <option value="English">English</option>
-                        <option value="Spanish">Spanish</option>
-                        <option value="French">French</option>
-                        <option value="Mandarin">Mandarin</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Kids Age Groups
-                    </label>
-                    <input
-                      type="text"
-                      value={profile.kids_age_groups?.join(", ") || ""}
-                      onChange={(e) => setProfile({ ...profile, kids_age_groups: e.target.value.split(/,\s*/) })}
-                      disabled={!editing}
-                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="e.g. Infant, Toddler, Teen"
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Parenting Style
-                    </label>
-                    <select
-                      value={profile.parenting_style || ""}
-                      onChange={(e) => setProfile({ ...profile, parenting_style: e.target.value })}
-                      disabled={!editing}
-                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Select...</option>
-                      <option value="Authoritative">Authoritative</option>
-                      <option value="Permissive">Permissive</option>
-                      <option value="Authoritarian">Authoritarian</option>
-                      <option value="Uninvolved">Uninvolved</option>
-                      <option value="Gentle Parenting">Gentle Parenting</option>
-                      <option value="Attachment Parenting">Attachment Parenting</option>
-                      <option value="Free-Range">Free-Range</option>
-                      <option value="Helicopter">Helicopter</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Other Info
-                    </label>
-                    <textarea
-                      value={profile.other_info || ""}
-                      onChange={(e) => setProfile({ ...profile, other_info: e.target.value })}
-                      disabled={!editing}
-                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="Anything else you'd like to share?"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {editing && (
-                <div className="flex gap-3 pt-4">
-                  <Button onClick={handleSave} disabled={saving} fullWidth>
-                    {saving ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setEditing(false);
-                      setMessage("");
-                    }}
-                    disabled={saving}
-                    fullWidth
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            {/* Account Info */}
-            <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-                Account Information
-              </h3>
-              <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <div className="flex justify-between">
-                  <span>Email:</span>
-                  <span className="font-medium">{user?.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Member since:</span>
-                  <span className="font-medium">
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="flex justify-between">
+            <span>Member since:</span>
+            <span className="font-medium">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}</span>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
 }
