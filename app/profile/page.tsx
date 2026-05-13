@@ -258,6 +258,16 @@
   return (
 
     <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0 sm:p-4">
+      {/* Back Button */}
+      <button
+        onClick={() => router.push("/home")}
+        className="absolute left-4 top-4 sm:left-8 sm:top-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400 z-20"
+        aria-label="Back to Home"
+      >
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
       <div className="w-full max-w-2xl mx-auto">
         {/* Profile Banner - horizontal, full width, not a card */}
         <div className="w-full flex flex-row items-center gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
