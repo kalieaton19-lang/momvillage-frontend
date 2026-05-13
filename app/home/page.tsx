@@ -97,25 +97,31 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
       <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col">
-        <header className="mb-4 flex items-center gap-4">
-          {profile?.profile_photo_url ? (
-            <img
-              src={profile.profile_photo_url}
-              alt={profile?.full_name || "Profile"}
-              className="w-14 h-14 rounded-full object-cover border-2 border-pink-400 shadow"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold border-2 border-pink-400 shadow">
-              {profile?.full_name?.[0]?.toUpperCase() || "?"}
+        <header className="mb-4 flex items-center gap-4 justify-between">
+          <div className="flex items-center gap-4">
+            {profile?.profile_photo_url ? (
+              <img
+                src={profile.profile_photo_url}
+                alt={profile?.full_name || "Profile"}
+                className="w-14 h-14 rounded-full object-cover border-2 border-pink-400 shadow"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-semibold border-2 border-pink-400 shadow">
+                {profile?.full_name?.[0]?.toUpperCase() || "?"}
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                {profile?.full_name || 'Mom'}
+              </h1>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Your feed brings together your local area and your village.
+              </p>
             </div>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-              {profile?.full_name || 'Mom'}
-            </h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Your feed brings together your local area and your village.
-            </p>
+          </div>
+          {/* Messages button beside profile image */}
+          <div className="flex items-center">
+            <NavButton href="/messages" icon="chat" label="" className="w-14 h-14 ml-2" />
           </div>
         </header>
         {/* Post creation modal */}
@@ -234,10 +240,9 @@ export default function HomePage() {
       </div>
       {/* Floating nav buttons - consistent format and alignment */}
       <div className="fixed inset-0 pointer-events-none z-50">
-        {/* Bottom right: Profile and Messages side by side */}
+        {/* Bottom right: Profile only */}
         <div className="absolute bottom-8 right-8 flex flex-row gap-4 pointer-events-auto">
           <NavButton href="/profile" icon="user" label="" />
-          <NavButton href="/messages" icon="chat" label="" />
         </div>
         {/* Bottom left: Search */}
         <div className="absolute bottom-8 left-8 pointer-events-auto">
