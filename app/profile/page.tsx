@@ -55,6 +55,8 @@ import { Input } from "@/app/components/ui/Input";
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [villageCount, setVillageCount] = useState<number | null>(null);
   const [postsCount, setPostsCount] = useState<number | null>(null);
+  const [villagers, setVillagers] = useState<any[]>([]);
+  const [showVillagersModal, setShowVillagersModal] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -63,13 +65,13 @@ import { Input } from "@/app/components/ui/Input";
   useEffect(() => {
     if (user?.id) {
       fetchVillageCount(user.id);
+      fetchVillagers(user.id);
       getPostsCount(user.id).then(count => setPostsCount(count));
     }
   }, [user]);
 
   // Fetch village count using invitations logic (same as VillagePage)
   async function fetchVillageCount(userId: string) {
-    // Fetch all accepted invitations where user is sender or recipient
     const { data: invites, error: invitesError } = await supabase
       .from("village_invitations")
       .select("from_user_id, to_user_id, status")
@@ -79,11 +81,39 @@ import { Input } from "@/app/components/ui/Input";
       setVillageCount(0);
       return;
     }
-    // Get the other user's IDs
     const memberIds = [...new Set((invites ?? []).map((invite: any) => (
       invite.from_user_id === userId ? invite.to_user_id : invite.from_user_id
     )))];
     setVillageCount(memberIds.length);
+  }
+
+  // Fetch villagers (profiles) for modal
+  async function fetchVillagers(userId: string) {
+    const { data: invites, error: invitesError } = await supabase
+      .from("village_invitations")
+      .select("from_user_id, to_user_id, status")
+      .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+      .eq("status", "accepted");
+    if (invitesError) {
+      setVillagers([]);
+      return;
+    }
+    const memberIds = [...new Set((invites ?? []).map((invite: any) => (
+      invite.from_user_id === userId ? invite.to_user_id : invite.from_user_id
+    )))];
+    if (memberIds.length === 0) {
+      setVillagers([]);
+      return;
+    }
+    const { data: profiles, error: profilesError } = await supabase
+      .from("user_public_profiles")
+      .select("id, full_name, profile_photo_url, city, state")
+      .in("id", memberIds);
+    if (profilesError) {
+      setVillagers([]);
+      return;
+    }
+    setVillagers(profiles ?? []);
   }
 
   async function checkUser() {
@@ -326,10 +356,10 @@ import { Input } from "@/app/components/ui/Input";
             </div>
             <div className="flex flex-row items-center justify-center gap-8 mt-1 mb-2 w-full">
               {typeof villageCount === "number" && (
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center">{villageCount}</span>
+                <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillagersModal(true)} title="Show My Village">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center group-hover:underline">{villageCount}</span>
                   <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">My Village</span>
-                </div>
+                </button>
               )}
               {typeof postsCount === "number" && (
                 <div className="flex flex-col items-center">
@@ -338,6 +368,44 @@ import { Input } from "@/app/components/ui/Input";
                 </div>
               )}
             </div>
+                    {/* Villagers Modal */}
+                    {showVillagersModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 shadow-xl w-full max-w-md relative">
+                          <button
+                            onClick={() => setShowVillagersModal(false)}
+                            className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            aria-label="Close Villagers"
+                          >
+                            &times;
+                          </button>
+                          <div className="text-center mb-4">
+                            <div className="text-lg font-bold text-pink-700">My Village Members</div>
+                            {villagers.length === 0 ? (
+                              <div className="text-zinc-500 mt-4">No villagers yet.</div>
+                            ) : (
+                              <div className="mt-4 space-y-3 max-h-72 overflow-y-auto">
+                                {villagers.map((m: any) => (
+                                  <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-pink-50 dark:hover:bg-pink-900 transition">
+                                    {m.profile_photo_url ? (
+                                      <img src={m.profile_photo_url} alt={m.full_name} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
+                                        {m.full_name?.[0]?.toUpperCase() || '?'}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{m.full_name}</div>
+                                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{m.city}{m.city && m.state ? ', ' : ''}{m.state}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
             <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400">
               {profile.city && (
                 <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
