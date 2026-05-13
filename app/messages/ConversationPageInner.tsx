@@ -449,7 +449,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             {inviteBanner}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-white dark:bg-black space-y-3 sm:space-y-4">
+        <div className="flex-1 overflow-y-auto p-1 sm:p-4 bg-white dark:bg-black space-y-2 sm:space-y-4">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -476,13 +476,13 @@ export default function ConversationPageInner({ conversationId }: { conversation
                   <div
                     key={msg.id}
                     className={`flex w-full ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                    style={{ marginBottom: 2 }}
+                    style={{ marginBottom: 1 }}
                   >
                     <div
-                      className={`px-3 py-2 rounded-2xl sm:px-4 sm:py-2 ${
+                      className={`px-2 py-1 rounded-2xl sm:px-3 sm:py-2 ${
                         msg.sender_id === user?.id
-                          ? 'bg-pink-600 text-white rounded-br-none ml-8 sm:ml-32 max-w-[90vw] sm:max-w-xs'
-                          : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-8 sm:mr-32 max-w-[90vw] sm:max-w-xs'
+                          ? 'bg-pink-600 text-white rounded-br-none ml-2 sm:ml-32 max-w-[96vw] sm:max-w-xs'
+                          : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-2 sm:mr-32 max-w-[96vw] sm:max-w-xs'
                       }`}
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
@@ -505,8 +505,8 @@ export default function ConversationPageInner({ conversationId }: { conversation
             </>
           )}
         </div>
-        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <div className="flex gap-3">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-4">
+          <div className="flex gap-1 sm:gap-3">
             <input
               type="text"
               id="messageText"
@@ -520,12 +520,12 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 }
               }}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-pink-500"
+              className="flex-1 px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-pink-500 text-sm"
             />
             <button
               onClick={sendMessage}
               disabled={sendingMessage || !messageText.trim()}
-              className="px-6 py-3 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               Send
             </button>
