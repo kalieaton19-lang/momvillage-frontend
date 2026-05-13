@@ -79,7 +79,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
       <button className="mt-4 text-sm text-zinc-500 hover:underline" onClick={onBack}>Back</button>
     </div>
   );
-
+}
 
 export default function VillagePage() {
   // Only show invite UI
@@ -242,111 +242,112 @@ export default function VillagePage() {
             </button>
           </div>
           <div className="px-6 pb-6">
-          {inviteMode === 'name' && (
-            <div className="mt-4">
-              <InviteByNameForm
-                onBack={() => setInviteMode('none')}
-                onInvite={async (user) => {
-                  setSelectedMom({
-                    id: user.id,
-                    name: user.full_name,
-                    photo: user.profile_photo_url,
-                    city: user.city,
-                    state: user.state,
-                  });
-                  setShowProfileModal(true);
-                }}
-              />
-            </div>
-          )}
-          {inviteMode === 'conversations' && (
-            <div className="mt-4">
-              {loadingConversations ? (
-                <div className="text-zinc-500">Loading conversations...</div>
-              ) : conversations.length === 0 ? (
-                <div className="text-zinc-500">No conversations found.</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  {conversations.map((conv) => {
-                    let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
-                    if (user) {
-                      if (conv.user1_id === user.id) {
-                        otherUserId = conv.user2_id;
-                        otherUserName = conv.user2_name || '';
-                        otherUserPhoto = conv.user2_photo || '';
-                        otherUserCity = conv.user2_city || '';
-                        otherUserState = conv.user2_state || '';
-                      } else {
-                        otherUserId = conv.user1_id;
-                        otherUserName = conv.user1_name || '';
-                        otherUserPhoto = conv.user1_photo || '';
-                        otherUserCity = conv.user1_city || '';
-                        otherUserState = conv.user1_state || '';
+            {inviteMode === 'name' && (
+              <div className="mt-4">
+                <InviteByNameForm
+                  onBack={() => setInviteMode('none')}
+                  onInvite={async (user) => {
+                    setSelectedMom({
+                      id: user.id,
+                      name: user.full_name,
+                      photo: user.profile_photo_url,
+                      city: user.city,
+                      state: user.state,
+                    });
+                    setShowProfileModal(true);
+                  }}
+                />
+              </div>
+            )}
+            {inviteMode === 'conversations' && (
+              <div className="mt-4">
+                {loadingConversations ? (
+                  <div className="text-zinc-500">Loading conversations...</div>
+                ) : conversations.length === 0 ? (
+                  <div className="text-zinc-500">No conversations found.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    {conversations.map((conv) => {
+                      let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
+                      if (user) {
+                        if (conv.user1_id === user.id) {
+                          otherUserId = conv.user2_id;
+                          otherUserName = conv.user2_name || '';
+                          otherUserPhoto = conv.user2_photo || '';
+                          otherUserCity = conv.user2_city || '';
+                          otherUserState = conv.user2_state || '';
+                        } else {
+                          otherUserId = conv.user1_id;
+                          otherUserName = conv.user1_name || '';
+                          otherUserPhoto = conv.user1_photo || '';
+                          otherUserCity = conv.user1_city || '';
+                          otherUserState = conv.user1_state || '';
+                        }
                       }
-                    }
-                    if (!otherUserId || otherUserId === user?.id) return null;
-                    return (
-                      <button
-                        key={conv.id}
-                        className="flex items-center gap-3 p-6 rounded-2xl border-2 border-pink-300 dark:border-pink-600 bg-pink-50 dark:bg-pink-900/20 w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => {
-                          setSelectedMom({
-                            id: otherUserId,
-                            name: otherUserName,
-                            photo: otherUserPhoto,
-                            city: otherUserCity,
-                            state: otherUserState,
-                          });
-                          setShowProfileModal(true);
-                        }}
-                      >
-                        {otherUserPhoto ? (
-                          <img src={otherUserPhoto} alt={otherUserName} className="w-16 h-16 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
-                            {otherUserName?.[0]?.toUpperCase() || '?'}
+                      if (!otherUserId || otherUserId === user?.id) return null;
+                      return (
+                        <button
+                          key={conv.id}
+                          className="flex items-center gap-3 p-6 rounded-2xl border-2 border-pink-300 dark:border-pink-600 bg-pink-50 dark:bg-pink-900/20 w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            setSelectedMom({
+                              id: otherUserId,
+                              name: otherUserName,
+                              photo: otherUserPhoto,
+                              city: otherUserCity,
+                              state: otherUserState,
+                            });
+                            setShowProfileModal(true);
+                          }}
+                        >
+                          {otherUserPhoto ? (
+                            <img src={otherUserPhoto} alt={otherUserName} className="w-16 h-16 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
+                              {otherUserName?.[0]?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 text-left">
+                            <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
                           </div>
-                        )}
-                        <div className="flex-1 text-left">
-                          <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUserName}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUserCity}{otherUserCity && otherUserState ? ', ' : ''}{otherUserState}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
+                {/* Profile Modal */}
+                {showProfileModal && selectedMom && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
+                      <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowProfileModal(false)}>&times;</button>
+                      {selectedMom.photo ? (
+                        <img src={selectedMom.photo} alt={selectedMom.name} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
+                      ) : (
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-4xl mx-auto mb-4">
+                          {selectedMom.name?.[0]?.toUpperCase() || '?'}
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
-              {/* Profile Modal */}
-              {showProfileModal && selectedMom && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                  <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
-                    <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => setShowProfileModal(false)}>&times;</button>
-                    {selectedMom.photo ? (
-                      <img src={selectedMom.photo} alt={selectedMom.name} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-4xl mx-auto mb-4">
-                        {selectedMom.name?.[0]?.toUpperCase() || '?'}
+                      )}
+                      <div className="text-center">
+                        <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{selectedMom.name}</div>
+                        <div className="text-zinc-500 dark:text-zinc-400 mb-2">{selectedMom.city}{selectedMom.city && selectedMom.state ? ', ' : ''}{selectedMom.state}</div>
+                        <button
+                          className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
+                          onClick={handleInviteMom}
+                          disabled={sendingInviteId === selectedMom.id}
+                        >
+                          {sendingInviteId === selectedMom.id ? 'Sending...' : `Invite ${selectedMom.name} to your village`}
+                        </button>
                       </div>
-                    )}
-                    <div className="text-center">
-                      <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{selectedMom.name}</div>
-                      <div className="text-zinc-500 dark:text-zinc-400 mb-2">{selectedMom.city}{selectedMom.city && selectedMom.state ? ', ' : ''}{selectedMom.state}</div>
-                      <button
-                        className="mt-4 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg w-full disabled:opacity-60"
-                        onClick={handleInviteMom}
-                        disabled={sendingInviteId === selectedMom.id}
-                      >
-                        {sendingInviteId === selectedMom.id ? 'Sending...' : `Invite ${selectedMom.name} to your village`}
-                      </button>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div> {/* <-- This closes the white card container */}
         {inviteBanner && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-6 py-3 rounded-xl shadow-lg z-50">
             {inviteBanner}
@@ -356,4 +357,5 @@ export default function VillagePage() {
       </div>
     </div>
   );
+
 }
