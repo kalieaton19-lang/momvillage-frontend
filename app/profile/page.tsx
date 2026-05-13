@@ -500,8 +500,8 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-          </div> {/* end profile card */}
-        </div>   {/* end max-w-3xl mx-auto */}
-      </div>     {/* end min-h-screen */}
+          </div>
+        </div>
+      </div>
     );
 }
