@@ -13,32 +13,32 @@ export default function InvitationsTab({ invitations, user }: { invitations: any
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
         {invitations.map((inv) => {
           // Use merged profiles
           const otherUser = inv.from_user_id === user?.id ? inv.to_user_profile : inv.from_user_profile;
           return (
             <button
               key={inv.id}
-              className={`flex items-center gap-3 p-6 rounded-2xl border-2 ${inv.status === "pending" ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20" : inv.status === "accepted" ? "border-green-300 bg-green-50 dark:bg-green-900/20" : inv.status === "declined" ? "border-zinc-300 bg-zinc-50 dark:bg-zinc-900/20" : "border-pink-300 bg-pink-50 dark:bg-pink-900/20"} w-full hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500`}
-              style={{ cursor: 'pointer' }}
+              className={`flex items-center gap-2 p-3 rounded-xl border ${inv.status === "pending" ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20" : inv.status === "accepted" ? "border-green-300 bg-green-50 dark:bg-green-900/20" : inv.status === "declined" ? "border-zinc-300 bg-zinc-50 dark:bg-zinc-900/20" : "border-pink-300 bg-pink-50 dark:bg-pink-900/20"} w-full max-w-md mx-auto hover:shadow transition-all focus:outline-none focus:ring-1 focus:ring-pink-400`}
+              style={{ cursor: 'pointer', minHeight: '48px' }}
               onClick={() => {
                 setSelectedInvitation(inv);
                 setShowProfileModal(true);
               }}
             >
               {otherUser?.profile_photo_url ? (
-                <img src={otherUser.profile_photo_url} alt={otherUser.full_name} className="w-16 h-16 rounded-full object-cover" />
+                <img src={otherUser.profile_photo_url} alt={otherUser.full_name} className="w-10 h-10 rounded-full object-cover" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-base">
                   {otherUser?.full_name?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
               <div className="flex-1 text-left">
-                <div className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">{otherUser?.full_name}</div>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400">{otherUser?.city}{otherUser?.city && otherUser?.state ? ', ' : ''}{otherUser?.state}</div>
+                <div className="font-semibold text-base text-zinc-900 dark:text-zinc-50 leading-tight">{otherUser?.full_name}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">{otherUser?.city}{otherUser?.city && otherUser?.state ? ', ' : ''}{otherUser?.state}</div>
               </div>
-              <span className={`px-3 py-1 rounded-lg text-xs ${inv.status === "pending" ? "bg-yellow-100 text-yellow-800" : inv.status === "accepted" ? "bg-green-100 text-green-700" : inv.status === "declined" ? "bg-zinc-200 text-zinc-700" : "bg-zinc-100 text-zinc-700"}`}>{inv.status}</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${inv.status === "pending" ? "bg-yellow-100 text-yellow-800" : inv.status === "accepted" ? "bg-green-100 text-green-700" : inv.status === "declined" ? "bg-zinc-200 text-zinc-700" : "bg-zinc-100 text-zinc-700"}`}>{inv.status}</span>
             </button>
           );
         })}
