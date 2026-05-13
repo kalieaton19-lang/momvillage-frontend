@@ -1,15 +1,47 @@
-import React from "react";
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
+
+const InvitationsTab = dynamic(() => import("./InvitationsTab"), { ssr: false });
 
 export default function NotificationsPage() {
+  const [activeTab, setActiveTab] = useState<'all' | 'invitations'>('all');
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 w-full">
       {/* White title banner */}
       <div className="w-full py-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 text-center rounded-none">
         <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Notifications</h1>
       </div>
+      {/* Tabs */}
+      <div className="flex gap-0 w-full pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800 max-w-2xl mx-auto">
+        <button
+          className={`flex-1 py-2 px-4 font-medium text-base border-t border-l border-r rounded-t-2xl transition-all ${
+            activeTab === 'all'
+              ? 'bg-white dark:bg-zinc-900 text-pink-600 border-pink-500 z-10'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-200 border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700'
+          }`}
+          style={{ marginBottom: activeTab === 'all' ? '-1px' : '0' }}
+          onClick={() => setActiveTab('all')}
+        >
+          All
+        </button>
+        <button
+          className={`flex-1 py-2 px-4 font-medium text-base border-t border-l border-r rounded-t-2xl transition-all ${
+            activeTab === 'invitations'
+              ? 'bg-white dark:bg-zinc-900 text-pink-600 border-pink-500 z-10'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-200 border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700'
+          }`}
+          style={{ marginBottom: activeTab === 'invitations' ? '-1px' : '0' }}
+          onClick={() => setActiveTab('invitations')}
+        >
+          Invitations
+        </button>
+      </div>
       <div className="flex flex-col items-center justify-start pt-12">
-        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow p-6 w-full max-w-xl">
-          <p className="text-zinc-500 dark:text-zinc-300 text-center">You have no notifications yet.</p>
+        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow p-6 w-full max-w-2xl min-h-[300px]">
+          {activeTab === 'all' && (
+            <div className="text-zinc-500 dark:text-zinc-300 text-center">You have no notifications yet.</div>
+          )}
+          {activeTab === 'invitations' && <InvitationsTab />}
         </div>
       </div>
     </div>
