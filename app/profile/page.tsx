@@ -305,6 +305,12 @@
                 </svg>
               </button>
             </div>
+            {typeof villageCount === "number" && (
+              <div className="flex flex-col items-start sm:items-start mt-1 mb-2">
+                <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none">{villageCount}</span>
+                <span className="text-xs font-semibold text-pink-700 uppercase tracking-wide mt-0.5">My Village</span>
+              </div>
+            )}
             <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400">
               {typeof villageCount === "number" && (
                 <span>My Village: <span className="font-semibold text-pink-600">{villageCount}</span></span>
