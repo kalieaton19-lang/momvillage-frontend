@@ -79,7 +79,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: 
       <button className="mt-4 text-sm text-zinc-500 hover:underline" onClick={onBack}>Back</button>
     </div>
   );
-}
+
 // (removed duplicate broken InviteByNameForm JSX and import)
 
 export default function VillagePage() {
