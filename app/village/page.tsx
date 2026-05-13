@@ -324,9 +324,9 @@ export default function VillagePage() {
                           }}
                         >
                           {otherUserPhoto ? (
-                            <img src={otherUserPhoto} alt={otherUserName} className="w-16 h-16 rounded-full object-cover" />
+                            <img src={otherUserPhoto} alt={otherUserName} className="w-10 h-10 rounded-full object-cover" />
                           ) : (
-                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-2xl">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-base">
                               {otherUserName?.[0]?.toUpperCase() || '?'}
                             </div>
                           )}
