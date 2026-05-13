@@ -376,7 +376,6 @@ export default function VillagePage() {
             <button className="ml-4 text-white/80 hover:text-white underline" onClick={() => setInviteBanner("")}>Dismiss</button>
           </div>
         )}
-      </div>
     </div>
   );
 }
