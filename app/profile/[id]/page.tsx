@@ -243,7 +243,8 @@ export default function ProfilePage() {
         </div>
         {/* Status banner or invite button below banner */}
         {currentUser && currentUser.id !== id && (
-          <div className="flex justify-center mt-3 mb-2">
+          <div className="flex flex-row justify-center items-center gap-3 mt-3 mb-2">
+            {/* Status/invite button */}
             {inviteStatus === "in-village" && (
               <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap">In Your Village</div>
             )}
@@ -262,6 +263,48 @@ export default function ProfilePage() {
                 {inviteLoading ? "Sending..." : "Invite to Village"}
               </button>
             )}
+            {/* Message button */}
+            <button
+              className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors whitespace-nowrap"
+              onClick={async () => {
+                // Find or create conversation between currentUser and profile user
+                if (!currentUser || !id) return;
+                let conversationId = null;
+                const { data: existingConvos, error: convoError } = await supabase
+                  .from("conversations")
+                  .select("id,user1_id,user2_id")
+                  .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${id}),and(user1_id.eq.${id},user2_id.eq.${currentUser.id})`)
+                  .limit(1);
+                if (convoError) {
+                  alert("Failed to check conversations");
+                  return;
+                }
+                if (existingConvos && existingConvos.length > 0) {
+                  conversationId = existingConvos[0].id;
+                } else {
+                  const { data: newConvo, error: createError } = await supabase
+                    .from("conversations")
+                    .insert({
+                      user1_id: currentUser.id,
+                      user2_id: id,
+                      user1_name: currentUser.user_metadata?.full_name || "",
+                      user2_name: profile.full_name || "",
+                      user1_photo: currentUser.user_metadata?.profile_photo_url || "",
+                      user2_photo: profile.profile_photo_url || "",
+                    })
+                    .select()
+                    .single();
+                  if (createError || !newConvo) {
+                    alert("Failed to create conversation");
+                    return;
+                  }
+                  conversationId = newConvo.id;
+                }
+                router.push(`/messages?conversation=${conversationId}`);
+              }}
+            >
+              Message
+            </button>
           </div>
         )}
         {/* Bio Section (below profile info, above posts) */}
