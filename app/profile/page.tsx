@@ -484,25 +484,24 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            
-          <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-              Account Information
-            </h3>
-            <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-              <div className="flex justify-between">
-                <span>Email:</span>
-                <span className="font-medium">{user?.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Member since:</span>
-                <span className="font-medium">
-                  {new Date(user?.created_at).toLocaleDateString()}
-                </span>
+            <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
+                Account Information
+              </h3>
+              <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="flex justify-between">
+                  <span>Email:</span>
+                  <span className="font-medium">{user?.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Member since:</span>
+                  <span className="font-medium">
+                    {new Date(user?.created_at).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
   );
 }
