@@ -483,7 +483,6 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               )}
-            </div>
             <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
                 Account Information
@@ -502,6 +501,5 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-      </div>
-  );
+      );
 }
