@@ -49,7 +49,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack?: () => void; onInvite:
       <div className="flex gap-2 mb-4 justify-center">
         <input
           type="text"
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 max-w-xs w-full"
+          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 max-w-[12rem] w-full"
           placeholder="Enter name or city..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -88,7 +88,7 @@ function InviteByNameForm({ onBack, onInvite }: { onBack?: () => void; onInvite:
           );
         })}
       </div>
-      {/* Back button removed as requested */}
+      {/* Removed stray Back button text */}
     </div>
   );
 }
