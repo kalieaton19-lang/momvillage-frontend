@@ -240,6 +240,27 @@ export default function HomePage() {
         >
           <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
         </button>
+        {/* Floating Messages Button */}
+      <Link
+        href="/messages"
+        className="fixed top-6 right-6 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-full w-16 h-16 flex items-center justify-center hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400"
+        aria-label="Messages"
+      >
+        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
+          <path strokeWidth="1.5" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </Link>
+      {/* Floating Profile Button */}
+      <Link
+        href="/profile"
+        className="fixed bottom-6 right-6 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-full w-16 h-16 flex items-center justify-center hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400"
+        aria-label="Profile"
+      >
+        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
+          <circle cx="12" cy="8" r="4" strokeWidth="1.5" />
+          <path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4" />
+        </svg>
+      </Link>
     </div>
   );
 }
