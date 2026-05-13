@@ -333,8 +333,8 @@ import { Input } from "@/app/components/ui/Input";
               )}
               {typeof postsCount === "number" && (
                 <div className="flex flex-col items-center">
-                  <span className="text-2xl sm:text-3xl font-extrabold text-purple-600 leading-none text-center">{postsCount}</span>
-                  <span className="text-[10px] font-medium text-purple-700 uppercase tracking-wide mt-0.5 text-center">Posts</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-300 leading-none text-center">{postsCount}</span>
+                  <span className="text-[10px] font-medium text-pink-400 uppercase tracking-wide mt-0.5 text-center">Posts</span>
                 </div>
               )}
             </div>
