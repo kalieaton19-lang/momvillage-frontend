@@ -308,26 +308,6 @@ export default function ProfilePage() {
           </div>
         )}
         {/* Bio Section (below profile info, above posts) */}
-        {profile.bio && (
-          <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-md shadow-sm px-4 py-3 mt-2 mb-4 border border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200">
-            <div className="font-semibold text-pink-700 mb-1">Bio</div>
-            <div className="whitespace-pre-line text-sm">{profile.bio}</div>
-          </div>
-        )}
-        <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-          {profile.city && (
-            <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
-          )}
-          {(profile.number_of_kids !== undefined && profile.number_of_kids !== null && profile.number_of_kids !== 0) && (
-            <span>Children: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.number_of_kids}</span></span>
-          )}
-          {profile.kids_age_groups && profile.kids_age_groups.length > 0 && (
-            <span>Ages: <span className="font-medium text-zinc-700 dark:text-zinc-200">{Array.isArray(profile.kids_age_groups) ? profile.kids_age_groups.join(', ') : String(profile.kids_age_groups)}</span></span>
-          )}
-          {profile.parenting_style && (
-            <span>Parenting Style: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.parenting_style}</span></span>
-          )}
-        </div>
         {/* Profile posts or other content can go here */}
         <div className="w-full flex flex-col gap-4 py-8">
           {/* TODO: Render user's posts here in a visually appealing way */}
