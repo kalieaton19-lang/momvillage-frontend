@@ -432,19 +432,19 @@ export default function ConversationPageInner({ conversationId }: { conversation
           {villageStatus && (
             <div className="ml-auto flex items-center gap-2">
               {villageStatus.status === 'in-village' && (
-                <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold flex items-center justify-center min-w-[90px] text-center">In Your Village</span>
+                <span className="px-4 py-2 text-xs rounded-lg bg-green-100 text-green-800 font-semibold flex items-center justify-center min-w-[90px] text-center">In Your Village</span>
               )}
               {villageStatus.status === 'invited-by-me' && (
-                <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invitation Pending</span>
+                <span className="px-4 py-2 text-xs rounded-lg bg-yellow-100 text-yellow-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invitation Pending</span>
               )}
               {villageStatus.status === 'invited-me' && (
-                <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invited You</span>
+                <span className="px-4 py-2 text-xs rounded-lg bg-blue-100 text-blue-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invited You</span>
               )}
               {villageStatus.status === 'none' && (
                 <button
                   onClick={handleSendVillageInvitation}
                   disabled={inviteLoading}
-                  className="px-3 py-1 text-xs bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-xs bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {inviteLoading ? 'Sending...' : 'Send Village Invitation'}
                 </button>
