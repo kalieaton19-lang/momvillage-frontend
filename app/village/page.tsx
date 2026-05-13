@@ -283,7 +283,7 @@ export default function VillagePage() {
                 ) : conversations.length === 0 ? (
                   <div className="text-zinc-500">No conversations found.</div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 justify-center">
                     {conversations.map((conv) => {
                       let otherUserId = null, otherUserName = '', otherUserPhoto = '', otherUserCity = '', otherUserState = '';
                       if (user) {
@@ -307,7 +307,7 @@ export default function VillagePage() {
                         <button
                           key={conv.id}
                           className={
-                            `flex items-center gap-2 p-2 rounded-lg border w-full transition-all focus:outline-none focus:ring-1 focus:ring-pink-400 ` +
+                            `flex items-center gap-2 p-2 rounded-lg border max-w-md w-full mx-auto transition-all focus:outline-none focus:ring-1 focus:ring-pink-400 ` +
                             `bg-pink-50 dark:bg-pink-950 border-pink-200 dark:border-pink-700 ` +
                             (isSelected ? 'ring-2 ring-pink-600 border-pink-600' : '')
                           }
