@@ -319,7 +319,7 @@ export default function HomePage() {
         </div>
         {/* Bottom left: Search */}
         <div className="absolute bottom-8 left-8 pointer-events-auto">
-          <NavButton href="/find-moms" icon="search" label="" className="w-12 h-12" />
+          <NavButton href="/village" icon="search" label="" className="w-12 h-12" />
         </div>
         {/* Center bottom: Add post */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
