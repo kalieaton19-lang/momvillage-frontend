@@ -120,7 +120,7 @@ export default function HomePage() {
           </div>
           {/* Messages button beside profile image */}
           <div className="flex items-center">
-            <NavButton href="/messages" icon="chat" label="" className="w-14 h-14 ml-2" />
+            <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" />
           </div>
         </header>
         {/* Post creation modal */}
@@ -240,12 +240,12 @@ export default function HomePage() {
       {/* Floating nav buttons - consistent format and alignment */}
       <div className="fixed inset-0 pointer-events-none z-50">
         {/* Bottom right: Profile only */}
-        <div className="absolute bottom-8 right-8 flex flex-row gap-4 pointer-events-auto">
-          <NavButton href="/profile" icon="user" label="" />
+        <div className="absolute bottom-8 right-8 flex flex-row gap-3 pointer-events-auto">
+          <NavButton href="/profile" icon="user" label="" className="w-12 h-12" />
         </div>
         {/* Bottom left: Search */}
         <div className="absolute bottom-8 left-8 pointer-events-auto">
-          <NavButton href="/find-moms" icon="search" label="" />
+          <NavButton href="/find-moms" icon="search" label="" className="w-12 h-12" />
         </div>
         {/* Center bottom: Add post */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
@@ -267,22 +267,22 @@ function NavButton({ href, icon, label, className = "" }: { href: string; icon: 
   const isIconOnly = !label;
   const iconMap: Record<string, JSX.Element> = {
     user: (
-      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-9 h-9"><circle cx="12" cy="8" r="4" strokeWidth="1.5"/><path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/></svg>
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7"><circle cx="12" cy="8" r="4" strokeWidth="1.5"/><path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/></svg>
     ),
     chat: (
-      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-9 h-9"><path strokeWidth="1.5" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7"><path strokeWidth="1.5" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     ),
     search: (
-      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-9 h-9"><circle cx="11" cy="11" r="7" strokeWidth="1.5"/><path strokeWidth="1.5" d="M21 21l-4.35-4.35"/></svg>
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7"><circle cx="11" cy="11" r="7" strokeWidth="1.5"/><path strokeWidth="1.5" d="M21 21l-4.35-4.35"/></svg>
     ),
     plus: (
-      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-10 h-10"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
+      <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
     ),
   };
   return (
     <Link
       href={href}
-      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-20 h-20 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 ${className}`}
+      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 ${className}`}
       aria-label={label || icon}
     >
       {iconMap[icon]}
