@@ -252,21 +252,70 @@
     );
   }
 
+  // Mock My Village count (replace with real logic if available)
+  const myVillageCount = 8; // TODO: Replace with real count from backend
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-8 shadow-sm w-full max-w-xl">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Profile Page</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-8">Welcome to your profile!</p>
-        <div className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-8 shadow-sm w-full max-w-md flex flex-col items-center">
+        {/* Profile Photo */}
+        {profile.profile_photo_url ? (
+          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow mb-4">
+            <img src={profile.profile_photo_url} alt={profile.full_name || "Profile"} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-4xl font-bold border-2 border-pink-400 shadow mb-4">
+            {profile.full_name?.[0]?.toUpperCase() || "?"}
+          </div>
+        )}
+        {/* Name and Edit */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{profile.full_name || "Mom"}</span>
+          <button
+            onClick={() => setEditing(true)}
+            className="ml-2 p-2 rounded-full hover:bg-pink-100 dark:hover:bg-pink-900/30 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Edit Profile"
+          >
+            {/* Pencil Icon */}
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914l-9.193 9.193-3.122.208.208-3.122 9.192-9.193Z" />
+            </svg>
+          </button>
+        </div>
+        {/* My Village count */}
+        <div className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">My Village: <span className="font-semibold text-pink-600">{myVillageCount}</span></div>
+        {/* Info */}
+        <div className="w-full space-y-3 mb-4">
           <div className="flex justify-between">
-            <span>Email:</span>
-            <span className="font-medium">{user?.email ?? "(no email)"}</span>
+            <span className="text-zinc-600 dark:text-zinc-300">Preferred Language:</span>
+            <span className="font-medium">{profile.preferred_language || "-"}</span>
           </div>
           <div className="flex justify-between">
-            <span>Member since:</span>
-            <span className="font-medium">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}</span>
+            <span className="text-zinc-600 dark:text-zinc-300">Number of Children:</span>
+            <span className="font-medium">{profile.number_of_kids ?? "-"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-600 dark:text-zinc-300">Children's Ages:</span>
+            <span className="font-medium">{profile.kids_age_groups?.length ? profile.kids_age_groups.join(", ") : "-"}</span>
           </div>
         </div>
+        {/* TODO: Add more profile info fields as needed */}
+        {/* Edit Profile Modal (if editing) */}
+        {editing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 shadow-xl w-full max-w-md relative">
+              <button
+                onClick={() => setEditing(false)}
+                className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                aria-label="Close Edit"
+              >
+                &times;
+              </button>
+              {/* TODO: Add edit profile form here */}
+              <div className="text-center text-zinc-700 dark:text-zinc-200">Edit Profile (form coming soon)</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
