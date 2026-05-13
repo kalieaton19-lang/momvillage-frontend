@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 // InviteByNameForm component (top-level)
-function InviteByNameForm({ onBack, onInvite }: { onBack: () => void; onInvite: (user: any) => void }) {
+function InviteByNameForm({ onBack, onInvite }: { onBack?: () => void; onInvite: (user: any) => void }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -221,7 +221,7 @@ export default function VillagePage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="inline-flex items-center justify-center w-10 h-10 mb-6 bg-white text-pink-500 border border-pink-200 rounded-full shadow hover:bg-pink-50 transition-colors"
+          className="inline-flex items-center justify-center w-10 h-10 mb-4 ml-2 mt-2 bg-white text-pink-500 border border-pink-200 rounded-full shadow hover:bg-pink-50 transition-colors"
           aria-label="Back"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -233,7 +233,7 @@ export default function VillagePage() {
           <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Invite a mom to your village</h1>
         </div>
         {/* Browser-like tab bar */}
-          <div className="flex gap-0 px-0 pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex gap-0 w-full pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800">
             <button
               className={`flex-1 py-2 px-4 font-medium text-base border-t border-l border-r rounded-t-2xl transition-all
                 ${inviteMode === 'name'
@@ -257,12 +257,12 @@ export default function VillagePage() {
               Invite from Conversations
             </button>
           </div>
-          <div className="px-6 pb-6 pt-4 bg-white dark:bg-zinc-900 rounded-b-2xl">
+          <div className="w-full pb-6 pt-4 bg-white dark:bg-zinc-900 rounded-none">
             {inviteMode === 'name' && (
               <div className="mt-4">
                 {/* InviteByNameForm with pink profile cards and highlight */}
                 <InviteByNameForm
-                  onBack={() => setInviteMode('none')}
+                  // onBack removed: no back button
                   onInvite={async (user) => {
                     setSelectedMom({
                       id: user.id,
@@ -339,7 +339,7 @@ export default function VillagePage() {
                     })}
                   </div>
                 )}
-                <button className="mt-2 text-sm text-zinc-500 hover:underline" onClick={() => setInviteMode('none')}>Back</button>
+                {/* Back button removed as requested */}
                 {/* Profile Modal */}
                 {showProfileModal && selectedMom && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
