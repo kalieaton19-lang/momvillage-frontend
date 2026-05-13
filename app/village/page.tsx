@@ -207,7 +207,7 @@ export default function VillagePage() {
   const router = useRouter();
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-xs w-full mx-auto">
         <button
           type="button"
           onClick={() => router.back()}
