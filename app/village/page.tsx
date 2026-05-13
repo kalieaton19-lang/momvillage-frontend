@@ -209,33 +209,48 @@ export default function VillagePage() {
       <div className="max-w-2xl mx-auto">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-lg shadow hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-medium"
-          style={{ position: 'relative', top: 0, left: 0 }}
+          className="inline-flex items-center justify-center w-10 h-10 mb-6 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-full shadow hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+          aria-label="Back to Home"
         >
-          <span aria-hidden="true">←</span> Back to Home
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
         </Link>
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center">
-          <div className="text-4xl mb-3">🤝</div>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-4">Invite a mom to your village.</p>
-          {inviteMode === 'none' && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6 mb-4">
-              <button
-                className="flex-1 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-all"
-                onClick={() => setInviteMode('conversations')}
-              >
-                💬 Invite from Conversations
-              </button>
-              <button
-                className="flex-1 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-all"
-                onClick={() => setInviteMode('name')}
-              >
-                🔍 Invite by Name
-              </button>
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">Invite a mom to your village</h1>
+          <div className="flex gap-2 mb-6">
+            <button
+              className={`flex-1 py-2 rounded-lg font-medium transition-all text-base ${inviteMode === 'name' ? 'bg-pink-500 text-white shadow' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-pink-100 dark:hover:bg-zinc-700'}`}
+              onClick={() => setInviteMode('name')}
+            >
+              Invite by Name
+            </button>
+            <button
+              className={`flex-1 py-2 rounded-lg font-medium transition-all text-base ${inviteMode === 'conversations' ? 'bg-pink-500 text-white shadow' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-pink-100 dark:hover:bg-zinc-700'}`}
+              onClick={() => setInviteMode('conversations')}
+            >
+              Invite from Conversations
+            </button>
+          </div>
+          {inviteMode === 'name' && (
+            <div className="mt-4">
+              <InviteByNameForm
+                onBack={() => setInviteMode('none')}
+                onInvite={async (user) => {
+                  setSelectedMom({
+                    id: user.id,
+                    name: user.full_name,
+                    photo: user.profile_photo_url,
+                    city: user.city,
+                    state: user.state,
+                  });
+                  setShowProfileModal(true);
+                }}
+              />
             </div>
           )}
           {inviteMode === 'conversations' && (
-            <div className="mt-6">
-              <h2 className="text-lg font-bold mb-4">Select a Mom from Your Conversations</h2>
+            <div className="mt-4">
               {loadingConversations ? (
                 <div className="text-zinc-500">Loading conversations...</div>
               ) : conversations.length === 0 ? (
@@ -319,24 +334,6 @@ export default function VillagePage() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-          {inviteMode === 'name' && (
-            <div className="mt-6">
-              <h2 className="text-lg font-bold mb-4">Invite by Name</h2>
-              <InviteByNameForm
-                onBack={() => setInviteMode('none')}
-                onInvite={async (user) => {
-                  setSelectedMom({
-                    id: user.id,
-                    name: user.full_name,
-                    photo: user.profile_photo_url,
-                    city: user.city,
-                    state: user.state,
-                  });
-                  setShowProfileModal(true);
-                }}
-              />
             </div>
           )}
         </div>
