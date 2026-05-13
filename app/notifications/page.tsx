@@ -14,12 +14,14 @@ export default function NotificationsPage() {
   useEffect(() => {
     const fetchUserAndInvitations = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
+      console.log('[DEBUG][notifications] currentUser:', currentUser);
       setUser(currentUser);
       if (!currentUser) return setLoading(false);
       const { data, error } = await supabase
         .from("village_invitations")
         .select("*, to_user:to_user_id(*), from_user:from_user_id(*)")
         .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`);
+      console.log('[DEBUG][notifications] invitations data:', data, 'error:', error);
       if (data) setInvitations(data);
       setLoading(false);
     };
