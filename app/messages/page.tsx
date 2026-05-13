@@ -100,13 +100,19 @@ function MessagesPageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+    <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0">
       <div className="max-w-2xl mx-auto h-screen flex flex-col">
-        <header className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
-          <h1 className="text-lg font-semibold">Connect with your village</h1>
-          <Link href="/home" className="text-sm text-pink-600 dark:text-pink-400 hover:underline">
-            Back to Home
-          </Link>
+        <header className="flex items-center justify-between px-4 sm:px-10 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Messages</h1>
+          <button
+            onClick={() => router.push("/home")}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Back to Home"
+          >
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7l10 5-10 5V7z" />
+            </svg>
+          </button>
         </header>
         <div className="flex-1 overflow-y-auto divide-y divide-zinc-200 dark:divide-zinc-800">
           {conversations.length === 0 ? (
