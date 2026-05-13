@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 
+
 export default function InvitationsTab({ invitations, user }: { invitations: any[], user: any }) {
   const [selectedInvitation, setSelectedInvitation] = useState<any>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -14,7 +15,8 @@ export default function InvitationsTab({ invitations, user }: { invitations: any
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         {invitations.map((inv) => {
-          const otherUser = inv.from_user_id === user?.id ? inv.to_user : inv.from_user;
+          // Use merged profiles
+          const otherUser = inv.from_user_id === user?.id ? inv.to_user_profile : inv.from_user_profile;
           return (
             <button
               key={inv.id}
@@ -55,7 +57,7 @@ export default function InvitationsTab({ invitations, user }: { invitations: any
                 setShowProfileModal(false);
               }}>&times;</button>
               {(() => {
-                const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user : selectedInvitation.from_user;
+                const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
                 return otherUser?.profile_photo_url ? (
                   <img src={otherUser.profile_photo_url} alt={otherUser.full_name} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
                 ) : (
@@ -66,11 +68,11 @@ export default function InvitationsTab({ invitations, user }: { invitations: any
               })()}
               <div className="text-center">
                 <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{(() => {
-                  const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user : selectedInvitation.from_user;
+                  const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
                   return otherUser?.full_name;
                 })()}</div>
                 <div className="text-zinc-500 dark:text-zinc-400 mb-2">{(() => {
-                  const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user : selectedInvitation.from_user;
+                  const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
                   return `${otherUser?.city || ''}${otherUser?.city && otherUser?.state ? ', ' : ''}${otherUser?.state || ''}`;
                 })()}</div>
               </div>
