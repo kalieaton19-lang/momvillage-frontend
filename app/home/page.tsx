@@ -1,4 +1,4 @@
-"use client";
+// "use client"; (removed duplicate)
 
 // LocationField component for post modal (must be outside HomePage)
 function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
