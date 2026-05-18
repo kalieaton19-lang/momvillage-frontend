@@ -184,6 +184,7 @@ export default function HomePage() {
       });
       await loadPosts();
     } catch (e) {
+      console.error("Create post error:", e);
       alert("Failed to create post");
     } finally {
       setCreating(false);
@@ -231,17 +232,41 @@ export default function HomePage() {
         </header>
         {/* Post creation modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-100/60 backdrop-blur-sm animate-fadeIn">
-            <div className="relative w-full max-w-md p-8 rounded-3xl shadow-2xl animate-modalIn bg-white border-2 border-pink-200">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="absolute top-3 right-3 text-pink-400 hover:text-pink-600 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-                aria-label="Close"
+          <>
+            {/* Backdrop overlay disables all interaction with homepage buttons */}
+            <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm pointer-events-auto" aria-hidden="true"></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn">
+              <div className="relative w-full max-w-md sm:max-w-sm p-4 sm:p-6 md:p-8 rounded-3xl shadow-2xl animate-modalIn bg-white border-2 border-pink-200 mx-2"
+                style={{ maxHeight: '95vh', overflowY: 'auto' }}
               >
-                &times;
-              </button>
-              <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 tracking-tight">Create a Post</h2>
-              <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="absolute top-3 right-3 text-pink-400 hover:text-pink-600 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  aria-label="Close"
+                >
+                  &times;
+                </button>
+                <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 tracking-tight">Create a Post</h2>
+                <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
+                {/* Post Type Tabs */}
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-700 border-pink-200'}`}
+                    onClick={() => setForm(f => ({ ...f, type: 'general' }))}
+                    aria-pressed={form.type === 'general'}
+                  >
+                    General
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-700 border-pink-200'}`}
+                    onClick={() => setForm(f => ({ ...f, type: 'support' }))}
+                    aria-pressed={form.type === 'support'}
+                  >
+                    Support
+                  </button>
+                </div>
                 <div>
                   <label htmlFor="post-title" className="block text-sm font-medium text-pink-700 mb-1">Title</label>
                   <input
@@ -268,19 +293,6 @@ export default function HomePage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <label htmlFor="post-type" className="block text-sm font-medium text-pink-700 mb-1">Post Type</label>
-                    <select
-                      id="post-type"
-                      name="type"
-                      value={form.type}
-                      onChange={e => setForm(f => ({ ...f, type: e.target.value as PostType }))}
-                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
-                    >
-                      <option value="general">General</option>
-                      <option value="support">Support</option>
-                    </select>
-                  </div>
-                  <div>
                     <label htmlFor="post-visibility" className="block text-sm font-medium text-pink-700 mb-1">Visibility</label>
                     <select
                       id="post-visibility"
@@ -306,12 +318,13 @@ export default function HomePage() {
                 >
                   {creating ? 'Posting...' : 'Post'}
                 </button>
-              </form>
+                </form>
+              </div>
             </div>
-          </div>
+          </>
         )}
               {/* Bottom navigation bar with Search, Post, Notifications */}
-              <div className="fixed bottom-6 left-0 w-full flex items-center justify-center z-50 pointer-events-none">
+              <div className={`fixed bottom-6 left-0 w-full flex items-center justify-center z-40 pointer-events-none ${showCreateModal ? 'opacity-60 select-none pointer-events-none' : ''}`}>
                 <div className="flex justify-between items-center w-full max-w-xs mx-auto px-4 pointer-events-auto">
                   <NavButton href="/find-moms" icon="search" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
                   <button
@@ -319,6 +332,7 @@ export default function HomePage() {
                     className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 -mt-6 mx-2"
                     aria-label="Create Post"
                     style={{ zIndex: 2 }}
+                    disabled={showCreateModal}
                   >
                     <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
                   </button>
