@@ -143,6 +143,20 @@ export default function HomePage() {
   async function handleCreatePost(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
+    // Session/auth gate before post creation
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      alert("Auth error. Please reload and try again.");
+      setCreating(false);
+      return;
+    }
+    if (!session?.user) {
+      alert("You must be logged in to create a post.");
+      setCreating(false);
+      return;
+    }
+    console.log("Authenticated user id:", session.user.id);
     try {
       let village_member_id: string | null = null;
       if (form.visibility === "village") {
@@ -160,20 +174,18 @@ export default function HomePage() {
           return;
         }
       }
-      // Debug log for troubleshooting 403 errors
-      console.log('Creating post with:', {
-        ...form,
-        author_id: user.id,
-        author_name: profile?.full_name || "Anonymous",
-        scope: form.visibility === "village" ? "village" : "local",
-        village_member_id: form.visibility === "village" ? village_member_id ?? undefined : undefined,
+      // Log scope and village_member_id before RPC
+      const scope = form.visibility === "village" ? "village" : "local";
+      console.log("Submitting post:", {
+        scope,
+        village_member_id: scope === "village" ? village_member_id : null,
       });
       await createPost({
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || "Anonymous",
-        scope: form.visibility === "village" ? "village" : "local",
-        village_member_id: form.visibility === "village" ? village_member_id ?? undefined : undefined,
+        scope,
+        village_member_id: scope === "village" ? village_member_id ?? undefined : undefined,
       });
       setForm({
         title: "",
