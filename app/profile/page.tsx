@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { getPostsCount } from "../../utils";
+import { fetchPosts } from "../../lib/posts";
+import type { Post } from "../../types/post";
 import { Button } from "@/app/components/ui/Button";
 import { Alert } from "@/app/components/ui/Alert";
 import { Input } from "@/app/components/ui/Input";
@@ -55,6 +57,7 @@ import { Input } from "@/app/components/ui/Input";
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [villageCount, setVillageCount] = useState<number | null>(null);
   const [postsCount, setPostsCount] = useState<number | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [villagers, setVillagers] = useState<any[]>([]);
   const [showVillagersModal, setShowVillagersModal] = useState(false);
 
@@ -67,6 +70,7 @@ import { Input } from "@/app/components/ui/Input";
       fetchVillageCount(user.id);
       fetchVillagers(user.id);
       getPostsCount(user.id).then(count => setPostsCount(count));
+      fetchPosts({ author_user_id: user.id }).then(setPosts).catch(() => setPosts([]));
     }
   }, [user]);
 
@@ -441,10 +445,21 @@ import { Input } from "@/app/components/ui/Input";
         )}
         {/* Profile posts or other content can go here */}
         <div className="w-full flex flex-col gap-4 py-8">
-          {/* TODO: Render user's posts here in a visually appealing way */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
-            <div className="text-zinc-400 italic">(Your posts will appear here)</div>
-          </div>
+          {posts.length === 0 ? (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
+              <div className="text-zinc-400 italic">(Your posts will appear here)</div>
+            </div>
+          ) : (
+            <div className="w-full max-w-2xl mx-auto grid gap-4">
+              {posts.map(post => (
+                <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow p-4">
+                  <div className="font-bold text-pink-700 mb-1">{post.title}</div>
+                  <div className="text-zinc-700 dark:text-zinc-200 mb-2">{post.content}</div>
+                  <div className="text-xs text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         {/* Edit Profile Modal (if editing) */}
         {editing && (

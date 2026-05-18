@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { getPostsCount } from "../../../utils";
+import { fetchPosts } from "../../../lib/posts";
+import type { Post } from "../../../types/post";
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -19,6 +21,7 @@ export default function ProfilePage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [villageMembers, setVillageMembers] = useState<any[]>([]);
   const [postsCount, setPostsCount] = useState<number | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
@@ -41,6 +44,7 @@ export default function ProfilePage() {
       } else {
         setProfile(data);
         getPostsCount(data.id).then(count => setPostsCount(count));
+        fetchPosts({ author_user_id: data.id }).then(setPosts).catch(() => setPosts([]));
       }
       setLoading(false);
     }
@@ -315,10 +319,21 @@ export default function ProfilePage() {
         {/* Bio Section (below profile info, above posts) */}
         {/* Profile posts or other content can go here */}
         <div className="w-full flex flex-col gap-4 py-8">
-          {/* TODO: Render user's posts here in a visually appealing way */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
-            <div className="text-zinc-400 italic">(Their posts will appear here)</div>
-          </div>
+          {posts.length === 0 ? (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
+              <div className="text-zinc-400 italic">(Their posts will appear here)</div>
+            </div>
+          ) : (
+            <div className="w-full max-w-2xl mx-auto grid gap-4">
+              {posts.map(post => (
+                <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow p-4">
+                  <div className="font-bold text-pink-700 mb-1">{post.title}</div>
+                  <div className="text-zinc-700 dark:text-zinc-200 mb-2">{post.content}</div>
+                  <div className="text-xs text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         {/* Village Members Modal */}
         {showVillageModal && (
