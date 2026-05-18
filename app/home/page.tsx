@@ -141,6 +141,9 @@ export default function HomePage() {
 
 
   async function handleCreatePost(e: React.FormEvent) {
+      // Log session before RPC for debugging
+      const { data: { session: debugSession } } = await supabase.auth.getSession();
+      console.log("Session before RPC:", debugSession);
     e.preventDefault();
     setCreating(true);
     // Session/auth gate before post creation
