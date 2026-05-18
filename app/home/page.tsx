@@ -157,6 +157,15 @@ export default function HomePage() {
           return;
         }
       }
+      // Debug log for troubleshooting 403 errors
+      console.log('Creating post with:', {
+        ...form,
+        author_id: user.id,
+        author_name: profile?.full_name || "Anonymous",
+        type: "general",
+        scope: form.visibility === "village" ? "village" : "local",
+        village_member_id: form.visibility === "village" ? village_member_id ?? undefined : undefined,
+      });
       await createPost({
         ...form,
         author_id: user.id,
