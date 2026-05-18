@@ -175,19 +175,20 @@ export default function HomePage() {
         }
       }
       // Log scope and village_member_id before RPC
-      // Always use 'public' for non-village posts, never 'local'
-      const scope = form.visibility === "village" ? "village" : "public";
-      // Log and send only 'public' or 'village' for scope
+      // Always use 'public' for non-village posts, never 'local', and normalize
+      let scope = form.visibility === "village" ? "village" : "public";
+      const normalizedScope = scope.trim().toLowerCase();
+      console.log("scope value:", JSON.stringify(normalizedScope));
       console.log("Submitting post:", {
-        scope,
-        village_member_id: scope === "village" ? village_member_id : null,
+        scope: normalizedScope,
+        village_member_id: normalizedScope === "village" ? village_member_id : null,
       });
       await createPost({
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || "Anonymous",
-        scope, // always 'public' or 'village'
-        village_member_id: scope === "village" ? village_member_id ?? undefined : undefined,
+        scope: normalizedScope as PostScope, // always 'public' or 'village'
+        village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
       });
       setForm({
         title: "",
