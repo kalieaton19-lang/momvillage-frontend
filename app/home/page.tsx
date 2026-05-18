@@ -49,7 +49,7 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
     </div>
   );
 }
-"use client";
+// removed duplicate 'use client'
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
