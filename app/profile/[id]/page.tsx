@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
-import { createNotification } from "../../../lib/notifications";
 import { getPostsCount } from "../../../utils";
 
 export default function ProfilePage() {
@@ -120,35 +119,18 @@ export default function ProfilePage() {
 
   async function handleInvite() {
     if (!currentUser || !id) return;
+    const targetUserId = Array.isArray(id) ? id[0] : id;
     setInviteLoading(true);
     try {
       const { error } = await supabase
         .from("village_invitations")
-        .insert({ from_user_id: currentUser.id, to_user_id: id, status: "pending" });
-      if (!error) {
-        // Notify the recipient
-        await createNotification({
-          userId: Array.isArray(id) ? id[0] : id,
-          type: "village_invite_sent",
-          data: { from_user_id: currentUser.id, to_user_id: Array.isArray(id) ? id[0] : id }
-        });
-      }
+        .insert({ from_user_id: currentUser.id, to_user_id: targetUserId, status: "pending" });
       if (error) throw error;
       setInviteStatus("invited-by-me");
     } catch (e) {
       alert("Failed to send invitation.");
     } finally {
       setInviteLoading(false);
-    }
-    async function handleAcceptInvitation(invitationId: string, fromUserId: string) {
-      // Accept invitation logic (not shown in original, but assumed)
-      // ...
-      // Notify the sender
-      await createNotification({
-        userId: fromUserId,
-        type: "village_invite_accepted",
-        data: { from_user_id: fromUserId, to_user_id: currentUser.id }
-      });
     }
   }
 

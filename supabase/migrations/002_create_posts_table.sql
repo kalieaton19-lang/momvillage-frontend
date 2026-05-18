@@ -1,7 +1,8 @@
 -- Migration: Create posts table for unified post system
 CREATE TABLE posts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  -- author_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  author_id uuid,
   author_name text NOT NULL,
   type text CHECK (type IN ('general', 'support')) NOT NULL,
   scope text CHECK (scope IN ('village', 'local')) NOT NULL,

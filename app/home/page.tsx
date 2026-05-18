@@ -41,10 +41,8 @@ export default function HomePage() {
   const [form, setForm] = useState({
     title: '',
     content: '',
-    type: 'general' as PostType,
-    scope: 'local' as PostScope,
     visibility: 'public' as PostVisibility,
-    location: '',
+    location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
   });
 
   useEffect(() => {
@@ -179,39 +177,28 @@ export default function HomePage() {
                     required
                   />
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Type</label>
-                    <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PostType }))} className="rounded-lg border px-2 py-1">
-                      <option value="general">General</option>
-                      <option value="support">Support</option>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Visibility</label>
+                    <select
+                      value={form.visibility}
+                      onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))}
+                      className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                    >
+                      <option value="public">Public (visible to all)</option>
+                      <option value="village">My Village Only</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Scope</label>
-                    <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value as PostScope }))} className="rounded-lg border px-2 py-1">
-                      <option value="local">Local</option>
-                      <option value="village">My Village</option>
-                    </select>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Location</label>
+                    <input
+                      className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                      placeholder="Location (defaults to your profile)"
+                      value={form.location}
+                      onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                    />
+                    <div className="text-xs text-zinc-500 mt-1">Defaults to your profile location. Change if posting from somewhere else.</div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Visibility</label>
-                    <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))} className="rounded-lg border px-2 py-1">
-                      <option value="public">Public</option>
-                      <option value="village">Village Only</option>
-                    </select>
-                  </div>
-                  {form.scope === 'local' && (
-                    <div>
-                      <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">Location</label>
-                      <input
-                        className="rounded-lg border px-2 py-1"
-                        placeholder="Location (optional)"
-                        value={form.location}
-                        onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                      />
-                    </div>
-                  )}
                 </div>
                 <button
                   type="submit"
@@ -269,11 +256,6 @@ export default function HomePage() {
                         </div>
                       ))
                     )}
-                    {/* TODO: Add create post to group functionality */}
-                  </div>
-                );
-              })()
-            ) : (
               <div>
                 <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Your Groups</h2>
                 {/* TODO: Replace MOCK_GROUPS with real groups from backend */}

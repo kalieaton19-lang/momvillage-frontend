@@ -458,7 +458,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             {inviteBanner}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-1 sm:p-4 bg-white dark:bg-black space-y-2 sm:space-y-4">
+        <div className="flex-1 overflow-y-auto p-0 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -514,7 +514,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             </>
           )}
         </div>
-        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-4">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 sm:p-2">
           <div className="flex gap-1 sm:gap-3">
             <input
               type="text"

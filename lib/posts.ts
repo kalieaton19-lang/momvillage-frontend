@@ -55,12 +55,19 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
   return data as Post[];
 }
 // Create a new post
-export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at">): Promise<Post> {
-  const { data, error } = await supabase
-    .from("posts")
-    .insert([post])
-    .select()
-    .single();
+export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at"> & { village_member_id?: string }): Promise<Post> {
+  // Map frontend scope to backend scope if needed
+  const scope = post.scope === 'local' ? 'public' : post.scope;
+  const { data, error } = await supabase.rpc("create_post", {
+    p_content: post.content,
+    p_scope: scope,
+    p_village_member_id: scope === 'village' ? post.village_member_id ?? null : null,
+    p_title: post.title,
+    p_type: post.type,
+    p_visibility: post.visibility,
+    p_location: post.location ?? null,
+    p_author_name: post.author_name ?? null,
+  });
   if (error) throw error;
   return data as Post;
 }
