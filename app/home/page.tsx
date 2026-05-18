@@ -153,21 +153,21 @@ export default function HomePage() {
         </header>
         {/* Post creation modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn">
-            <div className="ds-card relative w-full max-w-md p-8 shadow-xl animate-modalIn">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-100/60 backdrop-blur-sm animate-fadeIn">
+            <div className="relative w-full max-w-md p-8 rounded-3xl shadow-2xl animate-modalIn bg-white border-2 border-pink-200">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                className="absolute top-3 right-3 text-pink-400 hover:text-pink-600 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
                 aria-label="Close"
               >
                 &times;
               </button>
-              <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 dark:text-pink-300 tracking-tight">Create a Post</h2>
+              <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 tracking-tight">Create a Post</h2>
               <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Title</label>
+                  <label className="block text-sm font-medium text-pink-700 mb-1">Title</label>
                   <input
-                    className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                    className="w-full border border-pink-200 rounded-lg px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
                     placeholder="e.g. Need help with school pickup"
                     value={form.title}
                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -175,9 +175,9 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Content</label>
+                  <label className="block text-sm font-medium text-pink-700 mb-1">Content</label>
                   <textarea
-                    className="w-full border border-zinc-300 dark:border-zinc-700 rounded-lg px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition min-h-[80px]"
+                    className="w-full border border-pink-200 rounded-lg px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition min-h-[80px] placeholder-pink-300"
                     placeholder="What's on your mind?"
                     value={form.content}
                     onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
@@ -186,30 +186,30 @@ export default function HomePage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Visibility</label>
+                    <label className="block text-sm font-medium text-pink-700 mb-1">Visibility</label>
                     <select
                       value={form.visibility}
                       onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))}
-                      className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
                     >
                       <option value="public">Public (visible to all)</option>
                       <option value="village">My Village Only</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200 mb-1">Location</label>
+                    <label className="block text-sm font-medium text-pink-700 mb-1">Location</label>
                     <input
-                      className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-4 py-2 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
                       placeholder="Location (defaults to your profile)"
                       value={form.location}
                       onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                     />
-                    <div className="text-xs text-zinc-500 mt-1">Defaults to your profile location. Change if posting from somewhere else.</div>
+                    <div className="text-xs text-pink-400 mt-1">Defaults to your profile location. Change if posting from somewhere else.</div>
                   </div>
                 </div>
                 <button
                   type="submit"
-                  className="ds-button-primary w-full rounded-lg py-3 text-lg font-bold shadow-md hover:scale-105 transition-transform disabled:opacity-60"
+                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-600 text-white hover:bg-pink-700 hover:scale-105 transition-transform disabled:opacity-60 mt-2"
                   disabled={creating}
                 >
                   {creating ? 'Posting...' : 'Post'}
@@ -218,14 +218,21 @@ export default function HomePage() {
             </div>
           </div>
         )}
-              {/* Floating create post button */}
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                aria-label="Create Post"
-              >
-                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
-              </button>
+              {/* Bottom navigation bar with Search, Post, Notifications */}
+              <div className="fixed bottom-6 left-0 w-full flex items-center justify-center z-50 pointer-events-none">
+                <div className="flex justify-between items-center w-full max-w-xs mx-auto px-4 pointer-events-auto">
+                  <NavButton href="/find-moms" icon="search" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 -mt-6 mx-2"
+                    aria-label="Create Post"
+                    style={{ zIndex: 2 }}
+                  >
+                    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
+                  </button>
+                  <NavButton href="/notifications" icon="alarm" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
+                </div>
+              </div>
         {/* Feed type toggle */}
         <div className="flex gap-3 mb-4">
           <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
