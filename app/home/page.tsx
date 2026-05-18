@@ -12,7 +12,7 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
 
   return (
     <div>
-      <label className="block text-sm font-medium text-pink-700 mb-1">Location</label>
+      <label htmlFor="post-location" className="block text-sm font-medium text-pink-700 mb-1">Location</label>
       {isDefault ? (
         <div className="flex items-center gap-2">
           <span className="px-3 py-2 rounded-lg bg-pink-50 border border-pink-200 text-zinc-900 font-semibold">
@@ -29,6 +29,8 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
       ) : (
         <div className="flex items-center gap-2">
           <input
+            id="post-location"
+            name="location"
             className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
             placeholder="Enter a different location"
             value={formLocation}
@@ -90,6 +92,7 @@ export default function HomePage() {
   const [form, setForm] = useState({
     title: '',
     content: '',
+    type: 'general' as PostType,
     visibility: 'public' as PostVisibility,
     location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
   });
@@ -162,7 +165,6 @@ export default function HomePage() {
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || "Anonymous",
-        type: "general",
         scope: form.visibility === "village" ? "village" : "local",
         village_member_id: form.visibility === "village" ? village_member_id ?? undefined : undefined,
       });
@@ -170,13 +172,13 @@ export default function HomePage() {
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || "Anonymous",
-        type: "general",
         scope: form.visibility === "village" ? "village" : "local",
         village_member_id: form.visibility === "village" ? village_member_id ?? undefined : undefined,
       });
       setForm({
         title: "",
         content: "",
+        type: "general",
         visibility: "public",
         location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
       });
@@ -265,6 +267,19 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="flex flex-col gap-3">
+                  <div>
+                    <label htmlFor="post-type" className="block text-sm font-medium text-pink-700 mb-1">Post Type</label>
+                    <select
+                      id="post-type"
+                      name="type"
+                      value={form.type}
+                      onChange={e => setForm(f => ({ ...f, type: e.target.value as PostType }))}
+                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                    >
+                      <option value="general">General</option>
+                      <option value="support">Support</option>
+                    </select>
+                  </div>
                   <div>
                     <label htmlFor="post-visibility" className="block text-sm font-medium text-pink-700 mb-1">Visibility</label>
                     <select
