@@ -95,8 +95,15 @@ export default function HomePage() {
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || 'Anonymous',
+        type: 'general',
+        scope: form.visibility === 'village' ? 'village' : 'local',
       });
-      setForm({ title: '', content: '', type: 'general', scope: 'local', visibility: 'public', location: '' });
+      setForm({
+        title: '',
+        content: '',
+        visibility: 'public',
+        location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
+      });
       await loadPosts();
     } catch (e) {
       alert('Failed to create post');
@@ -230,7 +237,7 @@ export default function HomePage() {
           {feedType === 'groups' ? (
             selectedGroupId ? (
               (() => {
-                // Type assertion to satisfy TS: selectedGroupId is '1' | '2' | '3' when set
+                // ...existing group logic...
                 const groupId = selectedGroupId as keyof typeof MOCK_GROUP_POSTS;
                 const posts = MOCK_GROUP_POSTS[groupId] || [];
                 return (
@@ -256,6 +263,10 @@ export default function HomePage() {
                         </div>
                       ))
                     )}
+                  </div>
+                );
+              })()
+            ) : (
               <div>
                 <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Your Groups</h2>
                 {/* TODO: Replace MOCK_GROUPS with real groups from backend */}
@@ -278,45 +289,58 @@ export default function HomePage() {
           ) : posts.length === 0 ? (
             <div className="text-center text-zinc-500 py-8">No posts yet. Be the first to post!</div>
           ) : (
-            posts.map(post => (
-              <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.type === 'support' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'}`}>{post.type === 'support' ? 'Support' : 'General'}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.scope === 'village' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>{post.scope === 'village' ? 'My Village' : 'Local'}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.visibility === 'public' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>{post.visibility === 'public' ? 'Public' : 'Village Only'}</span>
+            <>
+              {posts.map(post => (
+                <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
+                  {('type' in post) && ('scope' in post) && ('visibility' in post) ? (
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.type === 'support' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'}`}>{post.type === 'support' ? 'Support' : 'General'}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.scope === 'village' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>{post.scope === 'village' ? 'My Village' : 'Local'}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.visibility === 'public' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>{post.visibility === 'public' ? 'Public' : 'Village Only'}</span>
+                    </div>
+                  ) : null}
+                  <div className="font-bold text-lg mb-1">{post.title}</div>
+                  <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
                 </div>
-                <div className="font-bold text-lg mb-1">{post.title}</div>
-                <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
-              </div>
-            ))
+              ))}
+            </>
           )}
-        </div>
-      </div>
-      {/* Floating nav buttons - consistent format and alignment */}
-      <div className="fixed inset-0 pointer-events-none z-50">
-        {/* Bottom right: Notifications only */}
-        <div className="absolute bottom-8 right-8 flex flex-row gap-3 pointer-events-auto">
-          <NavButton href="/notifications" icon="alarm" label="" className="w-12 h-12" />
-        </div>
-        {/* Bottom left: Search */}
-        <div className="absolute bottom-8 left-8 pointer-events-auto">
-          <NavButton href="/village" icon="search" label="" className="w-12 h-12" />
-        </div>
-        {/* Center bottom: Add post */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
-            aria-label="Create Post"
-            type="button"
-          >
-            <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth="2" d="M12 5v14m7-7H5"/></svg>
-          </button>
         </div>
       </div>
     </div>
   );
+
+//
+
+// Ensure handleCreatePost is defined as:
+// async function handleCreatePost() {
+//   setCreating(true);
+//   try {
+//     await createPost({
+//       ...form,
+//       author_id: user.id,
+//       author_name: profile?.full_name || 'Anonymous',
+//       type: 'general', // default type
+//       scope: form.visibility === 'village' ? 'village' : 'local', // derive scope from visibility
+//     });
+//     setForm({
+//       title: '',
+//       content: '',
+//       visibility: 'public',
+//       location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
+//     });
+//     await loadPosts();
+//   } catch (e) {
+//     alert('Failed to create post');
+//   } finally {
+//     setCreating(false);
+//   }
+// }
+
+// Remove stray button/svg JSX outside of any component.
+
+// ...existing code...
 }
 
 function NavButton({ href, icon, label, className = "" }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus' | 'alarm'; label?: string; className?: string }) {
