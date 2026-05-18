@@ -1,5 +1,5 @@
 export type PostType = "general" | "support";
-export type PostScope = "village" | "local";
+export type PostScope = "village" | "local" | "public" | "private";
 export type PostVisibility = "public" | "village";
 
 export interface Post {
