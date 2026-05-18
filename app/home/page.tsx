@@ -136,26 +136,44 @@ export default function HomePage() {
     }
   }
 
+
   async function handleCreatePost(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
     try {
+      let village_member_id: string | null = null;
+      if (form.visibility === "village") {
+        const { data, error } = await supabase
+          .from("village_members")
+          .select("id")
+          .or(`user_id.eq.${user.id},member_id.eq.${user.id}`)
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        village_member_id = data?.id ?? null;
+        if (!village_member_id) {
+          alert("Join a village first to post to your village.");
+          setCreating(false);
+          return;
+        }
+      }
       await createPost({
         ...form,
         author_id: user.id,
-        author_name: profile?.full_name || 'Anonymous',
-        type: 'general',
-        scope: form.visibility === 'village' ? 'village' : 'local',
+        author_name: profile?.full_name || "Anonymous",
+        type: "general",
+        scope: form.visibility === "village" ? "village" : "local",
+        village_member_id: form.visibility === "village" ? village_member_id ?? undefined : undefined,
       });
       setForm({
-        title: '',
-        content: '',
-        visibility: 'public',
-        location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
+        title: "",
+        content: "",
+        visibility: "public",
+        location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
       });
       await loadPosts();
     } catch (e) {
-      alert('Failed to create post');
+      alert("Failed to create post");
     } finally {
       setCreating(false);
     }
