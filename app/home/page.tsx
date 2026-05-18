@@ -241,8 +241,10 @@ export default function HomePage() {
               <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 tracking-tight">Create a Post</h2>
               <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-pink-700 mb-1">Title</label>
+                  <label htmlFor="post-title" className="block text-sm font-medium text-pink-700 mb-1">Title</label>
                   <input
+                    id="post-title"
+                    name="title"
                     className="w-full border border-pink-200 rounded-lg px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
                     placeholder="e.g. Need help with school pickup"
                     value={form.title}
@@ -251,8 +253,10 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-pink-700 mb-1">Content</label>
+                  <label htmlFor="post-content" className="block text-sm font-medium text-pink-700 mb-1">Content</label>
                   <textarea
+                    id="post-content"
+                    name="content"
                     className="w-full border border-pink-200 rounded-lg px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition min-h-[80px] placeholder-pink-300"
                     placeholder="What's on your mind?"
                     value={form.content}
@@ -262,8 +266,10 @@ export default function HomePage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-pink-700 mb-1">Visibility</label>
+                    <label htmlFor="post-visibility" className="block text-sm font-medium text-pink-700 mb-1">Visibility</label>
                     <select
+                      id="post-visibility"
+                      name="visibility"
                       value={form.visibility}
                       onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))}
                       className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
