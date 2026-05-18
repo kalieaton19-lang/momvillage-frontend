@@ -67,7 +67,6 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
     p_visibility: post.visibility,
     p_location: post.location ?? null,
     p_author_name: post.author_name ?? null,
-    p_author_user_id: post.author_id,
   });
   if (error) throw error;
   return data as Post;
