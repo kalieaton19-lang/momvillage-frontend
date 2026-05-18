@@ -129,7 +129,7 @@ export default function HomePage() {
     setLoading(true);
     try {
       let options: any = {};
-      if (feedType === 'local') options.scope = 'local';
+      if (feedType === 'local') options.scope = 'public';
       if (feedType === 'village') options.scope = 'village';
       setPosts(await fetchPosts(options));
     } catch (e) {
