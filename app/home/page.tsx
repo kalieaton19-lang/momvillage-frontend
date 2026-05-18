@@ -1,4 +1,4 @@
-// "use client"; (removed duplicate)
+"use client";
 
 // LocationField component for post modal (must be outside HomePage)
 function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
@@ -49,7 +49,6 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
     </div>
   );
 }
-//
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
