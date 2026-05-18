@@ -40,7 +40,7 @@ type FetchPostsOptions = {
   type?: PostType;
   scope?: PostScope;
   visibility?: PostVisibility;
-  author_id?: string;
+  author_user_id?: string;
 };
 
 export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[]> {
@@ -48,7 +48,7 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
   if (options.type) query = query.eq("type", options.type);
   if (options.scope) query = query.eq("scope", options.scope);
   if (options.visibility) query = query.eq("visibility", options.visibility);
-  if (options.author_id) query = query.eq("author_id", options.author_id);
+  if (options.author_user_id) query = query.eq("author_user_id", options.author_user_id);
   query = query.order("created_at", { ascending: false });
   const { data, error } = await query;
   if (error) throw error;
