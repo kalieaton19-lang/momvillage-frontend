@@ -1,3 +1,52 @@
+// LocationField component for post modal (must be outside HomePage)
+function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
+  const [custom, setCustom] = React.useState(false);
+  const isDefault = !custom && (formLocation === profileLocation || !formLocation);
+
+  React.useEffect(() => {
+    // If user switches back to default, reset location to profile
+    if (!custom) setForm((f: any) => ({ ...f, location: profileLocation }));
+  }, [custom, profileLocation, setForm]);
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-pink-700 mb-1">Location</label>
+      {isDefault ? (
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-2 rounded-lg bg-pink-50 border border-pink-200 text-zinc-900 font-semibold">
+            {profileLocation || 'No location set in profile'}
+          </span>
+          <button
+            type="button"
+            className="ml-2 text-pink-600 hover:underline text-sm font-medium"
+            onClick={() => setCustom(true)}
+          >
+            Other location
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <input
+            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
+            placeholder="Enter a different location"
+            value={formLocation}
+            onChange={e => setForm((f: any) => ({ ...f, location: e.target.value }))}
+          />
+          <button
+            type="button"
+            className="ml-2 text-pink-600 hover:underline text-sm font-medium"
+            onClick={() => setCustom(false)}
+          >
+            Use profile location
+          </button>
+        </div>
+      )}
+      <div className="text-xs text-pink-400 mt-1">
+        Posting location: <span className="font-semibold text-pink-600">{formLocation || profileLocation || 'Not set'}</span>
+      </div>
+    </div>
+  );
+}
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -196,16 +245,11 @@ export default function HomePage() {
                       <option value="village">My Village Only</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-pink-700 mb-1">Location</label>
-                    <input
-                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
-                      placeholder="Location (defaults to your profile)"
-                      value={form.location}
-                      onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                    />
-                    <div className="text-xs text-pink-400 mt-1">Defaults to your profile location. Change if posting from somewhere else.</div>
-                  </div>
+                  <LocationField
+                    profileLocation={profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : ''}
+                    formLocation={form.location}
+                    setForm={setForm}
+                  />
                 </div>
                 <button
                   type="submit"
