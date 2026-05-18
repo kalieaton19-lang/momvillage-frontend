@@ -175,7 +175,9 @@ export default function HomePage() {
         }
       }
       // Log scope and village_member_id before RPC
-      const scope = form.visibility === "village" ? "village" : "local";
+      // Always use 'public' for non-village posts, never 'local'
+      const scope = form.visibility === "village" ? "village" : "public";
+      // Log and send only 'public' or 'village' for scope
       console.log("Submitting post:", {
         scope,
         village_member_id: scope === "village" ? village_member_id : null,
@@ -184,7 +186,7 @@ export default function HomePage() {
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || "Anonymous",
-        scope,
+        scope, // always 'public' or 'village'
         village_member_id: scope === "village" ? village_member_id ?? undefined : undefined,
       });
       setForm({
