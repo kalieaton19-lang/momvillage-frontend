@@ -380,7 +380,7 @@ export default function HomePage() {
           <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
         </div>
         {/* Feed logic: Local, Village, Groups */}
-        <div className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
           {feedType === 'groups' ? (
             selectedGroupId ? (
               (() => {
@@ -453,7 +453,7 @@ export default function HomePage() {
               ))}
             </>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
