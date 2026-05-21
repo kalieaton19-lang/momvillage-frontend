@@ -193,6 +193,9 @@ export default function HomePage() {
         scope: normalizedScope as PostScope, // always 'public' or 'village'
         village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
       });
+      // Persistent debug logs for backend feedback
+      console.log("RPC error:", error);
+      console.log("RPC data:", data);
       if (error) {
         alert("Post error: " + JSON.stringify(error));
         console.error("createPost RPC error:", error);
