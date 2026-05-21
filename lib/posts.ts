@@ -58,16 +58,32 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
 export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at"> & { village_member_id?: string }): Promise<{ data: Post | null, error: any }> {
   // Map frontend scope to backend scope if needed
   const scope = post.scope === 'local' ? 'public' : post.scope;
-  const { data, error } = await supabase.rpc("create_post", {
-    p_content: post.content,
-    p_scope: scope,
-    p_village_member_id: scope === 'village' ? post.village_member_id ?? null : null,
-    p_title: post.title,
-    p_type: post.type,
-    p_visibility: post.visibility,
-    p_location: post.location ?? null,
-    p_author_name: post.author_name ?? null,
-    p_author_user_id: post.author_user_id,
-  });
+  console.log("Calling create_post...");
+  let data: any = null;
+  let error: any = null;
+  try {
+    const res = await supabase.rpc("create_post", {
+      p_content: post.content,
+      p_scope: scope,
+      p_village_member_id: scope === "village" ? post.village_member_id ?? null : null,
+      p_title: post.title,
+      p_type: post.type,
+      p_visibility: post.visibility,
+      p_location: post.location ?? null,
+      p_author_name: post.author_name ?? null,
+      p_author_user_id: post.author_user_id,
+    });
+    data = res.data;
+    error = res.error;
+    console.log("RPC done");
+  } catch (e) {
+    console.log("RPC THREW:", e);
+    throw e;
+  } finally {
+    console.log("RPC error:", error);
+    console.log("RPC data:", data);
+    console.log("typeof data:", typeof data);
+    console.log("isArray:", Array.isArray(data));
+  }
   return { data, error };
 }
