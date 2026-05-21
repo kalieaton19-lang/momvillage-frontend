@@ -358,9 +358,10 @@ export default function HomePage() {
                   />
                 </div>
                 <button
-                  type="submit"
+                  type="button" // TEMP: prevent form submit navigation
                   className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-600 text-white hover:bg-pink-700 hover:scale-105 transition-transform disabled:opacity-60 mt-2"
                   disabled={creating}
+                  onClick={handleCreatePost}
                 >
                   {creating ? 'Posting...' : 'Post'}
                 </button>
