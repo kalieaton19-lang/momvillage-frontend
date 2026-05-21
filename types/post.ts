@@ -4,7 +4,7 @@ export type PostVisibility = "public" | "village";
 
 export interface Post {
   id: string;
-  author_id: string;
+  author_user_id: string;
   author_name: string;
   type: PostType;
   scope: PostScope;

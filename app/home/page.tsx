@@ -188,7 +188,7 @@ export default function HomePage() {
       });
       const { data, error } = await createPost({
         ...form,
-        author_id: user.id,
+        author_user_id: user.id,
         author_name: profile?.full_name || "Anonymous",
         scope: normalizedScope as PostScope, // always 'public' or 'village'
         village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
