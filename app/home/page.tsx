@@ -145,6 +145,7 @@ export default function HomePage() {
       const { data: { session: debugSession } } = await supabase.auth.getSession();
       console.log("Session before RPC:", debugSession);
     e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
     if (creating) {
       // Prevent double submission
       return;
