@@ -145,6 +145,10 @@ export default function HomePage() {
       const { data: { session: debugSession } } = await supabase.auth.getSession();
       console.log("Session before RPC:", debugSession);
     e.preventDefault();
+    if (creating) {
+      // Prevent double submission
+      return;
+    }
     setCreating(true);
     // Session/auth gate before post creation
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -222,7 +226,7 @@ export default function HomePage() {
         });
         await loadPosts();
         // Only navigate after post is created and loaded
-        router.push('/home');
+        // router.push('/home'); // TEMP: Commented out to confirm logs appear before navigation
       }
     } catch (e) {
       console.error("Create post error:", e);
