@@ -196,30 +196,34 @@ export default function HomePage() {
       // Persistent debug logs for backend feedback
       console.log("RPC error:", error);
       console.log("RPC data:", data);
+      console.log("typeof data:", typeof data);
+      console.log("isArray:", Array.isArray(data));
       if (error) {
         alert("Post error: " + JSON.stringify(error));
         console.error("createPost RPC error:", error);
       } else {
         console.log("createPost RPC result:", data);
+        if (data && data.id) {
+          const { data: row, error: selectError } = await supabase
+            .from("posts")
+            .select("*")
+            .eq("id", data.id)
+            .maybeSingle();
+          if (selectError) alert("Select error: " + JSON.stringify(selectError));
+          console.log("select error:", selectError);
+          console.log("select row:", row);
+        }
+        setForm({
+          title: "",
+          content: "",
+          type: "general",
+          visibility: "public",
+          location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
+        });
+        await loadPosts();
+        // Only navigate after post is created and loaded
+        router.push('/home');
       }
-      if (data && data.id) {
-        const { data: row, error: selectError } = await supabase
-          .from("posts")
-          .select("*")
-          .eq("id", data.id)
-          .maybeSingle();
-        if (selectError) alert("Select error: " + JSON.stringify(selectError));
-        console.log("select error:", selectError);
-        console.log("select row:", row);
-      }
-      setForm({
-        title: "",
-        content: "",
-        type: "general",
-        visibility: "public",
-        location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
-      });
-      await loadPosts();
     } catch (e) {
       console.error("Create post error:", e);
       alert("Failed to create post");
