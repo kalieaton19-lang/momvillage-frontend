@@ -186,21 +186,27 @@ export default function HomePage() {
         scope: normalizedScope,
         village_member_id: normalizedScope === "village" ? village_member_id : null,
       });
-      const res = await createPost({
+      const { data, error } = await createPost({
         ...form,
         author_id: user.id,
         author_name: profile?.full_name || "Anonymous",
         scope: normalizedScope as PostScope, // always 'public' or 'village'
         village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
       });
-      console.log("createPost RPC result:", res);
-      if (res && res.id) {
-        const { data: row, error } = await supabase
+      if (error) {
+        alert("Post error: " + JSON.stringify(error));
+        console.error("createPost RPC error:", error);
+      } else {
+        console.log("createPost RPC result:", data);
+      }
+      if (data && data.id) {
+        const { data: row, error: selectError } = await supabase
           .from("posts")
           .select("*")
-          .eq("id", res.id)
+          .eq("id", data.id)
           .maybeSingle();
-        console.log("select error:", error);
+        if (selectError) alert("Select error: " + JSON.stringify(selectError));
+        console.log("select error:", selectError);
         console.log("select row:", row);
       }
       setForm({
