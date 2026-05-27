@@ -58,19 +58,23 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
 export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at"> & { village_member_id?: string }): Promise<{ data: Post | null, error: any }> {
   // Map frontend scope to backend scope if needed
   const scope = post.scope === 'local' ? 'public' : post.scope;
-  // Diagnostic logs before RPC call
-  console.log("create_post params:");
-  console.log("scope:", post.scope);
-  console.log("author_user_id:", post.author_user_id);
-  console.log("village_member_id:", post.village_member_id);
-  // Get user id from supabase.auth.getUser()
+
+  // 1) Hard auth gate immediately before RPC
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (!session?.user?.id) {
+    throw new Error("No logged-in user in auth context (session missing when calling RPC)");
+  }
+
+  // Optional: verify auth context for logging
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log("supabase.auth.getUser() user.id:", user?.id);
+    const { data: userData } = await supabase.auth.getUser();
+    console.log("RPC auth context user.id:", userData?.user?.id);
   } catch (e) {
     console.log("supabase.auth.getUser() error:", e);
   }
-  console.log("Calling create_post...");
+
+  // 2) Call RPC (do NOT rely on p_author_user_id; DB function uses auth.uid())
   let data: any = null;
   let error: any = null;
   try {
@@ -83,7 +87,7 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
       p_visibility: post.visibility,
       p_location: post.location ?? null,
       p_author_name: post.author_name ?? null,
-      p_author_user_id: post.author_user_id,
+      // p_author_user_id: removed
     });
     data = res.data;
     error = res.error;
