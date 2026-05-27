@@ -58,6 +58,18 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
 export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at"> & { village_member_id?: string }): Promise<{ data: Post | null, error: any }> {
   // Map frontend scope to backend scope if needed
   const scope = post.scope === 'local' ? 'public' : post.scope;
+  // Diagnostic logs before RPC call
+  console.log("create_post params:");
+  console.log("scope:", post.scope);
+  console.log("author_user_id:", post.author_user_id);
+  console.log("village_member_id:", post.village_member_id);
+  // Get user id from supabase.auth.getUser()
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("supabase.auth.getUser() user.id:", user?.id);
+  } catch (e) {
+    console.log("supabase.auth.getUser() error:", e);
+  }
   console.log("Calling create_post...");
   let data: any = null;
   let error: any = null;
