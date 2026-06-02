@@ -250,7 +250,13 @@ export default function HomePage() {
         [postId]: Math.max(0, (prev[postId] || 0) + (currentlyLiked ? -1 : 1)),
       }));
     } catch (e: any) {
-      alert("Like failed: " + (e?.message || "Unknown error"));
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      const maybeDetails = e?.details ? `\n${e.details}` : "";
+      const maybeHint = e?.hint ? `\nHint: ${e.hint}` : "";
+      const maybeMissingTable = String(e?.message || "").includes("post_likes") || String(e?.message || "").includes("does not exist")
+        ? "\nInteraction tables may be missing. Run migration 009 in Supabase SQL Editor."
+        : "";
+      alert(`Like failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
     }
@@ -276,7 +282,13 @@ export default function HomePage() {
       }));
       setCommentDraftByPost((prev) => ({ ...prev, [postId]: "" }));
     } catch (e: any) {
-      alert("Comment failed: " + (e?.message || "Unknown error"));
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      const maybeDetails = e?.details ? `\n${e.details}` : "";
+      const maybeHint = e?.hint ? `\nHint: ${e.hint}` : "";
+      const maybeMissingTable = String(e?.message || "").includes("post_comments") || String(e?.message || "").includes("does not exist")
+        ? "\nInteraction tables may be missing. Run migration 009 in Supabase SQL Editor."
+        : "";
+      alert(`Comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
     }
@@ -301,7 +313,13 @@ export default function HomePage() {
         alert("Post link copied to clipboard.");
       }
     } catch (e: any) {
-      alert("Share failed: " + (e?.message || "Unknown error"));
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      const maybeDetails = e?.details ? `\n${e.details}` : "";
+      const maybeHint = e?.hint ? `\nHint: ${e.hint}` : "";
+      const maybeMissingTable = String(e?.message || "").includes("post_shares") || String(e?.message || "").includes("does not exist")
+        ? "\nInteraction tables may be missing. Run migration 009 in Supabase SQL Editor."
+        : "";
+      alert(`Share failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
