@@ -337,15 +337,27 @@ export default function HomePage() {
     const nextValue = !post.comments_disabled;
     setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
-      const { error } = await supabase
+      const { data: updatedRows, error } = await supabase
         .from("posts")
         .update({ comments_disabled: nextValue })
-        .eq("id", post.id);
+        .eq("id", post.id)
+        .eq("author_user_id", user.id)
+        .select("id");
       if (error) throw error;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error("No rows updated. You may not be the owner of this post or RLS blocked the update.");
+      }
       setPosts((prev) => prev.map((entry) => (entry.id === post.id ? { ...entry, comments_disabled: nextValue } : entry)));
       setOpenPostMenuId(null);
     } catch (e: any) {
-      alert("Update failed: " + (e?.message || "Unknown error"));
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      const maybeDetails = e?.details ? `\n${e.details}` : "";
+      const maybeHint = e?.hint ? `\nHint: ${e.hint}` : "";
+      const message = e?.message || "Unknown error";
+      const missingColumnHint = message.includes("comments_disabled") || message.includes("column")
+        ? "\n`comments_disabled` may not exist in your live DB yet. Run migration 010 in Supabase SQL Editor."
+        : "";
+      alert(`Update failed${maybeCode}: ${message}${maybeDetails}${maybeHint}${missingColumnHint}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
