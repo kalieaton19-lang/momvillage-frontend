@@ -547,16 +547,32 @@ export default function HomePage() {
                     ) : (
                       posts.map((post: any) => (
                         <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
-                          <div className="font-bold text-lg mb-1">{post.title}</div>
-                          <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
-                            {post.photo_url && (
+                          <div className="flex items-center gap-3 mb-3">
+                            {post.author_user_id && authorPhotoById[post.author_user_id] ? (
                               <img
-                                src={post.photo_url}
-                                alt="Post photo"
-                                className="w-full rounded-xl object-cover max-h-72 mb-2 border border-zinc-100 dark:border-zinc-800"
+                                src={authorPhotoById[post.author_user_id]}
+                                alt={post.author_name || 'Mom'}
+                                className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
                               />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                {(post.author_name || 'M').charAt(0).toUpperCase()}
+                              </div>
                             )}
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                            </div>
+                          </div>
+                          {post.photo_url && (
+                            <img
+                              src={post.photo_url}
+                              alt="Post photo"
+                              className="w-full rounded-xl object-cover max-h-72 mb-2 border border-zinc-100 dark:border-zinc-800"
+                            />
+                          )}
+                          <div className="font-bold text-lg mb-1">{post.title}</div>
+                          <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
                         </div>
                       ))
                     )}
