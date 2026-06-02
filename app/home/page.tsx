@@ -189,31 +189,43 @@ export default function HomePage() {
 
       setPosts(nextPosts);
 
-      // Hydrate author profile photos for post cards
-      const authorIds = [...new Set(nextPosts.map((post) => post.author_user_id).filter(Boolean))];
-      if (authorIds.length === 0) {
-        setAuthorPhotoById({});
-      } else {
-        const { data: authorProfiles } = await supabase
-          .from('user_public_profiles')
-          .select('id, profile_photo_url')
-          .in('id', authorIds);
+      // Hydrate author profile photos for post cards (non-blocking)
+      try {
+        const authorIds = [...new Set(nextPosts.map((post) => post.author_user_id).filter(Boolean))];
+        if (authorIds.length === 0) {
+          setAuthorPhotoById({});
+        } else {
+          const { data: authorProfiles } = await supabase
+            .from('user_public_profiles')
+            .select('id, profile_photo_url')
+            .in('id', authorIds);
 
-        const authorPhotoMap: Record<string, string> = {};
-        (authorProfiles || []).forEach((profile: any) => {
-          if (profile?.id && profile?.profile_photo_url) {
-            authorPhotoMap[profile.id] = profile.profile_photo_url;
-          }
-        });
-        setAuthorPhotoById(authorPhotoMap);
+          const authorPhotoMap: Record<string, string> = {};
+          (authorProfiles || []).forEach((profile: any) => {
+            if (profile?.id && profile?.profile_photo_url) {
+              authorPhotoMap[profile.id] = profile.profile_photo_url;
+            }
+          });
+          setAuthorPhotoById(authorPhotoMap);
+        }
+      } catch (e) {
+        setAuthorPhotoById({});
       }
 
-      const postIds = nextPosts.map((post) => post.id);
-      const interactions = await fetchPostInteractions(postIds, user?.id);
-      setLikesCountByPost(interactions.likesCountByPost);
-      setLikedByMeByPost(interactions.likedByMeByPost);
-      setSharesCountByPost(interactions.sharesCountByPost);
-      setCommentsByPost(interactions.commentsByPost);
+      // Fetch interactions (non-blocking so posts still render even if migration isn't applied yet)
+      try {
+        const postIds = nextPosts.map((post) => post.id);
+        const interactions = await fetchPostInteractions(postIds, user?.id);
+        setLikesCountByPost(interactions.likesCountByPost);
+        setLikedByMeByPost(interactions.likedByMeByPost);
+        setSharesCountByPost(interactions.sharesCountByPost);
+        setCommentsByPost(interactions.commentsByPost);
+      } catch (e) {
+        setLikesCountByPost({});
+        setLikedByMeByPost({});
+        setSharesCountByPost({});
+        setCommentsByPost({});
+      }
     } catch (e) {
       setPosts([]);
       setAuthorPhotoById({});
