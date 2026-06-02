@@ -574,6 +574,13 @@ export default function HomePage() {
                   ) : null}
                   <div className="font-bold text-lg mb-1">{post.title}</div>
                   <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                  {post.photo_url && (
+                    <img
+                      src={post.photo_url}
+                      alt="Post photo"
+                      className="w-full rounded-xl object-cover max-h-72 mb-2 border border-zinc-100 dark:border-zinc-800"
+                    />
+                  )}
                   <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
                 </div>
               ))}
