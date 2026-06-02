@@ -674,7 +674,7 @@ export default function HomePage() {
                 </div>
                 <button
                   type="button"
-                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-600 text-white hover:bg-pink-700 hover:scale-105 transition-transform disabled:opacity-60 mt-2"
+                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-rose-500 text-white hover:bg-rose-600 hover:scale-105 transition-transform disabled:opacity-60 mt-2"
                   disabled={creating}
                   onClick={handleCreatePost}
                 >
@@ -691,7 +691,7 @@ export default function HomePage() {
                   <NavButton href="/find-moms" icon="search" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 -mt-6 mx-2"
+                    className="bg-rose-500 hover:bg-rose-600 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-rose-300 -mt-6 mx-2"
                     aria-label="Create Post"
                     style={{ zIndex: 2 }}
                     disabled={showCreateModal}
@@ -703,9 +703,9 @@ export default function HomePage() {
               </div>
         {/* Feed type toggle */}
         <div className="flex gap-3 mb-4">
-          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'local' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
-          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'village' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
-          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'groups' ? 'bg-pink-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
+          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'local' ? 'bg-rose-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
+          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'village' ? 'bg-rose-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
+          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'groups' ? 'bg-rose-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
         </div>
         {/* Feed logic: Local, Village, Groups */}
         <main className="flex-1 overflow-y-auto">
@@ -733,7 +733,7 @@ export default function HomePage() {
                       posts.map((post: any) => (
                         <div
                           key={post.id}
-                          className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-rose-50/60 border-rose-100 shadow-[0_4px_12px_rgba(244,114,182,0.12)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.14)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+                          className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-zinc-200 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                         >
                           <div className="flex items-center gap-3 mb-3">
                             {post.author_user_id && authorPhotoById[post.author_user_id] ? (
@@ -795,7 +795,7 @@ export default function HomePage() {
                 <div
                   key={post.id}
                   id={`post-${post.id}`}
-                  className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-rose-50/60 border-rose-100 shadow-[0_4px_12px_rgba(244,114,182,0.12)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.14)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+                  className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-zinc-200 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
@@ -900,7 +900,7 @@ export default function HomePage() {
                           type="button"
                           disabled={!!interactionBusyByPost[post.id]}
                           onClick={() => handleAddComment(post.id)}
-                          className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 disabled:opacity-60"
+                          className="px-3 py-2 rounded-lg bg-rose-500 text-white text-sm font-semibold hover:bg-rose-600 disabled:opacity-60"
                         >
                           Comment
                         </button>
