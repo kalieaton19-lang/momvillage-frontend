@@ -12,15 +12,15 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
 
   return (
     <div>
-      <label htmlFor="post-location" className="block text-sm font-medium text-pink-700 mb-1">Location</label>
+      <label htmlFor="post-location" className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Location</label>
       {isDefault ? (
         <div className="flex items-center gap-2">
-          <span className="px-3 py-2 rounded-lg bg-pink-50 border border-pink-200 text-zinc-900 font-semibold">
+          <span className="px-3 py-2 rounded-lg bg-pink-50 border border-pink-200 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 font-semibold">
             {profileLocation || 'No location set in profile'}
           </span>
           <button
             type="button"
-            className="ml-2 text-pink-600 hover:underline text-sm font-medium"
+            className="ml-2 text-pink-600 dark:text-pink-300 hover:underline text-sm font-medium"
             onClick={() => setCustom(true)}
           >
             Other location
@@ -31,22 +31,22 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
           <input
             id="post-location"
             name="location"
-            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
+            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300 dark:placeholder-zinc-500"
             placeholder="Enter a different location"
             value={formLocation}
             onChange={e => setForm((f: any) => ({ ...f, location: e.target.value }))}
           />
           <button
             type="button"
-            className="ml-2 text-pink-600 hover:underline text-sm font-medium"
+            className="ml-2 text-pink-600 dark:text-pink-300 hover:underline text-sm font-medium"
             onClick={() => setCustom(false)}
           >
             Use profile location
           </button>
         </div>
       )}
-      <div className="text-xs text-pink-400 mt-1">
-        Posting location: <span className="font-semibold text-pink-600">{formLocation || profileLocation || 'Not set'}</span>
+      <div className="text-xs text-pink-400 dark:text-pink-300 mt-1">
+        Posting location: <span className="font-semibold text-pink-600 dark:text-pink-200">{formLocation || profileLocation || 'Not set'}</span>
       </div>
     </div>
   );
@@ -557,17 +557,17 @@ export default function HomePage() {
             {/* Backdrop overlay disables all interaction with homepage buttons */}
             <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm pointer-events-auto" aria-hidden="true"></div>
             <div className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn">
-              <div className="relative w-full max-w-md sm:max-w-sm p-4 sm:p-6 md:p-8 rounded-3xl shadow-2xl animate-modalIn bg-white border-2 border-pink-200 mx-2"
+              <div className="relative w-full max-w-md sm:max-w-sm p-4 sm:p-6 md:p-8 rounded-3xl shadow-2xl animate-modalIn bg-white dark:bg-zinc-900 border-2 border-pink-200 dark:border-zinc-700 mx-2"
                 style={{ maxHeight: '95vh', overflowY: 'auto' }}
               >
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="absolute top-3 right-3 text-pink-400 hover:text-pink-600 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  className="absolute top-3 right-3 text-pink-400 dark:text-pink-300 hover:text-pink-600 dark:hover:text-pink-200 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
                   aria-label="Close"
                 >
                   &times;
                 </button>
-                <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 tracking-tight">Create a Post</h2>
+                <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 dark:text-pink-200 tracking-tight">Create a Post</h2>
                 <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
                 {/* Post Type Tabs */}
                 <div className="flex gap-2 mb-2">
@@ -589,11 +589,11 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div>
-                  <label htmlFor="post-title" className="block text-sm font-medium text-pink-700 mb-1">Title</label>
+                  <label htmlFor="post-title" className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Title</label>
                   <input
                     id="post-title"
                     name="title"
-                    className="w-full border border-pink-200 rounded-lg px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300"
+                    className="w-full border border-pink-200 dark:border-zinc-700 rounded-lg px-4 py-2 bg-pink-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition placeholder-pink-300 dark:placeholder-zinc-500"
                     placeholder="e.g. Need help with school pickup"
                     value={form.title}
                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -601,11 +601,11 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="post-content" className="block text-sm font-medium text-pink-700 mb-1">Content</label>
+                  <label htmlFor="post-content" className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Content</label>
                   <textarea
                     id="post-content"
                     name="content"
-                    className="w-full border border-pink-200 rounded-lg px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition min-h-[80px] placeholder-pink-300"
+                    className="w-full border border-pink-200 dark:border-zinc-700 rounded-lg px-4 py-2 bg-pink-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition min-h-[80px] placeholder-pink-300 dark:placeholder-zinc-500"
                     placeholder="What's on your mind?"
                     value={form.content}
                     onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
@@ -614,13 +614,13 @@ export default function HomePage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <label htmlFor="post-visibility" className="block text-sm font-medium text-pink-700 mb-1">Visibility</label>
+                    <label htmlFor="post-visibility" className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Visibility</label>
                     <select
                       id="post-visibility"
                       name="visibility"
                       value={form.visibility}
                       onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))}
-                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+                      className="w-full rounded-lg border border-pink-200 dark:border-zinc-700 px-4 py-2 bg-pink-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
                     >
                       <option value="public">Public (visible to all)</option>
                       <option value="village">My Village Only</option>
@@ -634,7 +634,7 @@ export default function HomePage() {
                 </div>
                 {/* Optional photo upload */}
                 <div>
-                  <label className="block text-sm font-medium text-pink-700 mb-1">Photo <span className="text-zinc-400 font-normal">(optional)</span></label>
+                  <label className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Photo <span className="text-zinc-400 dark:text-zinc-500 font-normal">(optional)</span></label>
                   <input
                     ref={photoInputRef}
                     type="file"
@@ -654,11 +654,11 @@ export default function HomePage() {
                   />
                   {photoPreview ? (
                     <div className="relative mt-1">
-                      <img src={photoPreview} alt="Preview" className="w-full rounded-xl object-cover max-h-48 border border-pink-200" />
+                      <img src={photoPreview} alt="Preview" className="w-full rounded-xl object-cover max-h-48 border border-pink-200 dark:border-zinc-700" />
                       <button
                         type="button"
                         onClick={() => { setPhotoFile(null); setPhotoPreview(null); if (photoInputRef.current) photoInputRef.current.value = ''; }}
-                        className="absolute top-2 right-2 bg-white/80 hover:bg-white text-pink-600 rounded-full p-1 text-xs font-bold shadow"
+                        className="absolute top-2 right-2 bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 text-pink-600 dark:text-pink-300 rounded-full p-1 text-xs font-bold shadow"
                         aria-label="Remove photo"
                       >
                         ✕
@@ -668,7 +668,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => photoInputRef.current?.click()}
-                      className="mt-1 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-pink-200 py-3 text-pink-500 hover:border-pink-400 hover:text-pink-600 transition text-sm font-medium bg-pink-50"
+                      className="mt-1 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-pink-200 dark:border-zinc-700 py-3 text-pink-500 dark:text-pink-300 hover:border-pink-400 hover:text-pink-600 dark:hover:text-pink-200 transition text-sm font-medium bg-pink-50 dark:bg-zinc-900"
                     >
                       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586A2 2 0 0111.414 11H12m0 0l2-2m0 0l2 2m-2-2v6m6-10a2 2 0 00-2-2H6a2 2 0 00-2 2v2" /></svg>
                       Add a photo
@@ -677,7 +677,7 @@ export default function HomePage() {
                 </div>
                 <button
                   type="button"
-                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-100 text-pink-700 border-2 border-pink-500 hover:bg-pink-200 hover:scale-105 transition-transform disabled:opacity-60 mt-2 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-100 text-pink-700 border border-pink-500 hover:bg-pink-200 hover:scale-105 transition-transform disabled:opacity-60 mt-2 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
                   disabled={creating}
                   onClick={handleCreatePost}
                 >
@@ -694,7 +694,7 @@ export default function HomePage() {
                   <NavButton href="/find-moms" icon="search" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-pink-500 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 -mt-6 mx-2 dark:hover:bg-pink-900/45"
+                    className="bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-2 border-pink-500 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 -mt-6 mx-2 dark:hover:bg-pink-900/45"
                     aria-label="Create Post"
                     style={{ zIndex: 2 }}
                     disabled={showCreateModal}
