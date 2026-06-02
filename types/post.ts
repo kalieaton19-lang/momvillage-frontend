@@ -12,6 +12,7 @@ export interface Post {
   title: string;
   content: string;
   location?: string;
+  photo_url?: string;
   start_time?: string;
   end_time?: string;
   created_at: string;

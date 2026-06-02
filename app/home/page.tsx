@@ -89,6 +89,9 @@ export default function HomePage() {
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = React.useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -229,17 +232,31 @@ export default function HomePage() {
       // Always use 'public' for non-village posts, never 'local', and normalize
       let scope = form.visibility === "village" ? "village" : "public";
       const normalizedScope = scope.trim().toLowerCase();
-      console.log("scope value:", JSON.stringify(normalizedScope));
-      console.log("Submitting post:", {
-        scope: normalizedScope,
-        village_member_id: normalizedScope === "village" ? village_member_id : null,
-      });
+
+      // Upload photo if selected
+      let photo_url: string | undefined = undefined;
+      if (photoFile) {
+        const ext = photoFile.name.split('.').pop();
+        const fileName = `post-photos/${user.id}-${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('post-photos')
+          .upload(fileName, photoFile, { upsert: true });
+        if (uploadError) {
+          alert('Photo upload failed: ' + uploadError.message);
+          setCreating(false);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from('post-photos').getPublicUrl(fileName);
+        photo_url = urlData.publicUrl;
+      }
+
       const { data, error } = await createPost({
         ...form,
         author_user_id: user.id,
         author_name: profile?.full_name || "Anonymous",
-        scope: normalizedScope as PostScope, // always 'public' or 'village'
+        scope: normalizedScope as PostScope,
         village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
+        photo_url,
       });
       // Persistent debug logs for backend feedback
       console.log("RPC error:", error);
@@ -268,6 +285,9 @@ export default function HomePage() {
           visibility: "public",
           location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
         });
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        if (photoInputRef.current) photoInputRef.current.value = '';
         await loadPosts();
         // Only navigate after post is created and loaded
         // router.push('/home'); // TEMP: Commented out to confirm logs appear before navigation
@@ -400,8 +420,51 @@ export default function HomePage() {
                     setForm={setForm}
                   />
                 </div>
+                {/* Optional photo upload */}
+                <div>
+                  <label className="block text-sm font-medium text-pink-700 mb-1">Photo <span className="text-zinc-400 font-normal">(optional)</span></label>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="post-photo-input"
+                    onChange={e => {
+                      const file = e.target.files?.[0] ?? null;
+                      setPhotoFile(file);
+                      if (file) {
+                        const url = URL.createObjectURL(file);
+                        setPhotoPreview(url);
+                      } else {
+                        setPhotoPreview(null);
+                      }
+                    }}
+                  />
+                  {photoPreview ? (
+                    <div className="relative mt-1">
+                      <img src={photoPreview} alt="Preview" className="w-full rounded-xl object-cover max-h-48 border border-pink-200" />
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoFile(null); setPhotoPreview(null); if (photoInputRef.current) photoInputRef.current.value = ''; }}
+                        className="absolute top-2 right-2 bg-white/80 hover:bg-white text-pink-600 rounded-full p-1 text-xs font-bold shadow"
+                        aria-label="Remove photo"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="mt-1 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-pink-200 py-3 text-pink-500 hover:border-pink-400 hover:text-pink-600 transition text-sm font-medium bg-pink-50"
+                    >
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586A2 2 0 0111.414 11H12m0 0l2-2m0 0l2 2m-2-2v6m6-10a2 2 0 00-2-2H6a2 2 0 00-2 2v2" /></svg>
+                      Add a photo
+                    </button>
+                  )}
+                </div>
                 <button
-                  type="button" // TEMP: prevent form submit navigation
+                  type="button"
                   className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-600 text-white hover:bg-pink-700 hover:scale-105 transition-transform disabled:opacity-60 mt-2"
                   disabled={creating}
                   onClick={handleCreatePost}
@@ -462,7 +525,14 @@ export default function HomePage() {
                         <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
                           <div className="font-bold text-lg mb-1">{post.title}</div>
                           <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
+                            {post.photo_url && (
+                              <img
+                                src={post.photo_url}
+                                alt="Post photo"
+                                className="w-full rounded-xl object-cover max-h-72 mb-2 border border-zinc-100 dark:border-zinc-800"
+                              />
+                            )}
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
                         </div>
                       ))
                     )}

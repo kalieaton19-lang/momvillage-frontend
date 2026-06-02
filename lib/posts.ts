@@ -74,7 +74,7 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
     throw new Error("Session access_token missing — JWT will not be sent with RPC");
   }
 
-  // 2) Call RPC (do NOT rely on p_author_user_id; DB function uses auth.uid())
+  // 2) Call RPC
   let data: any = null;
   let error: any = null;
   try {
@@ -88,18 +88,13 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
       p_location: post.location ?? null,
       p_author_name: post.author_name ?? null,
       p_author_user_id: authUser.id,
+      p_photo_url: (post as any).photo_url ?? null,
     });
     data = res.data;
     error = res.error;
-    console.log("RPC done");
   } catch (e) {
     console.log("RPC THREW:", e);
     throw e;
-  } finally {
-    console.log("RPC error:", error);
-    console.log("RPC data:", data);
-    console.log("typeof data:", typeof data);
-    console.log("isArray:", Array.isArray(data));
   }
   return { data, error };
 }
