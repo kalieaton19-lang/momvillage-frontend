@@ -546,7 +546,10 @@ export default function HomePage() {
                       <div className="text-center text-zinc-500 py-8">No posts in this group yet.</div>
                     ) : (
                       posts.map((post: any) => (
-                        <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
+                        <div
+                          key={post.id}
+                          className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-pink-300 dark:bg-pink-950/20 dark:border-pink-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+                        >
                           <div className="flex items-center gap-3 mb-3">
                             {post.author_user_id && authorPhotoById[post.author_user_id] ? (
                               <img
@@ -604,7 +607,10 @@ export default function HomePage() {
           ) : (
             <>
               {posts.map(post => (
-                <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
+                <div
+                  key={post.id}
+                  className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-pink-300 dark:bg-pink-950/20 dark:border-pink-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+                >
                   <div className="flex items-center gap-3 mb-3">
                     {authorPhotoById[post.author_user_id] ? (
                       <img
