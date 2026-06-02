@@ -257,7 +257,10 @@ export default function HomePage() {
       const maybeMissingTable = String(e?.message || "").includes("post_likes") || String(e?.message || "").includes("does not exist")
         ? "\nInteraction tables may be missing. Run migration 009 in Supabase SQL Editor."
         : "";
-      alert(`Like failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}`);
+      const maybePolicyHint = e?.code === "42501" || String(e?.message || "").toLowerCase().includes("policy")
+        ? "\nLike visibility/persistence may be blocked by stale RLS policies. Run migration 015 in Supabase SQL Editor."
+        : "";
+      alert(`Like failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}${maybePolicyHint}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
     }
