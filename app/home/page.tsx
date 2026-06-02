@@ -573,7 +573,7 @@ export default function HomePage() {
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
-                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-100 text-pink-700 border-pink-500 shadow' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-100 text-pink-700 border-pink-500 shadow dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100 dark:bg-zinc-900 dark:text-pink-300 dark:border-zinc-700 dark:hover:bg-pink-900/20'}`}
                     onClick={() => setForm(f => ({ ...f, type: 'general' }))}
                     aria-pressed={form.type === 'general'}
                   >
@@ -581,7 +581,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-100 text-pink-700 border-pink-500 shadow' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-100 text-pink-700 border-pink-500 shadow dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100 dark:bg-zinc-900 dark:text-pink-300 dark:border-zinc-700 dark:hover:bg-pink-900/20'}`}
                     onClick={() => setForm(f => ({ ...f, type: 'support' }))}
                     aria-pressed={form.type === 'support'}
                   >
@@ -677,7 +677,7 @@ export default function HomePage() {
                 </div>
                 <button
                   type="button"
-                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-100 text-pink-700 border-2 border-pink-500 hover:bg-pink-200 hover:scale-105 transition-transform disabled:opacity-60 mt-2"
+                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-100 text-pink-700 border-2 border-pink-500 hover:bg-pink-200 hover:scale-105 transition-transform disabled:opacity-60 mt-2 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
                   disabled={creating}
                   onClick={handleCreatePost}
                 >
@@ -694,7 +694,7 @@ export default function HomePage() {
                   <NavButton href="/find-moms" icon="search" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-pink-500 dark:border-pink-300 dark:bg-pink-950/30 dark:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 -mt-6 mx-2"
+                    className="bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-pink-500 dark:border-pink-300 dark:bg-pink-950/30 dark:hover:bg-pink-900/45 dark:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 -mt-6 mx-2"
                     aria-label="Create Post"
                     style={{ zIndex: 2 }}
                     disabled={showCreateModal}
@@ -706,9 +706,9 @@ export default function HomePage() {
               </div>
         {/* Feed type toggle */}
         <div className="flex gap-3 mb-4">
-          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'local' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Local</button>
-          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'village' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>My Village</button>
-          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'groups' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Groups</button>
+          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'local' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Local</button>
+          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'village' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>My Village</button>
+          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'groups' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Groups</button>
         </div>
         {/* Feed logic: Local, Village, Groups */}
         <main className="flex-1 overflow-y-auto">
@@ -908,7 +908,7 @@ export default function HomePage() {
                         <button
                           type="submit"
                           disabled={!!interactionBusyByPost[post.id] || !(commentDraftByPost[post.id] || '').trim()}
-                          className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60"
+                          className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
                         >
                           Comment
                         </button>
