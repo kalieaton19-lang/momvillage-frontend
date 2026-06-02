@@ -888,7 +888,13 @@ export default function HomePage() {
                     {post.comments_disabled ? (
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 px-1">Comments are disabled by the post owner.</div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <form
+                        className="flex items-center gap-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleAddComment(post.id);
+                        }}
+                      >
                         <input
                           type="text"
                           value={commentDraftByPost[post.id] || ''}
@@ -897,14 +903,13 @@ export default function HomePage() {
                           className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
                         />
                         <button
-                          type="button"
-                          disabled={!!interactionBusyByPost[post.id]}
-                          onClick={() => handleAddComment(post.id)}
+                          type="submit"
+                          disabled={!!interactionBusyByPost[post.id] || !(commentDraftByPost[post.id] || '').trim()}
                           className="px-3 py-2 rounded-lg bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 disabled:opacity-60"
                         >
                           Comment
                         </button>
-                      </div>
+                      </form>
                     )}
                   </div>
                 </div>
