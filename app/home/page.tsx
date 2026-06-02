@@ -236,8 +236,8 @@ export default function HomePage() {
       // Upload photo if selected
       let photo_url: string | undefined = undefined;
       if (photoFile) {
-        const ext = photoFile.name.split('.').pop();
-        const fileName = `post-photos/${user.id}-${Date.now()}.${ext}`;
+        const ext = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from('post-photos')
           .upload(fileName, photoFile, { upsert: true });
