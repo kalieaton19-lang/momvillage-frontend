@@ -677,7 +677,7 @@ export default function HomePage() {
                 </div>
                 <button
                   type="button"
-                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-100 text-pink-700 border-2 border-pink-500 hover:bg-pink-200 hover:scale-105 transition-transform disabled:opacity-60 mt-2 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-500 text-white border border-pink-500 hover:bg-pink-600 hover:scale-105 transition-transform disabled:opacity-60 mt-2 dark:bg-pink-500 dark:text-white dark:border-pink-400 dark:hover:bg-pink-400"
                   disabled={creating}
                   onClick={handleCreatePost}
                 >
@@ -694,7 +694,7 @@ export default function HomePage() {
                   <NavButton href="/find-moms" icon="search" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-pink-500 dark:border-pink-300 dark:bg-pink-950/30 dark:hover:bg-pink-900/45 dark:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 -mt-6 mx-2"
+                    className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white dark:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-pink-300 -mt-6 mx-2 dark:bg-pink-500 dark:hover:bg-pink-400"
                     aria-label="Create Post"
                     style={{ zIndex: 2 }}
                     disabled={showCreateModal}
