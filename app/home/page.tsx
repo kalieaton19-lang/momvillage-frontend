@@ -294,7 +294,10 @@ export default function HomePage() {
       const maybeMissingTable = String(e?.message || "").includes("post_comments") || String(e?.message || "").includes("does not exist")
         ? "\nInteraction tables may be missing. Run migration 009 in Supabase SQL Editor."
         : "";
-      alert(`Comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}`);
+      const maybeUniqueCommentHint = String(e?.message || "").includes("post_comments_one_author_per_post_idx")
+        ? "\nComments are still limited in your live DB. Run migration 011 in Supabase SQL Editor."
+        : "";
+      alert(`Comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}${maybeUniqueCommentHint}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
     }
