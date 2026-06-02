@@ -128,10 +128,53 @@ export default function HomePage() {
   async function loadPosts() {
     setLoading(true);
     try {
-      let options: any = {};
-      if (feedType === 'local') options.scope = 'public';
-      if (feedType === 'village') options.scope = 'village';
-      setPosts(await fetchPosts(options));
+      if (feedType === 'village' && user) {
+        // Fetch village member user IDs for the current user
+        const { data: memberRows } = await supabase
+          .from('village_members')
+          .select('user_id, member_id')
+          .or(`user_id.eq.${user.id},member_id.eq.${user.id}`);
+
+        // Collect all user IDs in the village (excluding self)
+        const villageUserIds: string[] = [];
+        (memberRows || []).forEach((row: any) => {
+          if (row.user_id !== user.id) villageUserIds.push(row.user_id);
+          if (row.member_id !== user.id) villageUserIds.push(row.member_id);
+        });
+        // Always include self
+        villageUserIds.push(user.id);
+        const uniqueVillageUserIds = [...new Set(villageUserIds)];
+
+        // Fetch village-scoped posts + public posts from village members
+        const [villagePosts, publicVillagePosts] = await Promise.all([
+          fetchPosts({ scope: 'village' }),
+          uniqueVillageUserIds.length > 0
+            ? supabase
+                .from('posts')
+                .select('*')
+                .eq('scope', 'public')
+                .in('author_user_id', uniqueVillageUserIds)
+                .order('created_at', { ascending: false })
+                .then(({ data }) => data || [])
+            : Promise.resolve([]),
+        ]);
+
+        // Merge, deduplicate by id, sort by created_at desc
+        const merged = [...villagePosts, ...publicVillagePosts];
+        const seen = new Set<string>();
+        const deduped = merged.filter((p: any) => {
+          if (seen.has(p.id)) return false;
+          seen.add(p.id);
+          return true;
+        });
+        deduped.sort((a: any, b: any) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setPosts(deduped as any);
+      } else {
+        // Local feed: all public posts
+        setPosts(await fetchPosts({ scope: 'public' }));
+      }
     } catch (e) {
       setPosts([]);
     } finally {
