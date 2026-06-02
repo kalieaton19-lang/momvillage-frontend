@@ -102,8 +102,8 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
 export type PostCommentRow = {
   id: string;
   post_id: string;
-  user_id: string;
-  content: string;
+  author_user_id: string;
+  body: string;
   created_at: string;
 };
 
@@ -119,7 +119,7 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
 
   const [{ data: likes, error: likesError }, { data: comments, error: commentsError }, { data: shares, error: sharesError }] = await Promise.all([
     supabase.from("post_likes").select("post_id,user_id").in("post_id", postIds),
-    supabase.from("post_comments").select("id,post_id,user_id,content,created_at").in("post_id", postIds).order("created_at", { ascending: true }),
+    supabase.from("post_comments").select("id,post_id,author_user_id,body,created_at").in("post_id", postIds).order("created_at", { ascending: true }),
     supabase.from("post_shares").select("post_id,user_id").in("post_id", postIds),
   ]);
 
@@ -165,7 +165,7 @@ export async function togglePostLike(postId: string, userId: string, currentlyLi
 export async function addPostComment(postId: string, userId: string, content: string): Promise<void> {
   const trimmed = content.trim();
   if (!trimmed) return;
-  const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: userId, content: trimmed });
+  const { error } = await supabase.from("post_comments").insert({ post_id: postId, author_user_id: userId, body: trimmed });
   if (error) throw error;
 }
 

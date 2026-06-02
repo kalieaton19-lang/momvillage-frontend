@@ -278,8 +278,8 @@ export default function HomePage() {
       const newComment: PostCommentRow = {
         id: `${Date.now()}`,
         post_id: postId,
-        user_id: user.id,
-        content: draft,
+        author_user_id: user.id,
+        body: draft,
         created_at: new Date().toISOString(),
       };
       setCommentsByPost((prev) => ({
@@ -881,8 +881,8 @@ export default function HomePage() {
                   <div className="mt-3 space-y-2">
                     {(commentsByPost[post.id] || []).map((comment) => (
                       <div key={comment.id} className="text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-2 border border-zinc-200 dark:border-zinc-700">
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.user_id === user?.id ? 'You' : 'Mom'}</span>
-                        <span className="text-zinc-700 dark:text-zinc-200">{comment.content}</span>
+                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.author_user_id === user?.id ? 'You' : 'Mom'}</span>
+                        <span className="text-zinc-700 dark:text-zinc-200">{comment.body}</span>
                       </div>
                     ))}
                     {post.comments_disabled ? (
