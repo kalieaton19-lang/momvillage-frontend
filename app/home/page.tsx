@@ -89,6 +89,7 @@ export default function HomePage() {
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
+  const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = React.useRef<HTMLInputElement>(null);
@@ -131,6 +132,7 @@ export default function HomePage() {
   async function loadPosts() {
     setLoading(true);
     try {
+      let nextPosts: Post[] = [];
       if (feedType === 'village' && user) {
         // Fetch village member user IDs for the current user
         const { data: memberRows } = await supabase
@@ -173,13 +175,35 @@ export default function HomePage() {
         deduped.sort((a: any, b: any) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-        setPosts(deduped as any);
+        nextPosts = deduped as Post[];
       } else {
         // Local feed: all public posts
-        setPosts(await fetchPosts({ scope: 'public' }));
+        nextPosts = await fetchPosts({ scope: 'public' });
+      }
+
+      setPosts(nextPosts);
+
+      // Hydrate author profile photos for post cards
+      const authorIds = [...new Set(nextPosts.map((post) => post.author_user_id).filter(Boolean))];
+      if (authorIds.length === 0) {
+        setAuthorPhotoById({});
+      } else {
+        const { data: authorProfiles } = await supabase
+          .from('user_public_profiles')
+          .select('id, profile_photo_url')
+          .in('id', authorIds);
+
+        const authorPhotoMap: Record<string, string> = {};
+        (authorProfiles || []).forEach((profile: any) => {
+          if (profile?.id && profile?.profile_photo_url) {
+            authorPhotoMap[profile.id] = profile.profile_photo_url;
+          }
+        });
+        setAuthorPhotoById(authorPhotoMap);
       }
     } catch (e) {
       setPosts([]);
+      setAuthorPhotoById({});
     } finally {
       setLoading(false);
     }
@@ -565,15 +589,23 @@ export default function HomePage() {
             <>
               {posts.map(post => (
                 <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mb-4 shadow-sm">
-                  {('type' in post) && ('scope' in post) && ('visibility' in post) ? (
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.type === 'support' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'}`}>{post.type === 'support' ? 'Support' : 'General'}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.scope === 'village' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>{post.scope === 'village' ? 'My Village' : 'Local'}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${post.visibility === 'public' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>{post.visibility === 'public' ? 'Public' : 'Village Only'}</span>
+                  <div className="flex items-center gap-3 mb-3">
+                    {authorPhotoById[post.author_user_id] ? (
+                      <img
+                        src={authorPhotoById[post.author_user_id]}
+                        alt={post.author_name || 'Mom'}
+                        className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                        {(post.author_name || 'M').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                     </div>
-                  ) : null}
-                  <div className="font-bold text-lg mb-1">{post.title}</div>
-                  <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                  </div>
                   {post.photo_url && (
                     <img
                       src={post.photo_url}
@@ -581,7 +613,8 @@ export default function HomePage() {
                       className="w-full rounded-xl object-cover max-h-72 mb-2 border border-zinc-100 dark:border-zinc-800"
                     />
                   )}
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">By {post.author_name} • {new Date(post.created_at).toLocaleString()}</div>
+                  <div className="font-bold text-lg mb-1">{post.title}</div>
+                  <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
                 </div>
               ))}
             </>
