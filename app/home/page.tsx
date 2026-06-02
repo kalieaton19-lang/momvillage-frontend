@@ -733,7 +733,7 @@ export default function HomePage() {
                       posts.map((post: any) => (
                         <div
                           key={post.id}
-                          className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-zinc-200 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+                          className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-rose-50/60 border-rose-100 shadow-[0_4px_12px_rgba(244,114,182,0.12)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.14)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                         >
                           <div className="flex items-center gap-3 mb-3">
                             {post.author_user_id && authorPhotoById[post.author_user_id] ? (
@@ -795,7 +795,7 @@ export default function HomePage() {
                 <div
                   key={post.id}
                   id={`post-${post.id}`}
-                  className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-zinc-200 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
+                  className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-rose-50/60 border-rose-100 shadow-[0_4px_12px_rgba(244,114,182,0.12)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.14)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
