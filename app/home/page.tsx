@@ -55,7 +55,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
-import { fetchPosts, createPost } from "../../lib/posts";
+import { fetchPosts, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
 import type { JSX } from "react";
 
@@ -90,6 +90,12 @@ export default function HomePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
+  const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
+  const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
+  const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
+  const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
+  const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = React.useRef<HTMLInputElement>(null);
@@ -201,11 +207,91 @@ export default function HomePage() {
         });
         setAuthorPhotoById(authorPhotoMap);
       }
+
+      const postIds = nextPosts.map((post) => post.id);
+      const interactions = await fetchPostInteractions(postIds, user?.id);
+      setLikesCountByPost(interactions.likesCountByPost);
+      setLikedByMeByPost(interactions.likedByMeByPost);
+      setSharesCountByPost(interactions.sharesCountByPost);
+      setCommentsByPost(interactions.commentsByPost);
     } catch (e) {
       setPosts([]);
       setAuthorPhotoById({});
+      setLikesCountByPost({});
+      setLikedByMeByPost({});
+      setSharesCountByPost({});
+      setCommentsByPost({});
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleToggleLike(postId: string) {
+    if (!user?.id) return;
+    const currentlyLiked = !!likedByMeByPost[postId];
+    setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    try {
+      await togglePostLike(postId, user.id, currentlyLiked);
+      setLikedByMeByPost((prev) => ({ ...prev, [postId]: !currentlyLiked }));
+      setLikesCountByPost((prev) => ({
+        ...prev,
+        [postId]: Math.max(0, (prev[postId] || 0) + (currentlyLiked ? -1 : 1)),
+      }));
+    } catch (e: any) {
+      alert("Like failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleAddComment(postId: string) {
+    if (!user?.id) return;
+    const draft = (commentDraftByPost[postId] || "").trim();
+    if (!draft) return;
+    setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    try {
+      await addPostComment(postId, user.id, draft);
+      const newComment: PostCommentRow = {
+        id: `${Date.now()}`,
+        post_id: postId,
+        user_id: user.id,
+        content: draft,
+        created_at: new Date().toISOString(),
+      };
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), newComment],
+      }));
+      setCommentDraftByPost((prev) => ({ ...prev, [postId]: "" }));
+    } catch (e: any) {
+      alert("Comment failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleShare(post: Post) {
+    if (!user?.id) return;
+    if (post.visibility !== "public") {
+      alert("Only public posts can be shared.");
+      return;
+    }
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      await sharePost(post.id, user.id);
+      setSharesCountByPost((prev) => ({ ...prev, [post.id]: (prev[post.id] || 0) + 1 }));
+
+      const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/home#post-${post.id}` : "";
+      if (typeof navigator !== "undefined" && (navigator as any).share && shareUrl) {
+        await (navigator as any).share({ title: post.title, text: post.content, url: shareUrl });
+      } else if (shareUrl && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("Post link copied to clipboard.");
+      }
+    } catch (e: any) {
+      alert("Share failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
   }
 
@@ -609,6 +695,7 @@ export default function HomePage() {
               {posts.map(post => (
                 <div
                   key={post.id}
+                  id={`post-${post.id}`}
                   className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-zinc-200 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                 >
                   <div className="flex items-center gap-3 mb-3">
@@ -637,6 +724,53 @@ export default function HomePage() {
                   )}
                   <div className="font-bold text-lg mb-1">{post.title}</div>
                   <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
+
+                  <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-sm">
+                    <button
+                      type="button"
+                      disabled={!!interactionBusyByPost[post.id]}
+                      onClick={() => handleToggleLike(post.id)}
+                      className={`px-3 py-1 rounded-full border transition ${likedByMeByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-300 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                    >
+                      {likedByMeByPost[post.id] ? '♥' : '♡'} Like {likesCountByPost[post.id] || 0}
+                    </button>
+                    {post.visibility === 'public' && (
+                      <button
+                        type="button"
+                        disabled={!!interactionBusyByPost[post.id]}
+                        onClick={() => handleShare(post)}
+                        className="px-3 py-1 rounded-full border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700"
+                      >
+                        ↗ Share {sharesCountByPost[post.id] || 0}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {(commentsByPost[post.id] || []).map((comment) => (
+                      <div key={comment.id} className="text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-2 border border-zinc-200 dark:border-zinc-700">
+                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.user_id === user?.id ? 'You' : 'Mom'}</span>
+                        <span className="text-zinc-700 dark:text-zinc-200">{comment.content}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={commentDraftByPost[post.id] || ''}
+                        onChange={(e) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                        placeholder="Write a comment..."
+                        className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
+                      />
+                      <button
+                        type="button"
+                        disabled={!!interactionBusyByPost[post.id]}
+                        onClick={() => handleAddComment(post.id)}
+                        className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 disabled:opacity-60"
+                      >
+                        Comment
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </>

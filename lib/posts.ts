@@ -98,3 +98,78 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
   }
   return { data, error };
 }
+
+export type PostCommentRow = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+};
+
+export async function fetchPostInteractions(postIds: string[], currentUserId?: string) {
+  if (postIds.length === 0) {
+    return {
+      likesCountByPost: {} as Record<string, number>,
+      likedByMeByPost: {} as Record<string, boolean>,
+      sharesCountByPost: {} as Record<string, number>,
+      commentsByPost: {} as Record<string, PostCommentRow[]>,
+    };
+  }
+
+  const [{ data: likes, error: likesError }, { data: comments, error: commentsError }, { data: shares, error: sharesError }] = await Promise.all([
+    supabase.from("post_likes").select("post_id,user_id").in("post_id", postIds),
+    supabase.from("post_comments").select("id,post_id,user_id,content,created_at").in("post_id", postIds).order("created_at", { ascending: true }),
+    supabase.from("post_shares").select("post_id,user_id").in("post_id", postIds),
+  ]);
+
+  if (likesError) throw likesError;
+  if (commentsError) throw commentsError;
+  if (sharesError) throw sharesError;
+
+  const likesCountByPost: Record<string, number> = {};
+  const likedByMeByPost: Record<string, boolean> = {};
+  (likes || []).forEach((like: any) => {
+    likesCountByPost[like.post_id] = (likesCountByPost[like.post_id] || 0) + 1;
+    if (currentUserId && like.user_id === currentUserId) {
+      likedByMeByPost[like.post_id] = true;
+    }
+  });
+
+  const sharesCountByPost: Record<string, number> = {};
+  (shares || []).forEach((share: any) => {
+    sharesCountByPost[share.post_id] = (sharesCountByPost[share.post_id] || 0) + 1;
+  });
+
+  const commentsByPost: Record<string, PostCommentRow[]> = {};
+  (comments || []).forEach((comment: any) => {
+    if (!commentsByPost[comment.post_id]) commentsByPost[comment.post_id] = [];
+    commentsByPost[comment.post_id].push(comment as PostCommentRow);
+  });
+
+  return { likesCountByPost, likedByMeByPost, sharesCountByPost, commentsByPost };
+}
+
+export async function togglePostLike(postId: string, userId: string, currentlyLiked: boolean): Promise<void> {
+  if (currentlyLiked) {
+    const { error } = await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", userId);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
+  if (error) throw error;
+}
+
+export async function addPostComment(postId: string, userId: string, content: string): Promise<void> {
+  const trimmed = content.trim();
+  if (!trimmed) return;
+  const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: userId, content: trimmed });
+  if (error) throw error;
+}
+
+export async function sharePost(postId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("post_shares")
+    .upsert({ post_id: postId, user_id: userId }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
+  if (error) throw error;
+}
