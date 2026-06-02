@@ -107,6 +107,13 @@ export type PostCommentRow = {
   created_at: string;
 };
 
+function isMissingRelationError(error: any): boolean {
+  if (!error) return false;
+  if (error.code === "42P01") return true;
+  const message = String(error.message || "").toLowerCase();
+  return message.includes("does not exist") || message.includes("relation");
+}
+
 export async function fetchPostInteractions(postIds: string[], currentUserId?: string) {
   if (postIds.length === 0) {
     return {
@@ -123,13 +130,13 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
     supabase.from("post_shares").select("post_id,user_id").in("post_id", postIds),
   ]);
 
-  if (likesError) throw likesError;
+  if (likesError && !isMissingRelationError(likesError)) throw likesError;
   if (commentsError) throw commentsError;
-  if (sharesError) throw sharesError;
+  if (sharesError && !isMissingRelationError(sharesError)) throw sharesError;
 
   const likesCountByPost: Record<string, number> = {};
   const likedByMeByPost: Record<string, boolean> = {};
-  (likes || []).forEach((like: any) => {
+  ((likesError ? [] : likes) || []).forEach((like: any) => {
     likesCountByPost[like.post_id] = (likesCountByPost[like.post_id] || 0) + 1;
     if (currentUserId && like.user_id === currentUserId) {
       likedByMeByPost[like.post_id] = true;
@@ -137,7 +144,7 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
   });
 
   const sharesCountByPost: Record<string, number> = {};
-  (shares || []).forEach((share: any) => {
+  ((sharesError ? [] : shares) || []).forEach((share: any) => {
     sharesCountByPost[share.post_id] = (sharesCountByPost[share.post_id] || 0) + 1;
   });
 
