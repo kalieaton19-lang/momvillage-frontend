@@ -13,6 +13,7 @@ export interface Post {
   content: string;
   location?: string;
   photo_url?: string;
+  comments_disabled?: boolean;
   start_time?: string;
   end_time?: string;
   created_at: string;

@@ -96,6 +96,7 @@ export default function HomePage() {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
+  const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = React.useRef<HTMLInputElement>(null);
@@ -264,6 +265,11 @@ export default function HomePage() {
 
   async function handleAddComment(postId: string) {
     if (!user?.id) return;
+    const targetPost = posts.find((post) => post.id === postId);
+    if (targetPost?.comments_disabled) {
+      alert("Comments are disabled for this post.");
+      return;
+    }
     const draft = (commentDraftByPost[postId] || "").trim();
     if (!draft) return;
     setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
@@ -291,6 +297,57 @@ export default function HomePage() {
       alert(`Comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleDeletePost(postId: string) {
+    if (!user?.id) return;
+    const confirmed = window.confirm("Delete this post? This cannot be undone.");
+    if (!confirmed) return;
+    setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    try {
+      const { error } = await supabase.from("posts").delete().eq("id", postId);
+      if (error) throw error;
+      setPosts((prev) => prev.filter((post) => post.id !== postId));
+      setCommentsByPost((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setLikesCountByPost((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setSharesCountByPost((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setOpenPostMenuId(null);
+    } catch (e: any) {
+      alert("Delete failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleToggleCommentsDisabled(post: Post) {
+    if (!user?.id) return;
+    const nextValue = !post.comments_disabled;
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({ comments_disabled: nextValue })
+        .eq("id", post.id);
+      if (error) throw error;
+      setPosts((prev) => prev.map((entry) => (entry.id === post.id ? { ...entry, comments_disabled: nextValue } : entry)));
+      setOpenPostMenuId(null);
+    } catch (e: any) {
+      alert("Update failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
   }
 
@@ -728,22 +785,55 @@ export default function HomePage() {
                   id={`post-${post.id}`}
                   className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-zinc-200 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-zinc-800 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    {authorPhotoById[post.author_user_id] ? (
-                      <img
-                        src={authorPhotoById[post.author_user_id]}
-                        alt={post.author_name || 'Mom'}
-                        className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                        {(post.author_name || 'M').charAt(0).toUpperCase()}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {authorPhotoById[post.author_user_id] ? (
+                        <img
+                          src={authorPhotoById[post.author_user_id]}
+                          alt={post.author_name || 'Mom'}
+                          className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                          {(post.author_name || 'M').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {user?.id === post.author_user_id && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="Post actions"
+                          onClick={() => setOpenPostMenuId((prev) => (prev === post.id ? null : post.id))}
+                          className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+                        >
+                          ⋯
+                        </button>
+                        {openPostMenuId === post.id && (
+                          <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCommentsDisabled(post)}
+                              className="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                            >
+                              {post.comments_disabled ? "Enable comments" : "Disable comments"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePost(post.id)}
+                              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                              Delete post
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
-                    <div className="min-w-0">
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
-                    </div>
                   </div>
                   {post.photo_url && (
                     <img
@@ -783,23 +873,27 @@ export default function HomePage() {
                         <span className="text-zinc-700 dark:text-zinc-200">{comment.content}</span>
                       </div>
                     ))}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={commentDraftByPost[post.id] || ''}
-                        onChange={(e) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                        placeholder="Write a comment..."
-                        className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
-                      />
-                      <button
-                        type="button"
-                        disabled={!!interactionBusyByPost[post.id]}
-                        onClick={() => handleAddComment(post.id)}
-                        className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 disabled:opacity-60"
-                      >
-                        Comment
-                      </button>
-                    </div>
+                    {post.comments_disabled ? (
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 px-1">Comments are disabled by the post owner.</div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={commentDraftByPost[post.id] || ''}
+                          onChange={(e) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                          placeholder="Write a comment..."
+                          className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
+                        />
+                        <button
+                          type="button"
+                          disabled={!!interactionBusyByPost[post.id]}
+                          onClick={() => handleAddComment(post.id)}
+                          className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 disabled:opacity-60"
+                        >
+                          Comment
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
