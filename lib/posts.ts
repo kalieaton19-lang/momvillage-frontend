@@ -156,7 +156,9 @@ export async function togglePostLike(postId: string, userId: string, currentlyLi
     if (error) throw error;
     return;
   }
-  const { error } = await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
+  const { error } = await supabase
+    .from("post_likes")
+    .upsert({ post_id: postId, user_id: userId }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
   if (error) throw error;
 }
 
