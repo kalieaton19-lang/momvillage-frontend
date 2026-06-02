@@ -131,8 +131,39 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
   ]);
 
   if (likesError && !isMissingRelationError(likesError)) throw likesError;
-  if (commentsError) throw commentsError;
   if (sharesError && !isMissingRelationError(sharesError)) throw sharesError;
+
+  let normalizedComments: PostCommentRow[] = (comments || []) as PostCommentRow[];
+  if (commentsError) {
+    const message = String(commentsError.message || "").toLowerCase();
+    const missingNewColumns =
+      commentsError.code === "42703" ||
+      message.includes("author_user_id") ||
+      message.includes("body") ||
+      message.includes("column");
+
+    if (missingNewColumns) {
+      const { data: legacyComments, error: legacyCommentsError } = await supabase
+        .from("post_comments")
+        .select("id,post_id,user_id,content,created_at")
+        .in("post_id", postIds)
+        .order("created_at", { ascending: true });
+
+      if (legacyCommentsError) {
+        throw legacyCommentsError;
+      }
+
+      normalizedComments = (legacyComments || []).map((comment: any) => ({
+        id: comment.id,
+        post_id: comment.post_id,
+        author_user_id: comment.user_id,
+        body: comment.content,
+        created_at: comment.created_at,
+      }));
+    } else {
+      throw commentsError;
+    }
+  }
 
   const likesCountByPost: Record<string, number> = {};
   const likedByMeByPost: Record<string, boolean> = {};
@@ -149,7 +180,7 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
   });
 
   const commentsByPost: Record<string, PostCommentRow[]> = {};
-  (comments || []).forEach((comment: any) => {
+  (normalizedComments || []).forEach((comment: any) => {
     if (!commentsByPost[comment.post_id]) commentsByPost[comment.post_id] = [];
     commentsByPost[comment.post_id].push(comment as PostCommentRow);
   });
