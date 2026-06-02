@@ -124,6 +124,22 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
     };
   }
 
+  if (typeof window !== "undefined") {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const tokenPresent = Boolean(session?.access_token);
+      const sessionUserId = session?.user?.id || null;
+      console.log("[fetchPostInteractions] auth debug", {
+        tokenPresent,
+        sessionUserId,
+        currentUserId: currentUserId || null,
+        postIdsCount: postIds.length,
+      });
+    } catch (sessionDebugError) {
+      console.log("[fetchPostInteractions] auth debug failed", sessionDebugError);
+    }
+  }
+
   const [{ data: likes, error: likesError }, { data: comments, error: commentsError }, { data: shares, error: sharesError }] = await Promise.all([
     supabase.from("post_likes").select("post_id,user_id").in("post_id", postIds),
     supabase.from("post_comments").select("id,post_id,author_user_id,body,created_at").in("post_id", postIds).order("created_at", { ascending: true }),
