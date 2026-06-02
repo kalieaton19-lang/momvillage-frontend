@@ -570,7 +570,7 @@ export default function HomePage() {
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
-                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-500 text-white border-pink-500 shadow' : 'bg-pink-50 text-pink-500 border-pink-200 hover:bg-pink-100'}`}
                     onClick={() => setForm(f => ({ ...f, type: 'general' }))}
                     aria-pressed={form.type === 'general'}
                   >
@@ -578,7 +578,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-500 text-white border-pink-500 shadow' : 'bg-pink-50 text-pink-500 border-pink-200 hover:bg-pink-100'}`}
                     onClick={() => setForm(f => ({ ...f, type: 'support' }))}
                     aria-pressed={form.type === 'support'}
                   >
@@ -954,7 +954,7 @@ function NavButton({ href, icon, label, className = "" }: { href: string; icon: 
   const pathname = usePathname ? usePathname() : undefined;
   const isActive = pathname && (pathname === href || (href === "/find-moms" && pathname.startsWith("/find-moms")) || (href === "/messages" && pathname.startsWith("/messages")) || (href === "/notifications" && pathname.startsWith("/notifications")));
   // Add pink highlight if active
-  const activeClass = isActive ? "bg-pink-600 text-white border-pink-600 dark:bg-pink-700 dark:border-pink-700" : "";
+  const activeClass = isActive ? "bg-pink-500 text-white border-pink-500 dark:bg-pink-600 dark:border-pink-600" : "";
   const iconMap: Record<string, JSX.Element> = {
     user: (
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7"><circle cx="12" cy="8" r="4" strokeWidth="1.5"/><path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/></svg>
