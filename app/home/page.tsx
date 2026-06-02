@@ -570,7 +570,7 @@ export default function HomePage() {
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
-                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-700 border-pink-200'}`}
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'general' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
                     onClick={() => setForm(f => ({ ...f, type: 'general' }))}
                     aria-pressed={form.type === 'general'}
                   >
@@ -578,7 +578,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-700 border-pink-200'}`}
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${form.type === 'support' ? 'bg-pink-600 text-white border-pink-600 shadow' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
                     onClick={() => setForm(f => ({ ...f, type: 'support' }))}
                     aria-pressed={form.type === 'support'}
                   >
@@ -703,9 +703,9 @@ export default function HomePage() {
               </div>
         {/* Feed type toggle */}
         <div className="flex gap-3 mb-4">
-          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'local' ? 'bg-pink-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Local</button>
-          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'village' ? 'bg-pink-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>My Village</button>
-          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'groups' ? 'bg-pink-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200'}`}>Groups</button>
+          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'local' ? 'bg-pink-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300'}`}>Local</button>
+          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'village' ? 'bg-pink-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300'}`}>My Village</button>
+          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold ${feedType === 'groups' ? 'bg-pink-500 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300'}`}>Groups</button>
         </div>
         {/* Feed logic: Local, Village, Groups */}
         <main className="flex-1 overflow-y-auto">
