@@ -59,19 +59,19 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
   // Map frontend scope to backend scope if needed
   const scope = post.scope === 'local' ? 'public' : post.scope;
 
-  // 1) Hard auth gate immediately before RPC
+  // 1) Hard auth gate: use getUser() to verify token is valid server-side (not just cached)
+  const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  if (!authUser?.id) {
+    throw new Error("No authenticated user found (getUser returned null — session may not be restored yet)");
+  }
+  console.log("RPC auth context user.id:", authUser.id);
+
+  // Also confirm local session exists (belt-and-suspenders)
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
-  if (!session?.user?.id) {
-    throw new Error("No logged-in user in auth context (session missing when calling RPC)");
-  }
-
-  // Optional: verify auth context for logging
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    console.log("RPC auth context user.id:", userData?.user?.id);
-  } catch (e) {
-    console.log("supabase.auth.getUser() error:", e);
+  if (!session?.access_token) {
+    throw new Error("Session access_token missing — JWT will not be sent with RPC");
   }
 
   // 2) Call RPC (do NOT rely on p_author_user_id; DB function uses auth.uid())
@@ -87,7 +87,7 @@ export async function createPost(post: Omit<Post, "id" | "created_at" | "updated
       p_visibility: post.visibility,
       p_location: post.location ?? null,
       p_author_name: post.author_name ?? null,
-      p_author_user_id: session.user.id,
+      p_author_user_id: authUser.id,
     });
     data = res.data;
     error = res.error;
