@@ -11,6 +11,7 @@ import type { Post } from "../../../types/post";
 export default function ProfilePage() {
   const { id } = useParams();
   const router = useRouter();
+  const profileUserId = Array.isArray(id) ? id[0] : id;
 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,11 @@ export default function ProfilePage() {
   const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
+  const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
+  const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
+  const [expandedCommentsByPost, setExpandedCommentsByPost] = useState<Record<string, boolean>>({});
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
@@ -43,7 +49,7 @@ export default function ProfilePage() {
       const { data, error } = await supabase
         .from("user_public_profiles")
         .select("id, full_name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio")
-        .eq("id", id)
+        .eq("id", profileUserId)
         .single();
       if (error) {
         setError("Profile not found.");
@@ -120,22 +126,26 @@ export default function ProfilePage() {
       }
       setLoading(false);
     }
-    if (id) fetchProfile();
-  }, [id, currentUser?.id]);
+    if (profileUserId) fetchProfile();
+  }, [profileUserId, currentUser?.id]);
 
   // Fetch current user and invitation/village status
   useEffect(() => {
     async function fetchStatus() {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
-      if (!user || !id || user.id === id) return;
+      if (!user || !profileUserId) return;
+      if (user.id === profileUserId) {
+        router.replace("/profile");
+        return;
+      }
       // Check if in village
       const { data: members } = await supabase
         .from("village_invitations")
         .select("id, from_user_id, to_user_id, status")
         .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
         .eq("status", "accepted");
-      const inVillage = (members ?? []).some((m: any) => (m.from_user_id === id || m.to_user_id === id));
+      const inVillage = (members ?? []).some((m: any) => (m.from_user_id === profileUserId || m.to_user_id === profileUserId));
       if (inVillage) {
         setInviteStatus("in-village");
         return;
@@ -145,7 +155,7 @@ export default function ProfilePage() {
         .from("village_invitations")
         .select("id, status")
         .eq("from_user_id", user.id)
-        .eq("to_user_id", id)
+        .eq("to_user_id", profileUserId)
         .order("created_at", { ascending: false });
       if ((sentInvites ?? []).some((i: any) => i.status === "pending" || i.status === "resent")) {
         setInviteStatus("invited-by-me");
@@ -155,7 +165,7 @@ export default function ProfilePage() {
       const { data: receivedInvites } = await supabase
         .from("village_invitations")
         .select("id, status")
-        .eq("from_user_id", id)
+        .eq("from_user_id", profileUserId)
         .eq("to_user_id", user.id)
         .order("created_at", { ascending: false });
       if ((receivedInvites ?? []).some((i: any) => i.status === "pending" || i.status === "resent")) {
@@ -165,20 +175,20 @@ export default function ProfilePage() {
       setInviteStatus("none");
     }
     fetchStatus();
-  }, [id]);
+  }, [profileUserId, router]);
 
   // Fetch this user's village members
   useEffect(() => {
     async function fetchVillage() {
-      if (!id) return;
+      if (!profileUserId) return;
       // Find all accepted invitations where this user is sender or recipient
       const { data: invites } = await supabase
         .from("village_invitations")
         .select("from_user_id, to_user_id, status")
-        .or(`from_user_id.eq.${id},to_user_id.eq.${id}`)
+        .or(`from_user_id.eq.${profileUserId},to_user_id.eq.${profileUserId}`)
         .eq("status", "accepted");
       const memberIds = [...new Set((invites ?? []).map((invite: any) => (
-        invite.from_user_id === id ? invite.to_user_id : invite.from_user_id
+        invite.from_user_id === profileUserId ? invite.to_user_id : invite.from_user_id
       )))];
       if (memberIds.length === 0) {
         setVillageMembers([]);
@@ -191,11 +201,11 @@ export default function ProfilePage() {
       setVillageMembers(profiles ?? []);
     }
     fetchVillage();
-  }, [id]);
+  }, [profileUserId]);
 
   async function handleInvite() {
-    if (!currentUser || !id) return;
-    const targetUserId = Array.isArray(id) ? id[0] : id;
+    if (!currentUser || !profileUserId) return;
+    const targetUserId = profileUserId;
     setInviteLoading(true);
     try {
       const { error } = await supabase
@@ -283,6 +293,140 @@ export default function ProfilePage() {
     }
   }
 
+  function handleStartEditComment(comment: PostCommentRow) {
+    setEditingCommentId(comment.id);
+    setEditingCommentDraft(comment.body);
+    setOpenCommentMenuId(null);
+  }
+
+  function handleCancelEditComment() {
+    setEditingCommentId(null);
+    setEditingCommentDraft("");
+  }
+
+  async function handleSaveCommentEdit(post: Post, comment: PostCommentRow) {
+    if (!currentUser?.id) return;
+    const trimmed = editingCommentDraft.trim();
+    if (!trimmed) {
+      alert("Comment can't be empty.");
+      return;
+    }
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("post_comments")
+        .update({ body: trimmed })
+        .eq("id", comment.id)
+        .eq("author_user_id", currentUser.id);
+      if (error) throw error;
+
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [post.id]: (prev[post.id] || []).map((entry) =>
+          entry.id === comment.id ? { ...entry, body: trimmed } : entry
+        ),
+      }));
+      handleCancelEditComment();
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      alert(`Edit comment failed${maybeCode}: ${e?.message || "Unknown error"}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
+  async function handleDeleteComment(post: Post, comment: PostCommentRow) {
+    if (!currentUser?.id) return;
+    const canDelete = currentUser.id === comment.author_user_id || currentUser.id === post.author_user_id;
+    if (!canDelete) return;
+
+    const confirmed = window.confirm("Delete this comment? This cannot be undone.");
+    if (!confirmed) return;
+
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("post_comments")
+        .delete()
+        .eq("id", comment.id);
+      if (error) throw error;
+
+      if (editingCommentId === comment.id) {
+        handleCancelEditComment();
+      }
+      setOpenCommentMenuId(null);
+
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [post.id]: (prev[post.id] || []).filter((entry) => entry.id !== comment.id),
+      }));
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      alert(`Delete comment failed${maybeCode}: ${e?.message || "Unknown error"}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
+  async function handleDeletePost(postId: string) {
+    if (!currentUser?.id) return;
+    const confirmed = window.confirm("Delete this post? This cannot be undone.");
+    if (!confirmed) return;
+    setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    try {
+      const { error } = await supabase.from("posts").delete().eq("id", postId);
+      if (error) throw error;
+      setPosts((prev) => prev.filter((post) => post.id !== postId));
+      setCommentsByPost((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setLikesCountByPost((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setSharesCountByPost((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setOpenPostMenuId(null);
+    } catch (e: any) {
+      alert("Delete failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleToggleCommentsDisabled(post: Post) {
+    if (!currentUser?.id) return;
+    const nextValue = !post.comments_disabled;
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { data: updatedRows, error } = await supabase
+        .from("posts")
+        .update({ comments_disabled: nextValue })
+        .eq("id", post.id)
+        .eq("author_user_id", currentUser.id)
+        .select("id");
+      if (error) throw error;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error("Not allowed to update this post.");
+      }
+      setPosts((prev) => prev.map((entry) => (
+        entry.id === post.id ? { ...entry, comments_disabled: nextValue } : entry
+      )));
+      setOpenPostMenuId(null);
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      alert(`Update failed${maybeCode}: ${e?.message || "Unknown error"}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
   if (loading) return <div className="p-8 text-center">Loading profile...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!profile) return null;
@@ -347,7 +491,7 @@ export default function ProfilePage() {
           {/* Message Button removed from banner as now redundant */}
         </div>
         {/* Status banner or invite button below banner */}
-        {currentUser && currentUser.id !== id && (
+        {currentUser && currentUser.id !== profileUserId && (
           <div className="flex flex-row justify-center items-center gap-3 mt-3 mb-2">
             {/* Status/invite button */}
             {inviteStatus === "in-village" && (
@@ -388,7 +532,7 @@ export default function ProfilePage() {
                                   await supabase
                                     .from('village_invitations')
                                     .delete()
-                                    .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${id}),and(from_user_id.eq.${id},to_user_id.eq.${currentUser.id})`);
+                                    .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${profileUserId}),and(from_user_id.eq.${profileUserId},to_user_id.eq.${currentUser.id})`);
                                   setRemoveLoading(false);
                                   setInviteStatus('none');
                                   setShowRemoveModal(false);
@@ -422,12 +566,12 @@ export default function ProfilePage() {
               className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors whitespace-nowrap"
               onClick={async () => {
                 // Find or create conversation between currentUser and profile user
-                if (!currentUser || !id) return;
+                if (!currentUser || !profileUserId) return;
                 let conversationId = null;
                 const { data: existingConvos, error: convoError } = await supabase
                   .from("conversations")
                   .select("id,user1_id,user2_id")
-                  .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${id}),and(user1_id.eq.${id},user2_id.eq.${currentUser.id})`)
+                  .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${profileUserId}),and(user1_id.eq.${profileUserId},user2_id.eq.${currentUser.id})`)
                   .limit(1);
                 if (convoError) {
                   alert("Failed to check conversations");
@@ -440,7 +584,7 @@ export default function ProfilePage() {
                     .from("conversations")
                     .insert({
                       user1_id: currentUser.id,
-                      user2_id: id,
+                      user2_id: profileUserId,
                       user1_name: currentUser.user_metadata?.full_name || "",
                       user2_name: profile.full_name || "",
                       user1_photo: currentUser.user_metadata?.profile_photo_url || "",
@@ -472,22 +616,55 @@ export default function ProfilePage() {
             <div className="w-full max-w-2xl mx-auto grid gap-4">
               {posts.map(post => (
                 <div key={post.id} className="border rounded-xl p-4 shadow-sm bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-                  <div className="flex items-center gap-3 mb-3">
-                    {authorPhotoById[post.author_user_id] ? (
-                      <img
-                        src={authorPhotoById[post.author_user_id]}
-                        alt={post.author_name || "Mom"}
-                        className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                        {(post.author_name || "M").charAt(0).toUpperCase()}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {authorPhotoById[post.author_user_id] ? (
+                        <img
+                          src={authorPhotoById[post.author_user_id]}
+                          alt={post.author_name || "Mom"}
+                          className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                          {(post.author_name || "M").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || "Mom"}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {currentUser?.id === post.author_user_id && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="Post actions"
+                          onClick={() => setOpenPostMenuId((prev) => (prev === post.id ? null : post.id))}
+                          className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+                        >
+                          ⋯
+                        </button>
+                        {openPostMenuId === post.id && (
+                          <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCommentsDisabled(post)}
+                              className="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                            >
+                              {post.comments_disabled ? "Enable comments" : "Disable comments"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePost(post.id)}
+                              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                              Delete post
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
-                    <div>
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{post.author_name || "Mom"}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
-                    </div>
                   </div>
 
                   {post.photo_url && (
@@ -525,30 +702,128 @@ export default function ProfilePage() {
                   <div className="mt-3 space-y-2">
                     {post.comments_disabled ? null : (
                       <>
-                        {(commentsByPost[post.id] || []).map((comment) => {
-                          const commentName = authorNameById[comment.author_user_id] || "Mom";
+                        {(() => {
+                          const allComments = commentsByPost[post.id] || [];
+                          const isExpanded = !!expandedCommentsByPost[post.id];
+                          const visibleComments = isExpanded ? allComments : allComments.slice(0, 2);
+                          const hiddenCount = Math.max(0, allComments.length - visibleComments.length);
+
                           return (
-                            <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
-                              <div className="shrink-0">
-                                {authorPhotoById[comment.author_user_id] ? (
-                                  <img
-                                    src={authorPhotoById[comment.author_user_id]}
-                                    alt={commentName}
-                                    className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                                  />
-                                ) : (
-                                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                    {commentName.charAt(0).toUpperCase()}
+                            <>
+                              {visibleComments.map((comment) => {
+                                const isEditing = editingCommentId === comment.id;
+                                const commentName = authorNameById[comment.author_user_id] || (comment.author_user_id === currentUser?.id ? "You" : "Mom");
+
+                                return (
+                                  <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
+                                    <div className="shrink-0">
+                                      {authorPhotoById[comment.author_user_id] ? (
+                                        <img
+                                          src={authorPhotoById[comment.author_user_id]}
+                                          alt={commentName}
+                                          className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                        />
+                                      ) : (
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                          {commentName.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                                          {commentName}
+                                        </span>
+                                        <div className="relative shrink-0">
+                                          <button
+                                            type="button"
+                                            aria-label="Comment actions"
+                                            onClick={() => setOpenCommentMenuId((prev) => (prev === comment.id ? null : comment.id))}
+                                            className="w-7 h-7 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+                                          >
+                                            ⋯
+                                          </button>
+                                          {openCommentMenuId === comment.id && (
+                                            <div className="absolute right-0 mt-2 z-30 w-36 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                                              {comment.author_user_id === currentUser?.id && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleStartEditComment(comment)}
+                                                  className="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                                                >
+                                                  Edit
+                                                </button>
+                                              )}
+                                              {(currentUser?.id === comment.author_user_id || currentUser?.id === post.author_user_id) && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleDeleteComment(post, comment)}
+                                                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                >
+                                                  Delete
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {isEditing ? (
+                                        <div className="mt-2 space-y-2">
+                                          <textarea
+                                            value={editingCommentDraft}
+                                            onChange={(e) => setEditingCommentDraft(e.target.value)}
+                                            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm min-h-[84px]"
+                                          />
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveCommentEdit(post, comment)}
+                                              disabled={!!interactionBusyByPost[post.id]}
+                                              className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                                            >
+                                              Save
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={handleCancelEditComment}
+                                              disabled={!!interactionBusyByPost[post.id]}
+                                              className="px-3 py-2 rounded-lg border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 text-sm font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">{comment.body}</div>
+                                      )}
+                                    </div>
                                   </div>
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">{commentName}</div>
-                                <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">{comment.body}</div>
-                              </div>
-                            </div>
+                                );
+                              })}
+
+                              {hiddenCount > 0 && !isExpanded && (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCommentsByPost((prev) => ({ ...prev, [post.id]: true }))}
+                                  className="text-sm font-semibold text-pink-600 hover:text-pink-700 px-1"
+                                >
+                                  {hiddenCount} more comments
+                                </button>
+                              )}
+
+                              {isExpanded && allComments.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCommentsByPost((prev) => ({ ...prev, [post.id]: false }))}
+                                  className="text-sm font-semibold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 px-1"
+                                >
+                                  Show fewer comments
+                                </button>
+                              )}
+                            </>
                           );
-                        })}
+                        })()}
                         <form
                           className="flex items-center gap-2"
                           onSubmit={(event) => {
