@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
-import { fetchPosts, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
+import {
+  fetchPosts,
+  fetchPostInteractions,
+  togglePostLike,
+  addPostComment,
+  sharePost,
+  PostCommentRow,
+} from "../../lib/posts";
 import type { Post } from "../../types/post";
 
 interface UserProfile {
@@ -51,17 +58,37 @@ export default function ProfilePage() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsCount, setPostsCount] = useState<number>(0);
-  const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
-  const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
-  const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
-  const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
-  const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
-  const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
-  const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
-  const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
+  const [commentsByPost, setCommentsByPost] = useState<
+    Record<string, PostCommentRow[]>
+  >({});
+  const [authorPhotoById, setAuthorPhotoById] = useState<
+    Record<string, string>
+  >({});
+  const [authorNameById, setAuthorNameById] = useState<Record<string, string>>(
+    {},
+  );
+  const [likesCountByPost, setLikesCountByPost] = useState<
+    Record<string, number>
+  >({});
+  const [likedByMeByPost, setLikedByMeByPost] = useState<
+    Record<string, boolean>
+  >({});
+  const [sharesCountByPost, setSharesCountByPost] = useState<
+    Record<string, number>
+  >({});
+  const [commentDraftByPost, setCommentDraftByPost] = useState<
+    Record<string, string>
+  >({});
+  const [interactionBusyByPost, setInteractionBusyByPost] = useState<
+    Record<string, boolean>
+  >({});
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
-  const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
-  const [expandedCommentsByPost, setExpandedCommentsByPost] = useState<Record<string, boolean>>({});
+  const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(
+    null,
+  );
+  const [expandedCommentsByPost, setExpandedCommentsByPost] = useState<
+    Record<string, boolean>
+  >({});
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
 
@@ -77,19 +104,21 @@ export default function ProfilePage() {
 
   async function checkUser() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session:', session);
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      console.log("Session:", session);
+
       if (!session) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
-      
+
       setUser(session.user);
       await loadUserProfile(session.user.id);
     } catch (error) {
-      console.error('Error checking user:', error);
-      router.push('/login');
+      console.error("Error checking user:", error);
+      router.push("/login");
     } finally {
       setLoading(false);
     }
@@ -97,27 +126,29 @@ export default function ProfilePage() {
 
   async function loadUserProfile(userId: string) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (user?.user_metadata) {
-        console.log('Loaded user metadata:', user.user_metadata);
+        console.log("Loaded user metadata:", user.user_metadata);
         setProfile({
-          full_name: user.user_metadata.full_name || '',
-          phone: user.user_metadata.phone || '',
-          address: user.user_metadata.address || '',
-          city: user.user_metadata.city || '',
-          state: user.user_metadata.state || '',
-          zip_code: user.user_metadata.zip_code || '',
+          full_name: user.user_metadata.full_name || "",
+          phone: user.user_metadata.phone || "",
+          address: user.user_metadata.address || "",
+          city: user.user_metadata.city || "",
+          state: user.user_metadata.state || "",
+          zip_code: user.user_metadata.zip_code || "",
           number_of_kids: user.user_metadata.number_of_kids || 0,
           kids_age_groups: user.user_metadata.kids_age_groups || [],
-          preferred_language: user.user_metadata.preferred_language || '',
-          parenting_style: user.user_metadata.parenting_style || '',
-          other_info: user.user_metadata.other_info || '',
-          profile_photo_url: user.user_metadata.profile_photo_url || '',
+          preferred_language: user.user_metadata.preferred_language || "",
+          parenting_style: user.user_metadata.parenting_style || "",
+          other_info: user.user_metadata.other_info || "",
+          profile_photo_url: user.user_metadata.profile_photo_url || "",
         });
       }
     } catch (error) {
-      console.error('Error in loadUserProfile:', error);
+      console.error("Error in loadUserProfile:", error);
     }
   }
 
@@ -127,7 +158,9 @@ export default function ProfilePage() {
       setPosts(myPosts);
       setPostsCount(myPosts.length);
 
-      const authorIds = [...new Set(myPosts.map((post) => post.author_user_id).filter(Boolean))];
+      const authorIds = [
+        ...new Set(myPosts.map((post) => post.author_user_id).filter(Boolean)),
+      ];
       if (authorIds.length > 0) {
         const { data: authorProfiles } = await supabase
           .from("user_public_profiles")
@@ -137,8 +170,10 @@ export default function ProfilePage() {
         const photoMap: Record<string, string> = {};
         const nameMap: Record<string, string> = {};
         (authorProfiles || []).forEach((entry: any) => {
-          if (entry?.id && entry?.profile_photo_url) photoMap[entry.id] = entry.profile_photo_url;
-          if (entry?.id && entry?.full_name) nameMap[entry.id] = entry.full_name;
+          if (entry?.id && entry?.profile_photo_url)
+            photoMap[entry.id] = entry.profile_photo_url;
+          if (entry?.id && entry?.full_name)
+            nameMap[entry.id] = entry.full_name;
         });
         setAuthorPhotoById(photoMap);
         setAuthorNameById(nameMap);
@@ -162,12 +197,14 @@ export default function ProfilePage() {
       setSharesCountByPost(interactions.sharesCountByPost);
       setCommentsByPost(interactions.commentsByPost);
 
-      const unknownCommenterIds = [...new Set(
-        Object.values(interactions.commentsByPost)
-          .flat()
-          .map((comment) => comment.author_user_id)
-          .filter((authorId) => authorId && !authorIds.includes(authorId))
-      )];
+      const unknownCommenterIds = [
+        ...new Set(
+          Object.values(interactions.commentsByPost)
+            .flat()
+            .map((comment) => comment.author_user_id)
+            .filter((authorId) => authorId && !authorIds.includes(authorId)),
+        ),
+      ];
 
       if (unknownCommenterIds.length > 0) {
         const { data: commentProfiles } = await supabase
@@ -178,14 +215,16 @@ export default function ProfilePage() {
           setAuthorPhotoById((prev) => {
             const updated = { ...prev };
             commentProfiles.forEach((entry: any) => {
-              if (entry?.id && entry?.profile_photo_url) updated[entry.id] = entry.profile_photo_url;
+              if (entry?.id && entry?.profile_photo_url)
+                updated[entry.id] = entry.profile_photo_url;
             });
             return updated;
           });
           setAuthorNameById((prev) => {
             const updated = { ...prev };
             commentProfiles.forEach((entry: any) => {
-              if (entry?.id && entry?.full_name) updated[entry.id] = entry.full_name;
+              if (entry?.id && entry?.full_name)
+                updated[entry.id] = entry.full_name;
             });
             return updated;
           });
@@ -305,13 +344,15 @@ export default function ProfilePage() {
       setCommentsByPost((prev) => ({
         ...prev,
         [post.id]: (prev[post.id] || []).map((entry) =>
-          entry.id === comment.id ? { ...entry, body: trimmed } : entry
+          entry.id === comment.id ? { ...entry, body: trimmed } : entry,
         ),
       }));
       handleCancelEditComment();
     } catch (e: any) {
       const maybeCode = e?.code ? ` (${e.code})` : "";
-      alert(`Edit comment failed${maybeCode}: ${e?.message || "Unknown error"}`);
+      alert(
+        `Edit comment failed${maybeCode}: ${e?.message || "Unknown error"}`,
+      );
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
@@ -319,10 +360,13 @@ export default function ProfilePage() {
 
   async function handleDeleteComment(post: Post, comment: PostCommentRow) {
     if (!user?.id) return;
-    const canDelete = user.id === comment.author_user_id || user.id === post.author_user_id;
+    const canDelete =
+      user.id === comment.author_user_id || user.id === post.author_user_id;
     if (!canDelete) return;
 
-    const confirmed = window.confirm("Delete this comment? This cannot be undone.");
+    const confirmed = window.confirm(
+      "Delete this comment? This cannot be undone.",
+    );
     if (!confirmed) return;
 
     setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
@@ -340,11 +384,15 @@ export default function ProfilePage() {
 
       setCommentsByPost((prev) => ({
         ...prev,
-        [post.id]: (prev[post.id] || []).filter((entry) => entry.id !== comment.id),
+        [post.id]: (prev[post.id] || []).filter(
+          (entry) => entry.id !== comment.id,
+        ),
       }));
     } catch (e: any) {
       const maybeCode = e?.code ? ` (${e.code})` : "";
-      alert(`Delete comment failed${maybeCode}: ${e?.message || "Unknown error"}`);
+      alert(
+        `Delete comment failed${maybeCode}: ${e?.message || "Unknown error"}`,
+      );
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
@@ -352,7 +400,9 @@ export default function ProfilePage() {
 
   async function handleDeletePost(postId: string) {
     if (!user?.id) return;
-    const confirmed = window.confirm("Delete this post? This cannot be undone.");
+    const confirmed = window.confirm(
+      "Delete this post? This cannot be undone.",
+    );
     if (!confirmed) return;
     setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
     try {
@@ -398,9 +448,13 @@ export default function ProfilePage() {
       if (!updatedRows || updatedRows.length === 0) {
         throw new Error("Not allowed to update this post.");
       }
-      setPosts((prev) => prev.map((entry) => (
-        entry.id === post.id ? { ...entry, comments_disabled: nextValue } : entry
-      )));
+      setPosts((prev) =>
+        prev.map((entry) =>
+          entry.id === post.id
+            ? { ...entry, comments_disabled: nextValue }
+            : entry,
+        ),
+      );
       setOpenPostMenuId(null);
     } catch (e: any) {
       const maybeCode = e?.code ? ` (${e.code})` : "";
@@ -415,20 +469,20 @@ export default function ProfilePage() {
     if (!file || !user) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file");
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+      setError("File size must be less than 5MB");
       return;
     }
 
     setUploading(true);
     setError("");
-    
+
     try {
       // Create a preview URL
       const reader = new FileReader();
@@ -443,24 +497,24 @@ export default function ProfilePage() {
 
       // Upload to Supabase Storage
       const { data, error: uploadError } = await supabase.storage
-        .from('momvillage')
+        .from("momvillage")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        console.error('Supabase storage error:', uploadError);
+        console.error("Supabase storage error:", uploadError);
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('momvillage')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("momvillage").getPublicUrl(filePath);
 
       setProfile({ ...profile, profile_photo_url: publicUrl });
-      setMessage('Photo uploaded successfully!');
+      setMessage("Photo uploaded successfully!");
     } catch (error: any) {
-      console.error('Photo upload error:', error);
-      setError(`Failed to upload photo: ${error.message || 'Unknown error'}`);
+      console.error("Photo upload error:", error);
+      setError(`Failed to upload photo: ${error.message || "Unknown error"}`);
       setPreviewUrl("");
     } finally {
       setUploading(false);
@@ -469,16 +523,16 @@ export default function ProfilePage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    router.push('/');
+    router.push("/");
   }
 
   async function handleSave() {
     if (!user) return;
-    
+
     setSaving(true);
     setMessage("");
     setError("");
-    
+
     try {
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
@@ -494,24 +548,30 @@ export default function ProfilePage() {
           parenting_style: profile.parenting_style,
           other_info: profile.other_info,
           profile_photo_url: profile.profile_photo_url,
-        }
+        },
       });
 
       if (updateError) {
-        console.error('Save error:', updateError);
+        console.error("Save error:", updateError);
         setError(`Failed to update profile: ${updateError.message}`);
       } else {
         // Check if this is first time setup (no availability set yet)
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        const hasAvailability = currentUser?.user_metadata?.availability || currentUser?.user_metadata?.weeklyAvailability;
-        
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+        const hasAvailability =
+          currentUser?.user_metadata?.availability ||
+          currentUser?.user_metadata?.weeklyAvailability;
+
         if (!hasAvailability) {
-          setMessage("Profile updated successfully! Redirecting to availability...");
+          setMessage(
+            "Profile updated successfully! Redirecting to availability...",
+          );
           setEditing(false);
           await loadUserProfile(user.id);
           // Redirect to availability page for first-time setup
           setTimeout(() => {
-            router.push('/calendar');
+            router.push("/calendar");
           }, 1500);
         } else {
           setMessage("Profile updated successfully!");
@@ -520,8 +580,8 @@ export default function ProfilePage() {
         }
       }
     } catch (error: any) {
-      console.error('Error saving profile:', error);
-      setError(`Failed to update profile: ${error.message || 'Unknown error'}`);
+      console.error("Error saving profile:", error);
+      setError(`Failed to update profile: ${error.message || "Unknown error"}`);
     } finally {
       setSaving(false);
     }
@@ -540,7 +600,10 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Link href="/home" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-pink-600">
+          <Link
+            href="/home"
+            className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-pink-600"
+          >
             ← Back to Home
           </Link>
           <button
@@ -583,9 +646,13 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-                  {editing ? "Edit Profile" : (profile.full_name || "Your Profile")}
+                  {editing
+                    ? "Edit Profile"
+                    : profile.full_name || "Your Profile"}
                 </h1>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">{user?.email}</p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {user?.email}
+                </p>
               </div>
             </div>
             {!editing && (
@@ -619,7 +686,9 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={profile.full_name || ""}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, full_name: e.target.value })
+                }
                 disabled={!editing}
                 className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="Your full name"
@@ -633,7 +702,9 @@ export default function ProfilePage() {
               <input
                 type="tel"
                 value={profile.phone || ""}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, phone: e.target.value })
+                }
                 disabled={!editing}
                 className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="(123) 456-7890"
@@ -647,7 +718,9 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={profile.address || ""}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, address: e.target.value })
+                }
                 disabled={!editing}
                 className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="Street address"
@@ -662,7 +735,9 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   value={profile.city || ""}
-                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, city: e.target.value })
+                  }
                   disabled={!editing}
                   className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="City"
@@ -676,7 +751,9 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   value={profile.state || ""}
-                  onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, state: e.target.value })
+                  }
                   disabled={!editing}
                   className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="State"
@@ -691,7 +768,9 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={profile.zip_code || ""}
-                onChange={(e) => setProfile({ ...profile, zip_code: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, zip_code: e.target.value })
+                }
                 disabled={!editing}
                 className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="12345"
@@ -699,8 +778,10 @@ export default function ProfilePage() {
             </div>
 
             <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Family Information</h3>
-              
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+                Family Information
+              </h3>
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -710,7 +791,12 @@ export default function ProfilePage() {
                     type="number"
                     min="0"
                     value={profile.number_of_kids || 0}
-                    onChange={(e) => setProfile({ ...profile, number_of_kids: parseInt(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        number_of_kids: parseInt(e.target.value) || 0,
+                      })
+                    }
                     disabled={!editing}
                     className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
@@ -722,7 +808,12 @@ export default function ProfilePage() {
                   </label>
                   <select
                     value={profile.preferred_language || ""}
-                    onChange={(e) => setProfile({ ...profile, preferred_language: e.target.value })}
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        preferred_language: e.target.value,
+                      })
+                    }
                     disabled={!editing}
                     className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
@@ -741,17 +832,37 @@ export default function ProfilePage() {
                   Kids Age Groups (select all that apply)
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {['0-1 years', '1-3 years', '3-5 years', '5-8 years', '8-12 years', '12+ years'].map((ageGroup) => (
-                    <label key={ageGroup} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                  {[
+                    "0-1 years",
+                    "1-3 years",
+                    "3-5 years",
+                    "5-8 years",
+                    "8-12 years",
+                    "12+ years",
+                  ].map((ageGroup) => (
+                    <label
+                      key={ageGroup}
+                      className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300"
+                    >
                       <input
                         type="checkbox"
-                        checked={profile.kids_age_groups?.includes(ageGroup) || false}
+                        checked={
+                          profile.kids_age_groups?.includes(ageGroup) || false
+                        }
                         onChange={(e) => {
                           const current = profile.kids_age_groups || [];
                           if (e.target.checked) {
-                            setProfile({ ...profile, kids_age_groups: [...current, ageGroup] });
+                            setProfile({
+                              ...profile,
+                              kids_age_groups: [...current, ageGroup],
+                            });
                           } else {
-                            setProfile({ ...profile, kids_age_groups: current.filter(g => g !== ageGroup) });
+                            setProfile({
+                              ...profile,
+                              kids_age_groups: current.filter(
+                                (g) => g !== ageGroup,
+                              ),
+                            });
                           }
                         }}
                         disabled={!editing}
@@ -769,7 +880,9 @@ export default function ProfilePage() {
                 </label>
                 <select
                   value={profile.parenting_style || ""}
-                  onChange={(e) => setProfile({ ...profile, parenting_style: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, parenting_style: e.target.value })
+                  }
                   disabled={!editing}
                   className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
@@ -779,7 +892,9 @@ export default function ProfilePage() {
                   <option value="Authoritarian">Authoritarian</option>
                   <option value="Uninvolved">Uninvolved</option>
                   <option value="Gentle Parenting">Gentle Parenting</option>
-                  <option value="Attachment Parenting">Attachment Parenting</option>
+                  <option value="Attachment Parenting">
+                    Attachment Parenting
+                  </option>
                   <option value="Free-Range">Free-Range</option>
                   <option value="Helicopter">Helicopter</option>
                   <option value="Other">Other</option>
@@ -792,7 +907,9 @@ export default function ProfilePage() {
                 </label>
                 <textarea
                   value={profile.other_info || ""}
-                  onChange={(e) => setProfile({ ...profile, other_info: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, other_info: e.target.value })
+                  }
                   disabled={!editing}
                   rows={4}
                   className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -846,16 +963,25 @@ export default function ProfilePage() {
 
         <div className="mt-6 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">My Posts</h2>
-            <span className="text-sm font-semibold text-pink-600 dark:text-pink-300">{postsCount}</span>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              My Posts
+            </h2>
+            <span className="text-sm font-semibold text-pink-600 dark:text-pink-300">
+              {postsCount}
+            </span>
           </div>
 
           {posts.length === 0 ? (
-            <div className="text-zinc-400 italic">(Your posts will appear here)</div>
+            <div className="text-zinc-400 italic">
+              (Your posts will appear here)
+            </div>
           ) : (
             <div className="grid gap-4">
               {posts.map((post) => (
-                <div key={post.id} className="border rounded-xl p-4 shadow-sm bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                <div
+                  key={post.id}
+                  className="border rounded-xl p-4 shadow-sm bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+                >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {authorPhotoById[post.author_user_id] ? (
@@ -870,8 +996,12 @@ export default function ProfilePage() {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || "Mom"}</div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+                          {post.author_name || "Mom"}
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {new Date(post.created_at).toLocaleString()}
+                        </div>
                       </div>
                     </div>
 
@@ -880,7 +1010,11 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           aria-label="Post actions"
-                          onClick={() => setOpenPostMenuId((prev) => (prev === post.id ? null : post.id))}
+                          onClick={() =>
+                            setOpenPostMenuId((prev) =>
+                              prev === post.id ? null : post.id,
+                            )
+                          }
                           className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
                         >
                           ⋯
@@ -892,7 +1026,9 @@ export default function ProfilePage() {
                               onClick={() => handleToggleCommentsDisabled(post)}
                               className="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                             >
-                              {post.comments_disabled ? "Enable comments" : "Disable comments"}
+                              {post.comments_disabled
+                                ? "Enable comments"
+                                : "Disable comments"}
                             </button>
                             <button
                               type="button"
@@ -915,19 +1051,24 @@ export default function ProfilePage() {
                     />
                   )}
 
-                  <div className="font-bold text-lg mb-1 text-zinc-900 dark:text-zinc-50">{post.title}</div>
-                  <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
+                  <div className="font-bold text-lg mb-1 text-zinc-900 dark:text-zinc-50">
+                    {post.title}
+                  </div>
+                  <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">
+                    {post.content}
+                  </div>
 
                   <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-sm">
                     <button
                       type="button"
                       disabled={!!interactionBusyByPost[post.id]}
                       onClick={() => handleToggleLike(post.id)}
-                      className={`px-3 py-1 rounded-full border transition ${likedByMeByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                      className={`px-3 py-1 rounded-full border transition ${likedByMeByPost[post.id] ? "bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700" : "bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700"}`}
                     >
-                      {likedByMeByPost[post.id] ? '♥' : '♡'} Like {likesCountByPost[post.id] || 0}
+                      {likedByMeByPost[post.id] ? "♥" : "♡"} Like{" "}
+                      {likesCountByPost[post.id] || 0}
                     </button>
-                    {post.visibility === 'public' && (
+                    {post.visibility === "public" && (
                       <button
                         type="button"
                         disabled={!!interactionBusyByPost[post.id]}
@@ -945,20 +1086,39 @@ export default function ProfilePage() {
                         {(() => {
                           const allComments = commentsByPost[post.id] || [];
                           const isExpanded = !!expandedCommentsByPost[post.id];
-                          const visibleComments = isExpanded ? allComments : allComments.slice(0, 2);
-                          const hiddenCount = Math.max(0, allComments.length - visibleComments.length);
+                          const visibleComments = isExpanded
+                            ? allComments
+                            : allComments.slice(0, 2);
+                          const hiddenCount = Math.max(
+                            0,
+                            allComments.length - visibleComments.length,
+                          );
 
                           return (
                             <>
                               {visibleComments.map((comment) => {
-                                const isEditing = editingCommentId === comment.id;
-                                const commentName = authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? (profile.full_name || "You") : "Mom");
+                                const isEditing =
+                                  editingCommentId === comment.id;
+                                const commentName =
+                                  authorNameById[comment.author_user_id] ||
+                                  (comment.author_user_id === user?.id
+                                    ? profile.full_name || "You"
+                                    : "Mom");
                                 return (
-                                  <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
+                                  <div
+                                    key={comment.id}
+                                    className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700"
+                                  >
                                     <div className="shrink-0">
-                                      {authorPhotoById[comment.author_user_id] ? (
+                                      {authorPhotoById[
+                                        comment.author_user_id
+                                      ] ? (
                                         <img
-                                          src={authorPhotoById[comment.author_user_id]}
+                                          src={
+                                            authorPhotoById[
+                                              comment.author_user_id
+                                            ]
+                                          }
                                           alt={commentName}
                                           className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
                                         />
@@ -970,31 +1130,52 @@ export default function ProfilePage() {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-start justify-between gap-3">
-                                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">{commentName}</span>
+                                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                                          {commentName}
+                                        </span>
                                         <div className="relative shrink-0">
                                           <button
                                             type="button"
                                             aria-label="Comment actions"
-                                            onClick={() => setOpenCommentMenuId((prev) => (prev === comment.id ? null : comment.id))}
+                                            onClick={() =>
+                                              setOpenCommentMenuId((prev) =>
+                                                prev === comment.id
+                                                  ? null
+                                                  : comment.id,
+                                              )
+                                            }
                                             className="w-7 h-7 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
                                           >
                                             ⋯
                                           </button>
                                           {openCommentMenuId === comment.id && (
                                             <div className="absolute right-0 mt-2 z-30 w-36 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
-                                              {comment.author_user_id === user?.id && (
+                                              {comment.author_user_id ===
+                                                user?.id && (
                                                 <button
                                                   type="button"
-                                                  onClick={() => handleStartEditComment(comment)}
+                                                  onClick={() =>
+                                                    handleStartEditComment(
+                                                      comment,
+                                                    )
+                                                  }
                                                   className="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                                                 >
                                                   Edit
                                                 </button>
                                               )}
-                                              {(user?.id === comment.author_user_id || user?.id === post.author_user_id) && (
+                                              {(user?.id ===
+                                                comment.author_user_id ||
+                                                user?.id ===
+                                                  post.author_user_id) && (
                                                 <button
                                                   type="button"
-                                                  onClick={() => handleDeleteComment(post, comment)}
+                                                  onClick={() =>
+                                                    handleDeleteComment(
+                                                      post,
+                                                      comment,
+                                                    )
+                                                  }
                                                   className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 >
                                                   Delete
@@ -1009,14 +1190,25 @@ export default function ProfilePage() {
                                         <div className="mt-2 space-y-2">
                                           <textarea
                                             value={editingCommentDraft}
-                                            onChange={(e) => setEditingCommentDraft(e.target.value)}
+                                            onChange={(e) =>
+                                              setEditingCommentDraft(
+                                                e.target.value,
+                                              )
+                                            }
                                             className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm min-h-[84px]"
                                           />
                                           <div className="flex items-center gap-2">
                                             <button
                                               type="button"
-                                              onClick={() => handleSaveCommentEdit(post, comment)}
-                                              disabled={!!interactionBusyByPost[post.id]}
+                                              onClick={() =>
+                                                handleSaveCommentEdit(
+                                                  post,
+                                                  comment,
+                                                )
+                                              }
+                                              disabled={
+                                                !!interactionBusyByPost[post.id]
+                                              }
                                               className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
                                             >
                                               Save
@@ -1024,7 +1216,9 @@ export default function ProfilePage() {
                                             <button
                                               type="button"
                                               onClick={handleCancelEditComment}
-                                              disabled={!!interactionBusyByPost[post.id]}
+                                              disabled={
+                                                !!interactionBusyByPost[post.id]
+                                              }
                                               className="px-3 py-2 rounded-lg border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 text-sm font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
                                             >
                                               Cancel
@@ -1032,7 +1226,9 @@ export default function ProfilePage() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">{comment.body}</div>
+                                        <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">
+                                          {comment.body}
+                                        </div>
                                       )}
                                     </div>
                                   </div>
@@ -1042,7 +1238,12 @@ export default function ProfilePage() {
                               {hiddenCount > 0 && !isExpanded && (
                                 <button
                                   type="button"
-                                  onClick={() => setExpandedCommentsByPost((prev) => ({ ...prev, [post.id]: true }))}
+                                  onClick={() =>
+                                    setExpandedCommentsByPost((prev) => ({
+                                      ...prev,
+                                      [post.id]: true,
+                                    }))
+                                  }
                                   className="text-sm font-semibold text-pink-600 hover:text-pink-700 px-1"
                                 >
                                   {hiddenCount} more comments
@@ -1052,7 +1253,12 @@ export default function ProfilePage() {
                               {isExpanded && allComments.length > 2 && (
                                 <button
                                   type="button"
-                                  onClick={() => setExpandedCommentsByPost((prev) => ({ ...prev, [post.id]: false }))}
+                                  onClick={() =>
+                                    setExpandedCommentsByPost((prev) => ({
+                                      ...prev,
+                                      [post.id]: false,
+                                    }))
+                                  }
                                   className="text-sm font-semibold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 px-1"
                                 >
                                   Show fewer comments
@@ -1070,14 +1276,22 @@ export default function ProfilePage() {
                         >
                           <input
                             type="text"
-                            value={commentDraftByPost[post.id] || ''}
-                            onChange={(event) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                            value={commentDraftByPost[post.id] || ""}
+                            onChange={(event) =>
+                              setCommentDraftByPost((prev) => ({
+                                ...prev,
+                                [post.id]: event.target.value,
+                              }))
+                            }
                             placeholder="Write a comment..."
                             className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
                           />
                           <button
                             type="submit"
-                            disabled={!!interactionBusyByPost[post.id] || !(commentDraftByPost[post.id] || '').trim()}
+                            disabled={
+                              !!interactionBusyByPost[post.id] ||
+                              !(commentDraftByPost[post.id] || "").trim()
+                            }
                             className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
                           >
                             Comment
