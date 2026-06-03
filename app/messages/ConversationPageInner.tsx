@@ -91,7 +91,7 @@ function ProfileModal({ userId, open, onClose }: { userId: string, open: boolean
               </button>
             </div>
             <button
-              className="mb-4 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
+              className="mb-4 px-6 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-semibold text-base transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
               onClick={() => router.push(`/profile/${profile.id}`)}
             >
               Go to Profile
@@ -444,7 +444,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 <button
                   onClick={handleSendVillageInvitation}
                   disabled={inviteLoading}
-                  className="px-4 py-2 text-xs bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
                 >
                   {inviteLoading ? 'Sending...' : 'Send Village Invitation'}
                 </button>
@@ -534,7 +534,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             <button
               onClick={sendMessage}
               disabled={sendingMessage || !messageText.trim()}
-              className="px-4 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
             >
               Send
             </button>

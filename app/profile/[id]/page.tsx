@@ -563,7 +563,7 @@ export default function ProfilePage() {
             )}
             {/* Message button */}
             <button
-              className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors whitespace-nowrap"
+              className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-semibold text-base transition-colors whitespace-nowrap dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
               onClick={async () => {
                 // Find or create conversation between currentUser and profile user
                 if (!currentUser || !profileUserId) return;
