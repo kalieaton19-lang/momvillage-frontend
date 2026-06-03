@@ -677,8 +677,33 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Profile Form */}
-          <div className="space-y-4">
+          {/* Account Info (shown when not editing) */}
+          {!editing && (
+            <div className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+              <div className="flex justify-between">
+                <span>Email:</span>
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  {user?.email}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Member since:</span>
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  {new Date(user?.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>My Posts:</span>
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  {postsCount}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Profile Form (shown when editing) */}
+          {editing && (
+            <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Full Name
@@ -918,47 +943,27 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {editing && (
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-full hover:bg-pink-700 disabled:opacity-60"
-                >
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditing(false);
-                    setMessage("");
-                  }}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-full hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Account Info */}
-          <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-              Account Information
-            </h3>
-            <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-              <div className="flex justify-between">
-                <span>Email:</span>
-                <span className="font-medium">{user?.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Member since:</span>
-                <span className="font-medium">
-                  {new Date(user?.created_at).toLocaleDateString()}
-                </span>
-              </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-full hover:bg-pink-700 disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  setMessage("");
+                }}
+                disabled={saving}
+                className="flex-1 px-4 py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-full hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
             </div>
           </div>
+          )}
         </div>
 
         <div className="mt-6 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
