@@ -75,7 +75,7 @@ export default function NotificationsPage() {
       </div>
       {/* White title banner */}
       <div className="w-full py-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 text-center rounded-none">
-        <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Notifications</h1>
+        <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">Notifications</h1>
       </div>
       {/* Tabs */}
       <div className="flex gap-0 w-full pt-6 pb-0 bg-transparent border-b border-zinc-200 dark:border-zinc-800 max-w-2xl mx-auto">
