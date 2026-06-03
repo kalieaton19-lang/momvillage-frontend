@@ -129,15 +129,25 @@ export default function FindMomsPage() {
     loadMessagedUsers();
   }, [user?.id]);
 
-  const momsForMode =
-    searchMode === "messages"
-      ? moms.filter((mom) => messagedUserIds.has(mom.id))
-      : moms;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const visibleMoms = momsForMode.filter((mom) => {
-    const name = (mom.user_metadata?.full_name || "").toLowerCase();
-    return name.includes(searchQuery.trim().toLowerCase());
-  });
+  const nameSuggestions =
+    searchMode === "name" && normalizedQuery
+      ? moms.filter((mom) =>
+          (mom.user_metadata?.full_name || "")
+            .toLowerCase()
+            .includes(normalizedQuery),
+        )
+      : [];
+
+  const messagesVisibleMoms = moms
+    .filter((mom) => messagedUserIds.has(mom.id))
+    .filter((mom) => {
+      if (!normalizedQuery) return true;
+      return (mom.user_metadata?.full_name || "")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
 
   if (loading) {
     return (
@@ -191,20 +201,40 @@ export default function FindMomsPage() {
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-700 dark:text-red-300">
               {loadError}
             </div>
-          ) : visibleMoms.length === 0 ? (
+          ) : searchMode === "name" ? (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4">
+              {!normalizedQuery ? (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Start typing a name to see matching moms.
+                </p>
+              ) : nameSuggestions.length === 0 ? (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  No matching names found.
+                </p>
+              ) : (
+                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
+                  {nameSuggestions.map((mom) => (
+                    <NameSuggestionRow
+                      key={mom.id}
+                      mom={mom}
+                      currentUserId={user?.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : messagesVisibleMoms.length === 0 ? (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center">
               <h3 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
                 No moms found
               </h3>
               <p className="text-zinc-600 dark:text-zinc-400">
-                {searchMode === "messages"
-                  ? "No moms from your messages matched this search."
-                  : "Try a different name to invite moms to your village."}
+                No moms from your messages matched this search.
               </p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
-              {visibleMoms.map((mom) => (
+              {messagesVisibleMoms.map((mom) => (
                 <MomCard key={mom.id} mom={mom} currentUserId={user?.id} />
               ))}
             </div>
@@ -218,6 +248,57 @@ export default function FindMomsPage() {
 interface MomCardProps {
   mom: MomProfile;
   currentUserId?: string;
+}
+
+interface NameSuggestionRowProps {
+  mom: MomProfile;
+  currentUserId?: string;
+}
+
+function NameSuggestionRow({ mom, currentUserId }: NameSuggestionRowProps) {
+  const { showNotification, NotificationComponent } = useNotification();
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [invited, setInvited] = useState(false);
+
+  async function handleInviteToVillage() {
+    if (!currentUserId) {
+      showNotification("Please sign in to invite moms.");
+      return;
+    }
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .insert({ from_user_id: currentUserId, to_user_id: mom.id, status: "pending" });
+      if (error) throw error;
+      setInvited(true);
+      showNotification("Invitation sent!");
+    } catch (error) {
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to send invitation.";
+      showNotification(errMsg);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  return (
+    <div className="px-4 py-3 flex items-center justify-between gap-3 bg-white dark:bg-zinc-900">
+      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
+        {mom.user_metadata?.full_name || "Mom"}
+      </span>
+      <button
+        onClick={handleInviteToVillage}
+        disabled={inviteLoading || invited}
+        className={`shrink-0 px-3 py-1.5 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full text-xs font-semibold transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45 ${inviteLoading || invited ? "opacity-50 cursor-not-allowed" : ""}`}
+      >
+        {invited ? "Invited" : inviteLoading ? "Sending..." : "Invite"}
+      </button>
+      {NotificationComponent}
+    </div>
+  );
 }
 
 
