@@ -171,12 +171,13 @@ export default function FindMomsPage() {
         </button>
       </div>
 
+      <div className="w-full mb-5 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 px-4 py-3">
+        <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-zinc-50 text-center">
+          Find Moms Nearby
+        </h1>
+      </div>
+
       <div className="max-w-5xl mx-auto px-2 sm:px-0">
-        <div className="w-full mb-5 bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800 rounded-xl px-4 py-3">
-          <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-zinc-50 text-center">
-            Find Moms Nearby
-          </h1>
-        </div>
 
         <div className="space-y-5">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6">
