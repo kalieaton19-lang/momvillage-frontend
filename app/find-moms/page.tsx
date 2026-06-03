@@ -25,6 +25,7 @@ interface MomProfile {
 }
 
 export default function FindMomsPage() {
+  const router = useRouter();
   const [moms, setMoms] = useState<MomProfile[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
