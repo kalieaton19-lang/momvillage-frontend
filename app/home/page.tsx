@@ -90,6 +90,7 @@ export default function HomePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
+  const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
   const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
   const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
@@ -198,16 +199,21 @@ export default function HomePage() {
         } else {
           const { data: authorProfiles } = await supabase
             .from('user_public_profiles')
-            .select('id, profile_photo_url')
+            .select('id, profile_photo_url, full_name')
             .in('id', authorIds);
 
           const authorPhotoMap: Record<string, string> = {};
+          const authorNameMap: Record<string, string> = {};
           (authorProfiles || []).forEach((profile: any) => {
             if (profile?.id && profile?.profile_photo_url) {
               authorPhotoMap[profile.id] = profile.profile_photo_url;
             }
+            if (profile?.id && profile?.full_name) {
+              authorNameMap[profile.id] = profile.full_name;
+            }
           });
           setAuthorPhotoById(authorPhotoMap);
+          setAuthorNameById(authorNameMap);
         }
       } catch (e) {
         setAuthorPhotoById({});
@@ -221,6 +227,26 @@ export default function HomePage() {
         setLikedByMeByPost(interactions.likedByMeByPost);
         setSharesCountByPost(interactions.sharesCountByPost);
         setCommentsByPost(interactions.commentsByPost);
+
+        // Fetch names for comment authors not already in authorNameById
+        const allComments = Object.values(interactions.commentsByPost).flat();
+        const knownIds = new Set([user?.id].filter(Boolean) as string[]);
+        const unknownCommentAuthorIds = [...new Set((allComments as PostCommentRow[]).map((c) => c.author_user_id).filter((id): id is string => !!id && !knownIds.has(id)))];
+        if (unknownCommentAuthorIds.length > 0) {
+          const { data: commentAuthorProfiles } = await supabase
+            .from('user_public_profiles')
+            .select('id, full_name')
+            .in('id', unknownCommentAuthorIds);
+          if (commentAuthorProfiles) {
+            setAuthorNameById((prev) => {
+              const updated = { ...prev };
+              commentAuthorProfiles.forEach((p: any) => {
+                if (p?.id && p?.full_name) updated[p.id] = p.full_name;
+              });
+              return updated;
+            });
+          }
+        }
       } catch (e) {
         setLikesCountByPost({});
         setLikedByMeByPost({});
@@ -887,7 +913,7 @@ export default function HomePage() {
                   <div className="mt-3 space-y-2">
                     {(commentsByPost[post.id] || []).map((comment) => (
                       <div key={comment.id} className="text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-2 border border-zinc-200 dark:border-zinc-700">
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.author_user_id === user?.id ? 'You' : 'Mom'}</span>
+                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.author_user_id === user?.id ? (profile?.full_name?.split(' ')[0] || 'You') : (authorNameById[comment.author_user_id]?.split(' ')[0] || 'Mom')}</span>
                         <span className="text-zinc-700 dark:text-zinc-200">{comment.body}</span>
                       </div>
                     ))}
