@@ -911,37 +911,37 @@ export default function HomePage() {
                   </div>
 
                   <div className="mt-3 space-y-2">
-                    {(commentsByPost[post.id] || []).map((comment) => (
-                      <div key={comment.id} className="text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-2 border border-zinc-200 dark:border-zinc-700">
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.author_user_id === user?.id ? (profile?.full_name?.split(' ')[0] || 'You') : (authorNameById[comment.author_user_id]?.split(' ')[0] || 'Mom')}</span>
-                        <span className="text-zinc-700 dark:text-zinc-200">{comment.body}</span>
-                      </div>
-                    ))}
-                    {post.comments_disabled ? (
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 px-1">Comments are disabled by the post owner.</div>
-                    ) : (
-                      <form
-                        className="flex items-center gap-2"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleAddComment(post.id);
-                        }}
-                      >
-                        <input
-                          type="text"
-                          value={commentDraftByPost[post.id] || ''}
-                          onChange={(e) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                          placeholder="Write a comment..."
-                          className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
-                        />
-                        <button
-                          type="submit"
-                          disabled={!!interactionBusyByPost[post.id] || !(commentDraftByPost[post.id] || '').trim()}
-                          className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                    {post.comments_disabled ? null : (
+                      <>
+                        {(commentsByPost[post.id] || []).map((comment) => (
+                          <div key={comment.id} className="text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-2 border border-zinc-200 dark:border-zinc-700">
+                            <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.author_user_id === user?.id ? (profile?.full_name?.split(' ')[0] || 'You') : (authorNameById[comment.author_user_id]?.split(' ')[0] || 'Mom')}</span>
+                            <span className="text-zinc-700 dark:text-zinc-200">{comment.body}</span>
+                          </div>
+                        ))}
+                        <form
+                          className="flex items-center gap-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAddComment(post.id);
+                          }}
                         >
-                          Comment
-                        </button>
-                      </form>
+                          <input
+                            type="text"
+                            value={commentDraftByPost[post.id] || ''}
+                            onChange={(e) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                            placeholder="Write a comment..."
+                            className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!!interactionBusyByPost[post.id] || !(commentDraftByPost[post.id] || '').trim()}
+                            className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                          >
+                            Comment
+                          </button>
+                        </form>
+                      </>
                     )}
                   </div>
                 </div>
