@@ -5,7 +5,7 @@ export async function getPostsCount(userId: string): Promise<number> {
   const { count, error } = await supabase
     .from("posts")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
+    .eq("author_user_id", userId);
   if (error) {
     console.error("Error fetching posts count:", error);
     return 0;

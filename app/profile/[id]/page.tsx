@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
-import { getPostsCount } from "../../../utils";
-import { fetchPosts } from "../../../lib/posts";
+import { fetchPosts, fetchPostInteractions, PostCommentRow } from "../../../lib/posts";
 import type { Post } from "../../../types/post";
 
 export default function ProfilePage() {
@@ -22,6 +21,9 @@ export default function ProfilePage() {
   const [villageMembers, setVillageMembers] = useState<any[]>([]);
   const [postsCount, setPostsCount] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
+  const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
+  const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
@@ -43,13 +45,72 @@ export default function ProfilePage() {
         setProfile(null);
       } else {
         setProfile(data);
-        getPostsCount(data.id).then(count => setPostsCount(count));
-        fetchPosts({ author_user_id: data.id }).then(setPosts).catch(() => setPosts([]));
+        const nextPosts = await fetchPosts({ author_user_id: data.id });
+        setPosts(nextPosts);
+        setPostsCount(nextPosts.length);
+
+        const authorIds = [...new Set(nextPosts.map((post) => post.author_user_id).filter(Boolean))];
+        if (authorIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("user_public_profiles")
+            .select("id, full_name, profile_photo_url")
+            .in("id", authorIds);
+
+          const photoMap: Record<string, string> = {};
+          const nameMap: Record<string, string> = {};
+          (profiles || []).forEach((entry: any) => {
+            if (entry?.id && entry?.profile_photo_url) photoMap[entry.id] = entry.profile_photo_url;
+            if (entry?.id && entry?.full_name) nameMap[entry.id] = entry.full_name;
+          });
+          setAuthorPhotoById(photoMap);
+          setAuthorNameById(nameMap);
+        } else {
+          setAuthorPhotoById({});
+          setAuthorNameById({});
+        }
+
+        const postIds = nextPosts.map((post) => post.id);
+        if (postIds.length > 0) {
+          const interactions = await fetchPostInteractions(postIds, currentUser?.id);
+          setCommentsByPost(interactions.commentsByPost);
+
+          const unknownCommenterIds = [...new Set(
+            Object.values(interactions.commentsByPost)
+              .flat()
+              .map((comment) => comment.author_user_id)
+              .filter((authorId) => authorId && !authorIds.includes(authorId))
+          )];
+
+          if (unknownCommenterIds.length > 0) {
+            const { data: commentProfiles } = await supabase
+              .from("user_public_profiles")
+              .select("id, full_name, profile_photo_url")
+              .in("id", unknownCommenterIds);
+            if (commentProfiles) {
+              setAuthorPhotoById((prev) => {
+                const updated = { ...prev };
+                commentProfiles.forEach((entry: any) => {
+                  if (entry?.id && entry?.profile_photo_url) updated[entry.id] = entry.profile_photo_url;
+                });
+                return updated;
+              });
+              setAuthorNameById((prev) => {
+                const updated = { ...prev };
+                commentProfiles.forEach((entry: any) => {
+                  if (entry?.id && entry?.full_name) updated[entry.id] = entry.full_name;
+                });
+                return updated;
+              });
+            }
+          }
+        } else {
+          setCommentsByPost({});
+        }
       }
       setLoading(false);
     }
     if (id) fetchProfile();
-  }, [id]);
+  }, [id, currentUser?.id]);
 
   // Fetch current user and invitation/village status
   useEffect(() => {
@@ -326,10 +387,62 @@ export default function ProfilePage() {
           ) : (
             <div className="w-full max-w-2xl mx-auto grid gap-4">
               {posts.map(post => (
-                <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow p-4">
-                  <div className="font-bold text-pink-700 mb-1">{post.title}</div>
-                  <div className="text-zinc-700 dark:text-zinc-200 mb-2">{post.content}</div>
-                  <div className="text-xs text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                <div key={post.id} className="border rounded-xl p-4 shadow-sm bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center gap-3 mb-3">
+                    {authorPhotoById[post.author_user_id] ? (
+                      <img
+                        src={authorPhotoById[post.author_user_id]}
+                        alt={post.author_name || "Mom"}
+                        className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                        {(post.author_name || "M").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{post.author_name || "Mom"}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {post.photo_url && (
+                    <img
+                      src={post.photo_url}
+                      alt="Post photo"
+                      className="w-full rounded-xl object-cover max-h-72 mb-3 border border-zinc-100 dark:border-zinc-800"
+                    />
+                  )}
+
+                  <div className="font-bold text-lg mb-1 text-zinc-900 dark:text-zinc-50">{post.title}</div>
+                  <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+
+                  <div className="mt-3 space-y-2">
+                    {(commentsByPost[post.id] || []).map((comment) => {
+                      const commentName = authorNameById[comment.author_user_id] || "Mom";
+                      return (
+                        <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
+                          <div className="shrink-0">
+                            {authorPhotoById[comment.author_user_id] ? (
+                              <img
+                                src={authorPhotoById[comment.author_user_id]}
+                                alt={commentName}
+                                className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                {commentName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">{commentName}</div>
+                            <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">{comment.body}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
