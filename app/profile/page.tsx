@@ -657,7 +657,7 @@ export default function ProfilePage() {
             </div>
             {!editing && (
               <button
-                onClick={() => setEditing(true)}
+                onClick={() => router.push("/edit-profile")}
                 className="px-4 py-2 text-sm bg-pink-600 text-white rounded-full hover:bg-pink-700"
               >
                 Edit Profile
