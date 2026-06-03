@@ -1,21 +1,11 @@
 
 "use client";
-// Conversation type for localStorage chat logic
-interface Conversation {
-  id: string;
-  other_user_id: string;
-  other_user_name: string;
-  other_user_photo?: string;
-  last_message: string;
-  last_message_time: string;
-}
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { useNotification } from "../components/useNotification";
-import { v4 as uuidv4 } from "uuid";
 
 interface MomProfile {
   id: string;
@@ -35,36 +25,14 @@ interface MomProfile {
   };
 }
 
-
-interface Filters {
-  location: boolean;
-  kidsAgeGroups: boolean;
-  numberOfKids: boolean;
-  language: boolean;
-  parentingStyle: boolean;
-  servicesOffered: boolean;
-  servicesNeeded: boolean;
-}
-
-const defaultFilters: Filters = {
-  location: true,
-  kidsAgeGroups: false,
-  numberOfKids: false,
-  language: false,
-  parentingStyle: false,
-  servicesOffered: false,
-  servicesNeeded: false,
-};
-
 export default function FindMomsPage() {
   const [moms, setMoms] = useState<MomProfile[]>([]);
-  const [filteredMoms, setFilteredMoms] = useState<MomProfile[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
-  const [currentProfile, setCurrentProfile] = useState<MomProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  // TODO: Replace with actual user context/auth if available
   const [user, setUser] = useState<any>(null);
+  const [searchMode, setSearchMode] = useState<"name" | "messages">("name");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [messagedUserIds, setMessagedUserIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchMoms() {
@@ -73,15 +41,6 @@ export default function FindMomsPage() {
         // Get current user from Supabase auth (always latest metadata)
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
-        let current = null;
-        if (authUser) {
-          current = {
-            id: authUser.id,
-            email: authUser.email ?? undefined,
-            user_metadata: (authUser.user_metadata || undefined) as any,
-          };
-        }
-        setCurrentProfile(current);
         // Fetch all public profiles (with photos) for the moms list
         let res, json;
         try {
@@ -94,7 +53,6 @@ export default function FindMomsPage() {
             console.error('Error fetching user_public_profiles:', fetchErr);
           }
           setMoms([]);
-          setFilteredMoms([]);
           setLoadError('Failed to fetch users');
           setLoading(false);
           return;
@@ -104,7 +62,6 @@ export default function FindMomsPage() {
         }
         if (!json?.users) {
           setMoms([]);
-          setFilteredMoms([]);
           setLoadError('Failed to load users');
           setLoading(false);
           return;
@@ -138,12 +95,9 @@ export default function FindMomsPage() {
           console.log('DEBUG moms array:', JSON.stringify(otherMoms, null, 2));
         }
         setMoms(otherMoms);
-        setFilteredMoms(otherMoms);
         setLoadError(null);
       } catch (err: any) {
         setMoms([]);
-        setFilteredMoms([]);
-        setCurrentProfile(null);
         setLoadError(err?.message || 'Unknown error');
       }
       setLoading(false);
@@ -151,81 +105,39 @@ export default function FindMomsPage() {
     fetchMoms();
   }, []);
 
-
-  // Filtering logic
   useEffect(() => {
-    console.log('Filter effect running', { filters, moms, currentProfile });
-    if (!currentProfile) {
-      setFilteredMoms(moms);
-      return;
-    }
-    let filtered = moms;
-    // Debug: log currentProfile and all moms' city/state before filtering
-    if (filters.location && currentProfile.user_metadata?.city && currentProfile.user_metadata?.state) {
-      const myCity = currentProfile.user_metadata.city.trim().toLowerCase();
-      const myState = currentProfile.user_metadata.state.trim().toLowerCase();
-      console.log('Current user city/state:', myCity, myState);
-      moms.forEach((mom) => {
-        const momCity = (mom.user_metadata?.city || '').trim().toLowerCase();
-        const momState = (mom.user_metadata?.state || '').trim().toLowerCase();
-        console.log('Mom:', mom.id, 'city:', momCity, 'state:', momState);
+    async function loadMessagedUsers() {
+      if (!user?.id) {
+        setMessagedUserIds(new Set());
+        return;
+      }
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("user1_id,user2_id")
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      if (error) {
+        setMessagedUserIds(new Set());
+        return;
+      }
+      const ids = new Set<string>();
+      (data || []).forEach((row: any) => {
+        if (row.user1_id === user.id && row.user2_id) ids.add(row.user2_id);
+        if (row.user2_id === user.id && row.user1_id) ids.add(row.user1_id);
       });
-      filtered = filtered.filter(mom => {
-        const momCity = (mom.user_metadata?.city || '').trim().toLowerCase();
-        const momState = (mom.user_metadata?.state || '').trim().toLowerCase();
-        return momCity === myCity && momState === myState;
-      });
+      setMessagedUserIds(ids);
     }
-    // Filter by kids age groups
-    if (filters.kidsAgeGroups && currentProfile.user_metadata?.kids_age_groups?.length) {
-      filtered = filtered.filter(mom =>
-        mom.user_metadata?.kids_age_groups?.some((age: string) =>
-          currentProfile.user_metadata?.kids_age_groups?.includes(age)
-        )
-      );
-    }
-    // Filter by number of kids (±1)
-    if (filters.numberOfKids && currentProfile.user_metadata?.number_of_kids) {
-      filtered = filtered.filter(mom =>
-        mom.user_metadata?.number_of_kids !== undefined &&
-        Math.abs((mom.user_metadata?.number_of_kids ?? 0) - (currentProfile.user_metadata?.number_of_kids ?? 0)) <= 1
-      );
-    }
-    // Filter by language
-    if (filters.language && currentProfile.user_metadata?.preferred_language) {
-      filtered = filtered.filter(mom =>
-        mom.user_metadata?.preferred_language === currentProfile.user_metadata?.preferred_language
-      );
-    }
-    // Filter by parenting style
-    if (filters.parentingStyle && currentProfile.user_metadata?.parenting_style) {
-      filtered = filtered.filter(mom =>
-        mom.user_metadata?.parenting_style === currentProfile.user_metadata?.parenting_style
-      );
-    }
-    // Filter by services offered (other moms offer what you need)
-    if (filters.servicesOffered && currentProfile.user_metadata?.services_needed?.length) {
-      filtered = filtered.filter(mom => {
-        const momServicesOffered = (mom.user_metadata?.services_offered || []) as string[];
-        return momServicesOffered.some((service: string) => currentProfile.user_metadata?.services_needed?.includes(service));
-      });
-    }
-    // Filter by services needed (other moms need what you offer)
-    if (filters.servicesNeeded && currentProfile.user_metadata?.services_offered?.length) {
-      filtered = filtered.filter(mom => {
-        const momServicesNeeded = (mom.user_metadata?.services_needed || []) as string[];
-        return momServicesNeeded.some((service: string) => currentProfile.user_metadata?.services_offered?.includes(service));
-      });
-    }
-    setFilteredMoms(filtered);
-  }, [filters, moms, currentProfile]);
+    loadMessagedUsers();
+  }, [user?.id]);
 
-  function toggleFilter(filterKey: keyof Filters) {
-    setFilters(prev => ({
-      ...prev,
-      [filterKey]: !prev[filterKey]
-    }));
-  }
+  const momsForMode =
+    searchMode === "messages"
+      ? moms.filter((mom) => messagedUserIds.has(mom.id))
+      : moms;
+
+  const visibleMoms = momsForMode.filter((mom) => {
+    const name = (mom.user_metadata?.full_name || "").toLowerCase();
+    return name.includes(searchQuery.trim().toLowerCase());
+  });
 
   if (loading) {
     return (
@@ -250,203 +162,62 @@ export default function FindMomsPage() {
           </Link>
         </header>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sticky top-6">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
-                Filter Matches
-              </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
-                Turn filters on/off to find your perfect mom friends
-              </p>
-
-              <div className="space-y-3">
-                <FilterToggle
-                  label="📍 Same Location"
-                  description={currentProfile?.user_metadata?.city && currentProfile?.user_metadata?.state 
-                    ? `${currentProfile.user_metadata.city}, ${currentProfile.user_metadata.state}` 
-                    : 'Set your location in profile'}
-                  enabled={filters.location}
-                  onToggle={() => toggleFilter('location')}
-                  disabled={!currentProfile?.user_metadata?.city || !currentProfile?.user_metadata?.state}
-                />
-
-                <FilterToggle
-                  label="👶 Kids Age Groups"
-                  description={Array.isArray(currentProfile?.user_metadata?.kids_age_groups) && currentProfile.user_metadata.kids_age_groups.length > 0
-                    ? `${currentProfile.user_metadata.kids_age_groups.length} age group(s)`
-                    : 'Set ages in profile'}
-                  enabled={filters.kidsAgeGroups}
-                  onToggle={() => toggleFilter('kidsAgeGroups')}
-                  disabled={!(Array.isArray(currentProfile?.user_metadata?.kids_age_groups) && currentProfile.user_metadata.kids_age_groups.length > 0)}
-                />
-
-                <FilterToggle
-                  label="🔢 Number of Kids"
-                  description={currentProfile?.user_metadata?.number_of_kids
-                    ? `${currentProfile.user_metadata.number_of_kids} kid(s) (±1)`
-                    : 'Set in profile'}
-                  enabled={filters.numberOfKids}
-                  onToggle={() => toggleFilter('numberOfKids')}
-                  disabled={!currentProfile?.user_metadata?.number_of_kids}
-                />
-
-                <FilterToggle
-                  label="🗣️ Language"
-                  description={currentProfile?.user_metadata?.preferred_language || 'Set in profile'}
-                  enabled={filters.language}
-                  onToggle={() => toggleFilter('language')}
-                  disabled={!currentProfile?.user_metadata?.preferred_language}
-                />
-
-                <FilterToggle
-                  label="💭 Parenting Style"
-                  description={currentProfile?.user_metadata?.parenting_style || 'Set in profile'}
-                  enabled={filters.parentingStyle}
-                  onToggle={() => toggleFilter('parentingStyle')}
-                  disabled={!currentProfile?.user_metadata?.parenting_style}
-                />
-
-                <FilterToggle
-                  label="🤝 Services Offered"
-                  description={Array.isArray(currentProfile?.user_metadata?.services_offered) && currentProfile.user_metadata.services_offered.length > 0
-                    ? `Moms offering what you need`
-                    : 'Select services in profile'}
-                  enabled={filters.servicesOffered}
-                  onToggle={() => toggleFilter('servicesOffered')}
-                  disabled={!(Array.isArray(currentProfile?.user_metadata?.services_needed) && currentProfile.user_metadata.services_needed.length > 0)}
-                />
-
-                <FilterToggle
-                  label="🙏 Services Needed"
-                  description={Array.isArray(currentProfile?.user_metadata?.services_needed) && currentProfile.user_metadata.services_needed.length > 0
-                    ? `Moms needing your help`
-                    : 'Select services in profile'}
-                  enabled={filters.servicesNeeded}
-                  onToggle={() => toggleFilter('servicesNeeded')}
-                  disabled={!(Array.isArray(currentProfile?.user_metadata?.services_offered) && currentProfile.user_metadata.services_offered.length > 0)}
-                />
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Active Filters: {Object.values(filters).filter(Boolean).length}
-                </div>
-                <button
-                  onClick={() => setFilters({
-                    location: false,
-                    kidsAgeGroups: false,
-                    numberOfKids: false,
-                    language: false,
-                    parentingStyle: false,
-                    servicesOffered: false,
-                    servicesNeeded: false,
-                  })}
-                  className="text-sm text-pink-600 dark:text-pink-400 hover:underline"
-                >
-                  Clear All Filters
-                </button>
-              </div>
+        <div className="space-y-5">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                onClick={() => setSearchMode("name")}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${searchMode === "name" ? "bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700" : "bg-zinc-100 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700"}`}
+              >
+                Search by Name
+              </button>
+              <button
+                onClick={() => setSearchMode("messages")}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${searchMode === "messages" ? "bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700" : "bg-zinc-100 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700"}`}
+              >
+                Search by Messages
+              </button>
             </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={searchMode === "name" ? "Search moms by name..." : "Search moms you've messaged..."}
+              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300"
+            />
           </div>
 
-          {/* Results Grid */}
-          <div className="lg:col-span-3">
-            {!currentProfile?.user_metadata?.city || !currentProfile?.user_metadata?.state ? (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-8 text-center">
-                <div className="text-4xl mb-4">📍</div>
-                <h3 className="text-xl font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                  Complete Your Profile First
-                </h3>
-                <p className="text-blue-700 dark:text-blue-300 mb-4">
-                  Add your location and other details to start finding moms nearby!
-                </p>
-                <Link
-                  href="/profile"
-                  className="inline-block px-6 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 transition-colors"
-                >
-                  Complete Profile
-                </Link>
-              </div>
-            ) : filteredMoms.length === 0 ? (
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center">
-                <div className="text-6xl mb-4">🌱</div>
-                <h3 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-                  Your Village is Growing!
-                </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
-                  We're still building this feature. Soon you'll be able to connect with amazing moms in{' '}
-                  {currentProfile?.user_metadata?.city}, {currentProfile?.user_metadata?.state}!
-                </p>
-                <div className="flex gap-4 justify-center">
-                  <Link
-                    href="/profile"
-                    className="px-6 py-2 border border-pink-300 dark:border-pink-700 text-pink-600 dark:text-pink-400 rounded-full font-medium hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-colors"
-                  >
-                    Update Profile
-                  </Link>
-                  <Link
-                    href="/calendar"
-                    className="px-6 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 transition-colors"
-                  >
-                    Set Availability
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                {filteredMoms.map((mom) => (
-                  <MomCard key={mom.id} mom={mom} currentUserId={user?.id} />
-                ))}
-              </div>
-            )}
-          </div>
+          {loadError ? (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-700 dark:text-red-300">
+              {loadError}
+            </div>
+          ) : visibleMoms.length === 0 ? (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center">
+              <h3 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                No moms found
+              </h3>
+              <p className="text-zinc-600 dark:text-zinc-400">
+                {searchMode === "messages"
+                  ? "No moms from your messages matched this search."
+                  : "Try a different name to invite moms to your village."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {visibleMoms.map((mom) => (
+                <MomCard key={mom.id} mom={mom} currentUserId={user?.id} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-interface FilterToggleProps {
-  label: string;
-  description: string;
-  enabled: boolean;
-  onToggle: () => void;
-  disabled?: boolean;
-}
-
-function FilterToggle({ label, description, enabled, onToggle, disabled }: FilterToggleProps) {
-  return (
-    <button
-      onClick={onToggle}
-      disabled={disabled}
-      className={`w-full text-left p-3 rounded-lg border transition-all ${
-        disabled
-          ? 'opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
-          : enabled
-          ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-300 dark:border-pink-700'
-          : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-pink-300 dark:hover:border-pink-700'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
-        <div className={`w-10 h-5 rounded-full transition-colors ${
-          enabled ? 'bg-pink-600' : 'bg-zinc-300 dark:bg-zinc-600'
-        }`}>
-          <div className={`w-4 h-4 rounded-full bg-white transition-transform transform ${
-            enabled ? 'translate-x-5' : 'translate-x-0.5'
-          } mt-0.5`} />
-        </div>
-      </div>
-      <div className="text-xs text-zinc-600 dark:text-zinc-400">{description}</div>
-    </button>
-  );
-}
-
 interface MomCardProps {
   mom: MomProfile;
-  currentUserId: string;
+  currentUserId?: string;
 }
 
 
@@ -455,73 +226,31 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
   const { showNotification, NotificationComponent } = useNotification();
-  const [connecting, setConnecting] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [invited, setInvited] = useState(false);
 
-  async function handleConnect() {
-    setConnecting(true);
+  async function handleInviteToVillage() {
+    if (!currentUserId) {
+      showNotification("Please sign in to invite moms.");
+      return;
+    }
+    setInviteLoading(true);
     try {
-      // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error('Not authenticated');
-      const myUserId = currentUser.id;
-      const myName = currentUser.user_metadata?.full_name || 'Mom';
-      const myPhoto = currentUser.user_metadata?.profile_photo_url || '';
-
-      // Get other mom's info
-      const otherUserId = mom.id;
-      const otherName = mom.user_metadata?.full_name || 'Mom';
-      const otherPhoto = mom.user_metadata?.profile_photo_url || '';
-
-      // Check if conversation already exists (regardless of user order)
-      const { data: existingConv, error: checkError } = await supabase
-        .from('conversations')
-        .select('id')
-        .or(`and(user1_id.eq.${myUserId},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${myUserId})`)
-        .limit(1);
-      if (checkError) throw checkError;
-      let conversationId;
-      if (existingConv && existingConv.length > 0) {
-        conversationId = existingConv[0].id;
-      } else {
-        // Create conversation row with a real UUID
-        conversationId = uuidv4();
-        const { error: convError } = await supabase
-          .from('conversations')
-          .insert([
-            {
-              id: conversationId,
-              user1_id: myUserId,
-              user2_id: otherUserId,
-              user1_name: myName,
-              user2_name: otherName,
-              user1_photo: myPhoto,
-              user2_photo: otherPhoto,
-            }
-          ]);
-        if (convError) throw convError;
-        // Create first message to start the conversation
-        const { error: msgError } = await supabase
-          .from('messages')
-          .insert([
-            {
-              match_id: conversationId,
-              sender_id: myUserId,
-              receiver_id: otherUserId,
-              message_text: 'Conversation started',
-              created_at: new Date().toISOString(),
-            }
-          ]);
-        if (msgError) throw msgError;
-      }
-      // Force reload of conversations by navigating to messages page, then reloading
-      router.push(`/messages?conversation=${encodeURIComponent(conversationId)}`);
-      // Optionally, you can trigger a reload in the messages page via a query param or state
+      const { error } = await supabase
+        .from("village_invitations")
+        .insert({ from_user_id: currentUserId, to_user_id: mom.id, status: "pending" });
+      if (error) throw error;
+      setInvited(true);
+      showNotification("Invitation sent!");
     } catch (error) {
-      const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as Error).message : 'Error connecting. Please try again.';
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to send invitation.";
       showNotification(errMsg);
-      console.error('Error connecting:', error);
+      console.error("Error inviting:", error);
     } finally {
-      setConnecting(false);
+      setInviteLoading(false);
     }
   }
 
@@ -565,17 +294,17 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           </div>
           <div className="mt-4 flex gap-2">
             <button
-              onClick={handleConnect}
-              disabled={connecting}
-              className={`flex-1 px-4 py-2 bg-pink-600 text-white rounded-full text-sm font-medium hover:bg-pink-700 transition-colors ${connecting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={handleInviteToVillage}
+              disabled={inviteLoading || invited}
+              className={`flex-1 px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full text-sm font-medium transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45 ${inviteLoading || invited ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {connecting ? 'Connecting...' : 'Connect 💬'}
+              {invited ? "Invitation Sent" : inviteLoading ? "Sending..." : "Invite to Village"}
             </button>
             <button
-              onClick={() => router.push(`/mom-profile?id=${encodeURIComponent(mom.id)}`)}
-              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700 transition-colors"
+              onClick={() => router.push(`/messages`)}
+              className="flex-1 px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full text-sm font-medium transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
             >
-              View Profile
+              Go to Messages
             </button>
           </div>
           {NotificationComponent}
