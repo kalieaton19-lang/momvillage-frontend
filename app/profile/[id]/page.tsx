@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
-import { fetchPosts, fetchPostInteractions, PostCommentRow } from "../../../lib/posts";
+import { fetchPosts, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../../lib/posts";
 import type { Post } from "../../../types/post";
 
 export default function ProfilePage() {
@@ -24,6 +24,11 @@ export default function ProfilePage() {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
+  const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
+  const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
+  const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
+  const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
+  const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
@@ -72,6 +77,9 @@ export default function ProfilePage() {
         const postIds = nextPosts.map((post) => post.id);
         if (postIds.length > 0) {
           const interactions = await fetchPostInteractions(postIds, currentUser?.id);
+          setLikesCountByPost(interactions.likesCountByPost);
+          setLikedByMeByPost(interactions.likedByMeByPost);
+          setSharesCountByPost(interactions.sharesCountByPost);
           setCommentsByPost(interactions.commentsByPost);
 
           const unknownCommenterIds = [...new Set(
@@ -104,6 +112,9 @@ export default function ProfilePage() {
             }
           }
         } else {
+          setLikesCountByPost({});
+          setLikedByMeByPost({});
+          setSharesCountByPost({});
           setCommentsByPost({});
         }
       }
@@ -196,6 +207,79 @@ export default function ProfilePage() {
       alert("Failed to send invitation.");
     } finally {
       setInviteLoading(false);
+    }
+  }
+
+  async function handleToggleLike(postId: string) {
+    if (!currentUser?.id) return;
+    const currentlyLiked = !!likedByMeByPost[postId];
+    setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    try {
+      await togglePostLike(postId, currentUser.id, currentlyLiked);
+      setLikedByMeByPost((prev) => ({ ...prev, [postId]: !currentlyLiked }));
+      setLikesCountByPost((prev) => ({
+        ...prev,
+        [postId]: Math.max(0, (prev[postId] || 0) + (currentlyLiked ? -1 : 1)),
+      }));
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      alert(`Like failed${maybeCode}: ${e?.message || "Unknown error"}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleAddComment(postId: string) {
+    if (!currentUser?.id) return;
+    const targetPost = posts.find((post) => post.id === postId);
+    if (targetPost?.comments_disabled) {
+      alert("Comments are disabled for this post.");
+      return;
+    }
+    const draft = (commentDraftByPost[postId] || "").trim();
+    if (!draft) return;
+    setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    try {
+      await addPostComment(postId, currentUser.id, draft);
+      const newComment: PostCommentRow = {
+        id: `${Date.now()}`,
+        post_id: postId,
+        author_user_id: currentUser.id,
+        body: draft,
+        created_at: new Date().toISOString(),
+      };
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), newComment],
+      }));
+      setCommentDraftByPost((prev) => ({ ...prev, [postId]: "" }));
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      alert(`Comment failed${maybeCode}: ${e?.message || "Unknown error"}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleShare(post: Post) {
+    if (!currentUser?.id) return;
+    if (post.visibility !== "public") {
+      alert("Only public posts can be shared.");
+      return;
+    }
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      await sharePost(post.id, currentUser.id);
+      setSharesCountByPost((prev) => ({
+        ...prev,
+        [post.id]: (prev[post.id] || 0) + 1,
+      }));
+      alert("Shared!");
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      alert(`Share failed${maybeCode}: ${e?.message || "Unknown error"}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
   }
 
@@ -415,33 +499,80 @@ export default function ProfilePage() {
                   )}
 
                   <div className="font-bold text-lg mb-1 text-zinc-900 dark:text-zinc-50">{post.title}</div>
-                  <div className="text-zinc-700 dark:text-zinc-200 mb-2 whitespace-pre-line">{post.content}</div>
+                  <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
+
+                  <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-sm">
+                    <button
+                      type="button"
+                      disabled={!!interactionBusyByPost[post.id]}
+                      onClick={() => handleToggleLike(post.id)}
+                      className={`px-3 py-1 rounded-full border transition ${likedByMeByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                    >
+                      {likedByMeByPost[post.id] ? '♥' : '♡'} Like {likesCountByPost[post.id] || 0}
+                    </button>
+                    {post.visibility === 'public' && (
+                      <button
+                        type="button"
+                        disabled={!!interactionBusyByPost[post.id]}
+                        onClick={() => handleShare(post)}
+                        className="px-3 py-1 rounded-full border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700"
+                      >
+                        ↗ Share {sharesCountByPost[post.id] || 0}
+                      </button>
+                    )}
+                  </div>
 
                   <div className="mt-3 space-y-2">
-                    {(commentsByPost[post.id] || []).map((comment) => {
-                      const commentName = authorNameById[comment.author_user_id] || "Mom";
-                      return (
-                        <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
-                          <div className="shrink-0">
-                            {authorPhotoById[comment.author_user_id] ? (
-                              <img
-                                src={authorPhotoById[comment.author_user_id]}
-                                alt={commentName}
-                                className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                              />
-                            ) : (
-                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                {commentName.charAt(0).toUpperCase()}
+                    {post.comments_disabled ? null : (
+                      <>
+                        {(commentsByPost[post.id] || []).map((comment) => {
+                          const commentName = authorNameById[comment.author_user_id] || "Mom";
+                          return (
+                            <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
+                              <div className="shrink-0">
+                                {authorPhotoById[comment.author_user_id] ? (
+                                  <img
+                                    src={authorPhotoById[comment.author_user_id]}
+                                    alt={commentName}
+                                    className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                    {commentName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">{commentName}</div>
-                            <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">{comment.body}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">{commentName}</div>
+                                <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">{comment.body}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <form
+                          className="flex items-center gap-2"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            handleAddComment(post.id);
+                          }}
+                        >
+                          <input
+                            type="text"
+                            value={commentDraftByPost[post.id] || ''}
+                            onChange={(event) => setCommentDraftByPost((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                            placeholder="Write a comment..."
+                            className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!!interactionBusyByPost[post.id] || !(commentDraftByPost[post.id] || '').trim()}
+                            className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                          >
+                            Comment
+                          </button>
+                        </form>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
