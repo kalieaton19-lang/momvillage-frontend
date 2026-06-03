@@ -228,20 +228,26 @@ export default function HomePage() {
         setSharesCountByPost(interactions.sharesCountByPost);
         setCommentsByPost(interactions.commentsByPost);
 
-        // Fetch names for comment authors not already in authorNameById
-        const allComments = Object.values(interactions.commentsByPost).flat();
-        const knownIds = new Set([user?.id].filter(Boolean) as string[]);
-        const unknownCommentAuthorIds = [...new Set((allComments as PostCommentRow[]).map((c) => c.author_user_id).filter((id): id is string => !!id && !knownIds.has(id)))];
+        const allComments = Object.values(interactions.commentsByPost).flat() as PostCommentRow[];
+        const knownIds = new Set([...nextPosts.map((post) => post.author_user_id), user?.id].filter(Boolean) as string[]);
+        const unknownCommentAuthorIds = [...new Set(allComments.map((comment) => comment.author_user_id).filter((id): id is string => !!id && !knownIds.has(id)))];
         if (unknownCommentAuthorIds.length > 0) {
           const { data: commentAuthorProfiles } = await supabase
             .from('user_public_profiles')
-            .select('id, full_name')
+            .select('id, full_name, profile_photo_url')
             .in('id', unknownCommentAuthorIds);
           if (commentAuthorProfiles) {
             setAuthorNameById((prev) => {
               const updated = { ...prev };
               commentAuthorProfiles.forEach((p: any) => {
                 if (p?.id && p?.full_name) updated[p.id] = p.full_name;
+              });
+              return updated;
+            });
+            setAuthorPhotoById((prev) => {
+              const updated = { ...prev };
+              commentAuthorProfiles.forEach((p: any) => {
+                if (p?.id && p?.profile_photo_url) updated[p.id] = p.profile_photo_url;
               });
               return updated;
             });
@@ -329,6 +335,36 @@ export default function HomePage() {
       alert(`Comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybeMissingTable}${maybeUniqueCommentHint}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleDeleteComment(post: Post, comment: PostCommentRow) {
+    if (!user?.id) return;
+    const canDelete = user.id === comment.author_user_id || user.id === post.author_user_id;
+    if (!canDelete) return;
+
+    const confirmed = window.confirm("Delete this comment? This cannot be undone.");
+    if (!confirmed) return;
+
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("post_comments")
+        .delete()
+        .eq("id", comment.id);
+      if (error) throw error;
+
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [post.id]: (prev[post.id] || []).filter((entry) => entry.id !== comment.id),
+      }));
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      const maybeDetails = e?.details ? `\n${e.details}` : "";
+      const maybeHint = e?.hint ? `\nHint: ${e.hint}` : "";
+      alert(`Delete comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
   }
 
@@ -914,9 +950,40 @@ export default function HomePage() {
                     {post.comments_disabled ? null : (
                       <>
                         {(commentsByPost[post.id] || []).map((comment) => (
-                          <div key={comment.id} className="text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-2 border border-zinc-200 dark:border-zinc-700">
-                            <span className="font-semibold text-zinc-800 dark:text-zinc-100 mr-2">{comment.author_user_id === user?.id ? (profile?.full_name?.split(' ')[0] || 'You') : (authorNameById[comment.author_user_id]?.split(' ')[0] || 'Mom')}</span>
-                            <span className="text-zinc-700 dark:text-zinc-200">{comment.body}</span>
+                          <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
+                            <div className="shrink-0">
+                              {authorPhotoById[comment.author_user_id] ? (
+                                <img
+                                  src={authorPhotoById[comment.author_user_id]}
+                                  alt={authorNameById[comment.author_user_id] || 'Commenter'}
+                                  className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                  {(authorNameById[comment.author_user_id] || 'M').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                                  {authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? (profile?.full_name || 'You') : 'Mom')}
+                                </span>
+                                {user?.id && (user.id === comment.author_user_id || user.id === post.author_user_id) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteComment(post, comment)}
+                                    disabled={!!interactionBusyByPost[post.id]}
+                                    className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-60"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                              <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">
+                                {comment.body}
+                              </div>
+                            </div>
                           </div>
                         ))}
                         <form
