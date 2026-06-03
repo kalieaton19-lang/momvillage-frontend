@@ -98,6 +98,10 @@ export default function HomePage() {
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
+  const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
+  const [expandedCommentsByPost, setExpandedCommentsByPost] = useState<Record<string, boolean>>({});
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = React.useRef<HTMLInputElement>(null);
@@ -338,6 +342,53 @@ export default function HomePage() {
     }
   }
 
+  function handleStartEditComment(comment: PostCommentRow) {
+    setEditingCommentId(comment.id);
+    setEditingCommentDraft(comment.body);
+    setOpenCommentMenuId(null);
+  }
+
+  function handleCancelEditComment() {
+    setEditingCommentId(null);
+    setEditingCommentDraft("");
+  }
+
+  async function handleSaveCommentEdit(post: Post, comment: PostCommentRow) {
+    if (!user?.id) return;
+    const trimmed = editingCommentDraft.trim();
+    if (!trimmed) {
+      alert("Comment can't be empty.");
+      return;
+    }
+    setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("post_comments")
+        .update({ body: trimmed })
+        .eq("id", comment.id)
+        .eq("author_user_id", user.id);
+      if (error) throw error;
+
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [post.id]: (prev[post.id] || []).map((entry) =>
+          entry.id === comment.id ? { ...entry, body: trimmed } : entry
+        ),
+      }));
+      handleCancelEditComment();
+    } catch (e: any) {
+      const maybeCode = e?.code ? ` (${e.code})` : "";
+      const maybeDetails = e?.details ? `\n${e.details}` : "";
+      const maybeHint = e?.hint ? `\nHint: ${e.hint}` : "";
+      const maybePolicyHint = e?.code === "42501" || String(e?.message || "").toLowerCase().includes("policy")
+        ? "\nComment editing may be blocked by stale RLS policies. Run migration 013 in Supabase SQL Editor."
+        : "";
+      alert(`Edit comment failed${maybeCode}: ${e?.message || "Unknown error"}${maybeDetails}${maybeHint}${maybePolicyHint}`);
+    } finally {
+      setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
   async function handleDeleteComment(post: Post, comment: PostCommentRow) {
     if (!user?.id) return;
     const canDelete = user.id === comment.author_user_id || user.id === post.author_user_id;
@@ -353,6 +404,11 @@ export default function HomePage() {
         .delete()
         .eq("id", comment.id);
       if (error) throw error;
+
+      if (editingCommentId === comment.id) {
+        handleCancelEditComment();
+      }
+      setOpenCommentMenuId(null);
 
       setCommentsByPost((prev) => ({
         ...prev,
@@ -949,43 +1005,130 @@ export default function HomePage() {
                   <div className="mt-3 space-y-2">
                     {post.comments_disabled ? null : (
                       <>
-                        {(commentsByPost[post.id] || []).map((comment) => (
-                          <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
-                            <div className="shrink-0">
-                              {authorPhotoById[comment.author_user_id] ? (
-                                <img
-                                  src={authorPhotoById[comment.author_user_id]}
-                                  alt={authorNameById[comment.author_user_id] || 'Commenter'}
-                                  className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                                />
-                              ) : (
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                  {(authorNameById[comment.author_user_id] || 'M').charAt(0).toUpperCase()}
-                                </div>
+                        {(() => {
+                          const allComments = commentsByPost[post.id] || [];
+                          const isExpanded = !!expandedCommentsByPost[post.id];
+                          const visibleComments = isExpanded ? allComments : allComments.slice(0, 2);
+                          const hiddenCount = Math.max(0, allComments.length - visibleComments.length);
+
+                          return (
+                            <>
+                              {visibleComments.map((comment) => {
+                                const isEditing = editingCommentId === comment.id;
+                                const displayName = authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? (profile?.full_name || 'You') : 'Mom');
+
+                                return (
+                                  <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
+                                    <div className="shrink-0">
+                                      {authorPhotoById[comment.author_user_id] ? (
+                                        <img
+                                          src={authorPhotoById[comment.author_user_id]}
+                                          alt={displayName}
+                                          className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                        />
+                                      ) : (
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                          {displayName.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                                          {displayName}
+                                        </span>
+                                        <div className="relative shrink-0">
+                                          <button
+                                            type="button"
+                                            aria-label="Comment actions"
+                                            onClick={() => setOpenCommentMenuId((prev) => (prev === comment.id ? null : comment.id))}
+                                            className="w-7 h-7 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+                                          >
+                                            ⋯
+                                          </button>
+                                          {openCommentMenuId === comment.id && (
+                                            <div className="absolute right-0 mt-2 z-30 w-36 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                                              {comment.author_user_id === user?.id && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleStartEditComment(comment)}
+                                                  className="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                                                >
+                                                  Edit
+                                                </button>
+                                              )}
+                                              {(user?.id === comment.author_user_id || user?.id === post.author_user_id) && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleDeleteComment(post, comment)}
+                                                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                >
+                                                  Delete
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {isEditing ? (
+                                        <div className="mt-2 space-y-2">
+                                          <textarea
+                                            value={editingCommentDraft}
+                                            onChange={(e) => setEditingCommentDraft(e.target.value)}
+                                            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm min-h-[84px]"
+                                          />
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveCommentEdit(post, comment)}
+                                              disabled={!!interactionBusyByPost[post.id]}
+                                              className="px-3 py-2 rounded-lg bg-pink-100 text-pink-700 border border-pink-500 text-sm font-semibold hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                                            >
+                                              Save
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={handleCancelEditComment}
+                                              disabled={!!interactionBusyByPost[post.id]}
+                                              className="px-3 py-2 rounded-lg border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 text-sm font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">
+                                          {comment.body}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              {hiddenCount > 0 && !isExpanded && (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCommentsByPost((prev) => ({ ...prev, [post.id]: true }))}
+                                  className="text-sm font-semibold text-pink-600 hover:text-pink-700 px-1"
+                                >
+                                  {hiddenCount} more comments
+                                </button>
                               )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-3">
-                                <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
-                                  {authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? (profile?.full_name || 'You') : 'Mom')}
-                                </span>
-                                {user?.id && (user.id === comment.author_user_id || user.id === post.author_user_id) && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteComment(post, comment)}
-                                    disabled={!!interactionBusyByPost[post.id]}
-                                    className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-60"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                              <div className="text-zinc-700 dark:text-zinc-200 mt-1 whitespace-pre-line">
-                                {comment.body}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+
+                              {isExpanded && allComments.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCommentsByPost((prev) => ({ ...prev, [post.id]: false }))}
+                                  className="text-sm font-semibold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 px-1"
+                                >
+                                  Show fewer comments
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                         <form
                           className="flex items-center gap-2"
                           onSubmit={(e) => {
