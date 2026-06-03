@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { useNotification } from "../components/useNotification";
 
@@ -158,19 +157,25 @@ export default function FindMomsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        <header className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">Find Moms Nearby 🔍</h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              Connect with like-minded mothers in your area
-            </p>
-          </div>
-          <Link href="/home" className="text-sm text-pink-600 dark:text-pink-400 hover:underline">
-            Back to Home
-          </Link>
-        </header>
+    <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0 sm:p-4">
+      <div className="w-full max-w-5xl mx-auto flex items-center pt-4 pb-2 px-2 sm:px-0">
+        <button
+          onClick={() => router.push("/home")}
+          className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+          aria-label="Back to Home"
+        >
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-2 sm:px-0">
+        <div className="w-full mb-5 bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800 rounded-xl px-4 py-3">
+          <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-zinc-50 text-center">
+            Find Moms Nearby
+          </h1>
+        </div>
 
         <div className="space-y-5">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6">
