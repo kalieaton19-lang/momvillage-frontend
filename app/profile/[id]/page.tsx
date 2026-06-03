@@ -620,9 +620,8 @@ export default function ProfilePage() {
                   className={`border rounded-xl p-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-pink-300 ring-2 ring-pink-200/70 dark:bg-pink-950/20 dark:border-pink-700 dark:ring-pink-800/70' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                 >
                   {post.type === 'support' && (
-                    <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 rounded-full bg-pink-100 text-pink-800 border border-pink-300 text-xs font-semibold dark:bg-pink-900/40 dark:text-pink-200 dark:border-pink-700">
-                      <span>🆘</span>
-                      <span>Support Post • Asking for Help</span>
+                    <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-xl bg-pink-600 text-white text-xs font-semibold uppercase tracking-wide">
+                      Support Post
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-3 mb-3">
