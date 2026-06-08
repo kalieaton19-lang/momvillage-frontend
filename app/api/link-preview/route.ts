@@ -233,49 +233,11 @@ function scoreImageCandidate(url: string) {
 
   return score;
 }
-
-async function validateImageCandidate(url: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-        accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-        "accept-language": "en-US,en;q=0.9",
-        referer: "https://www.facebook.com/",
-      },
-      cache: "no-store",
-      redirect: "follow",
-    });
-
-    if (!response.ok) return false;
-
-    const contentType = response.headers.get("content-type") || "";
-    const contentLength = Number(response.headers.get("content-length") || "0");
-
-    return contentType.startsWith("image/") && (contentLength === 0 || contentLength > 2048);
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function resolveBestImageCandidate(baseUrl: string, candidates: string[]) {
-  const uniqueCandidates = [...new Set(candidates.map((candidate) => absolutize(baseUrl, candidate)).filter(Boolean))]
+function rankImageCandidates(baseUrl: string, candidates: string[]) {
+  return [...new Set(candidates.map((candidate) => absolutize(baseUrl, candidate)).filter(Boolean))]
     .filter(isLikelyPreviewImage)
     .sort((left, right) => scoreImageCandidate(right) - scoreImageCandidate(left))
-    .slice(0, 5);
-
-  for (const candidate of uniqueCandidates) {
-    const isValid = await validateImageCandidate(candidate);
-    if (isValid) return candidate;
-  }
-
-  return uniqueCandidates[0] || "";
+    .slice(0, 6);
 }
 
 function getFallbackSiteName(target: URL) {
@@ -363,7 +325,8 @@ export async function GET(request: NextRequest) {
       extractJsonLdImage(html),
       ...collectHeuristicImages(html),
     ].filter(Boolean);
-    const image = await resolveBestImageCandidate(target.toString(), imageCandidates);
+    const rankedImageCandidates = rankImageCandidates(target.toString(), imageCandidates);
+    const image = rankedImageCandidates[0] || "";
     const siteName =
       extractFirstMeta(html, [
         { key: "og:site_name", attribute: "property" },
@@ -375,11 +338,13 @@ export async function GET(request: NextRequest) {
       title,
       description,
       image,
+      imageCandidates: rankedImageCandidates,
       siteName,
       debug: {
         hasTitle: !!title,
         hasDescription: !!description,
         hasImage: !!image,
+        imageCandidateCount: rankedImageCandidates.length,
       },
     });
   } catch {
