@@ -1,5 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
+type FetchVariant = {
+  name: string;
+  headers: Record<string, string>;
+};
+
+const FETCH_VARIANTS: FetchVariant[] = [
+  {
+    name: "facebookexternalhit",
+    headers: {
+      "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+    },
+  },
+  {
+    name: "mobile-safari",
+    headers: {
+      "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "no-cache",
+      pragma: "no-cache",
+      referer: "https://www.facebook.com/",
+    },
+  },
+];
+
 function isPrivateHostname(hostname: string) {
   const lower = hostname.toLowerCase();
   if (lower === "localhost" || lower === "127.0.0.1" || lower === "::1") {
@@ -31,6 +58,23 @@ function extractFirstMeta(html: string, candidates: Array<{ key: string; attribu
 function extractTitle(html: string) {
   const match = html.match(/<title[^>]*>([^<]*)<\/title>/i);
   return match?.[1]?.trim() || "";
+}
+
+function scoreFetchedHtml(html: string) {
+  const lower = html.toLowerCase();
+  let score = 0;
+
+  if (extractFirstMeta(html, [{ key: "og:title", attribute: "property" }])) score += 4;
+  if (extractFirstMeta(html, [{ key: "og:description", attribute: "property" }])) score += 3;
+  if (extractFirstMeta(html, [{ key: "og:image", attribute: "property" }])) score += 4;
+  if (extractHeuristicTitle(html)) score += 5;
+  if (extractHeuristicDescription(html)) score += 3;
+  if (collectMarketplaceSpecificImages(html).length > 0) score += 4;
+  if (lower.includes("marketplace")) score += 2;
+  if (lower.includes("this content isn't available right now")) score -= 8;
+  if (/<title[^>]*>\s*facebook\s*<\/title>/i.test(html)) score -= 4;
+
+  return score;
 }
 
 function cleanExtractedText(value: string) {
@@ -276,30 +320,50 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Blocked url" }, { status: 400 });
   }
 
+  const hostname = target.hostname.replace(/^www\./i, "").toLowerCase();
+  const isFacebookHost = hostname.includes("facebook.com") || hostname.includes("fb.com");
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const response = await fetch(target.toString(), {
-      signal: controller.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "accept-language": "en-US,en;q=0.9",
-        "cache-control": "no-cache",
-        pragma: "no-cache",
-        referer: "https://www.facebook.com/",
-      },
-      cache: "no-store",
-      redirect: "follow",
-    });
+    const variants = isFacebookHost
+      ? FETCH_VARIANTS
+      : FETCH_VARIANTS.filter((variant) => variant.name === "mobile-safari");
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!response.ok || !contentType.includes("text/html")) {
+    let bestHtml = "";
+    let bestFinalUrl = target.toString();
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (const variant of variants) {
+      try {
+        const response = await fetch(target.toString(), {
+          signal: controller.signal,
+          headers: variant.headers,
+          cache: "no-store",
+          redirect: "follow",
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        if (!response.ok || !contentType.includes("text/html")) continue;
+
+        const html = await response.text();
+        const score = scoreFetchedHtml(html);
+        if (score > bestScore) {
+          bestScore = score;
+          bestHtml = html;
+          bestFinalUrl = response.url || target.toString();
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (!bestHtml) {
       return NextResponse.json({ url: target.toString() });
     }
 
-    const html = await response.text();
+    const html = bestHtml;
     const title =
       extractFirstMeta(html, [
         { key: "og:title", attribute: "property" },
@@ -334,7 +398,7 @@ export async function GET(request: NextRequest) {
       ]) || getFallbackSiteName(target);
 
     return NextResponse.json({
-      url: target.toString(),
+      url: bestFinalUrl,
       title,
       description,
       image,
