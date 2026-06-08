@@ -216,6 +216,22 @@ function extractHeuristicDescription(html: string) {
   return parts.join(" • ");
 }
 
+function isUnavailableFacebookListingPage(html: string) {
+  const lower = html.toLowerCase();
+  if (!lower.includes("marketplace")) return false;
+
+  const unavailableSignals = [
+    "this content isn't available right now",
+    "content isn't available right now",
+    "error facebook",
+    '"privacy":true',
+    '"isboc":false',
+    '"cometerrorroot.react"',
+  ];
+
+  return unavailableSignals.some((signal) => lower.includes(signal));
+}
+
 function isLikelyPreviewImage(url: string) {
   const lower = url.toLowerCase();
   if (!/^https?:\/\//.test(lower)) return false;
@@ -379,11 +395,12 @@ export async function GET(request: NextRequest) {
   const isFacebook =
     target.hostname.includes("facebook.com") || target.hostname.includes("fb.com");
 
-  // For Facebook URLs use only the facebookexternalhit UA, which Facebook
-  // whitelists and returns full React JSON blobs for public listings.
-  // All other UAs get a JS-only login wall so we skip them entirely.
+  // For Facebook, try crawler UA first, then browser-like fallbacks. Some
+  // listing responses vary by endpoint/region and one may expose richer data.
   const variants = isFacebook
-    ? FETCH_VARIANTS.filter((v) => v.name === "facebookexternalhit")
+    ? FETCH_VARIANTS.filter((v) =>
+        ["facebookexternalhit", "mobile-safari", "desktop-chrome"].includes(v.name),
+      )
     : FETCH_VARIANTS.filter((v) => v.name !== "facebookexternalhit");
 
   const controller = new AbortController();
@@ -396,6 +413,14 @@ export async function GET(request: NextRequest) {
     }
 
     const html = fetchResult.html;
+    if (isFacebook && isUnavailableFacebookListingPage(html)) {
+      return NextResponse.json({
+        url: target.toString(),
+        siteName: getFallbackSiteName(target),
+        debug: { source: "facebook-unavailable" },
+      });
+    }
+
     const baseUrl = fetchResult.finalUrl || target.toString();
     const rawTitle =
       extractFirstMeta(html, [
