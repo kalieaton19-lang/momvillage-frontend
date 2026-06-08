@@ -382,8 +382,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Blocked url" }, { status: 400 });
   }
 
+  const isFacebook =
+    target.hostname.includes("facebook.com") || target.hostname.includes("fb.com");
+
+  // Facebook blocks all server-side scrapers – they always redirect to a
+  // JS-only login shell with no OG tags. Return the URL immediately so the
+  // client's getFallbackPreviewMeta() shows the correct Marketplace card.
+  if (isFacebook) {
+    return NextResponse.json({
+      url: target.toString(),
+      siteName: getFallbackSiteName(target),
+      debug: { source: "fb-passthrough" },
+    });
+  }
+
+  // Fallback: direct HTML scraping (works for non-FB sites)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
     const fetchResult = await fetchBestPreviewHtml(target, controller.signal);
@@ -439,6 +454,7 @@ export async function GET(request: NextRequest) {
         hasImage: !!image,
         imageCandidateCount: rankedImageCandidates.length,
         fetchScore: fetchResult.score,
+        source: "html-scrape",
       },
     });
   } catch {
