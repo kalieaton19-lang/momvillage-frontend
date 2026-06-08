@@ -95,29 +95,60 @@ export default function InvitationsTab({ invitations, user }: { invitations: any
         ) : (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-xl relative">
+              {(() => {
+                const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
+                const profileHref = getProfileHref(otherUser?.id);
+                return (
+                  <>
               <button className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 text-2xl" onClick={() => {
                 setShowProfileModal(false);
               }}>&times;</button>
-              {(() => {
-                const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
-                return otherUser?.profile_photo_url ? (
+              <div className="text-center">
+                {profileHref ? (
+                  <button
+                    type="button"
+                    className="mx-auto flex flex-col items-center"
+                    onClick={() => {
+                      setShowProfileModal(false);
+                      router.push(profileHref);
+                    }}
+                  >
+                    {otherUser?.profile_photo_url ? (
+                      <img src={otherUser.profile_photo_url} alt={otherUser.full_name} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-4xl mx-auto mb-4">
+                        {otherUser?.full_name?.[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50 hover:underline">{otherUser?.full_name}</div>
+                  </button>
+                ) : otherUser?.profile_photo_url ? (
                   <img src={otherUser.profile_photo_url} alt={otherUser.full_name} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-4xl mx-auto mb-4">
                     {otherUser?.full_name?.[0]?.toUpperCase() || '?'}
                   </div>
+                )}
+                {!profileHref && (
+                  <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{otherUser?.full_name}</div>
+                )}
+                <div className="text-zinc-500 dark:text-zinc-400 mb-4">{`${otherUser?.city || ''}${otherUser?.city && otherUser?.state ? ', ' : ''}${otherUser?.state || ''}`}</div>
+                {profileHref && (
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-semibold text-sm transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                    onClick={() => {
+                      setShowProfileModal(false);
+                      router.push(profileHref);
+                    }}
+                  >
+                    Go to Profile
+                  </button>
+                )}
+              </div>
+                  </>
                 );
               })()}
-              <div className="text-center">
-                <div className="font-bold text-2xl mb-1 text-zinc-900 dark:text-zinc-50">{(() => {
-                  const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
-                  return otherUser?.full_name;
-                })()}</div>
-                <div className="text-zinc-500 dark:text-zinc-400 mb-2">{(() => {
-                  const otherUser = selectedInvitation.from_user_id === user?.id ? selectedInvitation.to_user_profile : selectedInvitation.from_user_profile;
-                  return `${otherUser?.city || ''}${otherUser?.city && otherUser?.state ? ', ' : ''}${otherUser?.state || ''}`;
-                })()}</div>
-              </div>
             </div>
           </div>
         )
