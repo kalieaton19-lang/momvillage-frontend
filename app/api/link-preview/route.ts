@@ -1,5 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 
+type FetchVariant = {
+  name: string;
+  headers: Record<string, string>;
+};
+
+type FetchAttemptResult = {
+  html: string;
+  finalUrl: string;
+  score: number;
+};
+
+const FETCH_VARIANTS: FetchVariant[] = [
+  {
+    name: "mobile-safari",
+    headers: {
+      "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "no-cache",
+      pragma: "no-cache",
+      referer: "https://www.facebook.com/",
+    },
+  },
+  {
+    name: "desktop-chrome",
+    headers: {
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "no-cache",
+      pragma: "no-cache",
+      referer: "https://www.google.com/",
+    },
+  },
+  {
+    name: "link-expander",
+    headers: {
+      "user-agent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+      referer: "https://l.facebook.com/",
+    },
+  },
+  {
+    name: "twitterbot",
+    headers: {
+      "user-agent": "Twitterbot/1.0",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+    },
+  },
+];
+
 function isPrivateHostname(hostname: string) {
   const lower = hostname.toLowerCase();
   if (lower === "localhost" || lower === "127.0.0.1" || lower === "::1") {
@@ -31,6 +84,23 @@ function extractFirstMeta(html: string, candidates: Array<{ key: string; attribu
 function extractTitle(html: string) {
   const match = html.match(/<title[^>]*>([^<]*)<\/title>/i);
   return match?.[1]?.trim() || "";
+}
+
+function scoreFetchedHtml(html: string) {
+  const lower = html.toLowerCase();
+  let score = 0;
+
+  if (extractFirstMeta(html, [{ key: "og:title", attribute: "property" }])) score += 4;
+  if (extractFirstMeta(html, [{ key: "og:description", attribute: "property" }])) score += 3;
+  if (extractFirstMeta(html, [{ key: "og:image", attribute: "property" }])) score += 5;
+  if (extractHeuristicTitle(html)) score += 4;
+  if (extractHeuristicDescription(html)) score += 2;
+  if (collectMarketplaceSpecificImages(html).length > 0) score += 8;
+  if (collectHeuristicImages(html).length > 0) score += 3;
+  if (lower.includes("marketplace")) score += 3;
+  if (lower.includes("login") || lower.includes("log in") || lower.includes("sign up")) score -= 6;
+
+  return score;
 }
 
 function cleanExtractedText(value: string) {
@@ -259,6 +329,42 @@ function absolutize(baseUrl: string, maybeRelative: string) {
   }
 }
 
+async function fetchBestPreviewHtml(target: URL, signal: AbortSignal) {
+  let bestResult: FetchAttemptResult | null = null;
+
+  for (const variant of FETCH_VARIANTS) {
+    try {
+      const response = await fetch(target.toString(), {
+        signal,
+        headers: variant.headers,
+        cache: "no-store",
+        redirect: "follow",
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || !contentType.includes("text/html")) {
+        continue;
+      }
+
+      const html = await response.text();
+      const score = scoreFetchedHtml(html);
+      const result: FetchAttemptResult = {
+        html,
+        finalUrl: response.url || target.toString(),
+        score,
+      };
+
+      if (!bestResult || result.score > bestResult.score) {
+        bestResult = result;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return bestResult;
+}
+
 export async function GET(request: NextRequest) {
   const urlParam = request.nextUrl.searchParams.get("url");
   if (!urlParam) {
@@ -280,26 +386,13 @@ export async function GET(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const response = await fetch(target.toString(), {
-      signal: controller.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "accept-language": "en-US,en;q=0.9",
-        "cache-control": "no-cache",
-        pragma: "no-cache",
-        referer: "https://www.facebook.com/",
-      },
-      cache: "no-store",
-      redirect: "follow",
-    });
-
-    const contentType = response.headers.get("content-type") || "";
-    if (!response.ok || !contentType.includes("text/html")) {
+    const fetchResult = await fetchBestPreviewHtml(target, controller.signal);
+    if (!fetchResult) {
       return NextResponse.json({ url: target.toString() });
     }
 
-    const html = await response.text();
+    const html = fetchResult.html;
+    const baseUrl = fetchResult.finalUrl || target.toString();
     const title =
       extractFirstMeta(html, [
         { key: "og:title", attribute: "property" },
@@ -325,16 +418,16 @@ export async function GET(request: NextRequest) {
       extractJsonLdImage(html),
       ...collectHeuristicImages(html),
     ].filter(Boolean);
-    const rankedImageCandidates = rankImageCandidates(target.toString(), imageCandidates);
+    const rankedImageCandidates = rankImageCandidates(baseUrl, imageCandidates);
     const image = rankedImageCandidates[0] || "";
     const siteName =
       extractFirstMeta(html, [
         { key: "og:site_name", attribute: "property" },
         { key: "application-name", attribute: "name" },
-      ]) || getFallbackSiteName(target);
+      ]) || getFallbackSiteName(new URL(baseUrl));
 
     return NextResponse.json({
-      url: target.toString(),
+      url: baseUrl,
       title,
       description,
       image,
@@ -345,6 +438,7 @@ export async function GET(request: NextRequest) {
         hasDescription: !!description,
         hasImage: !!image,
         imageCandidateCount: rankedImageCandidates.length,
+        fetchScore: fetchResult.score,
       },
     });
   } catch {
