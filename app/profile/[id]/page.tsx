@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { fetchPosts, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../../lib/posts";
+import PostContentWithPreview from "../../components/PostContentWithPreview";
 import type { Post } from "../../../types/post";
 
 export default function ProfilePage() {
@@ -684,7 +685,10 @@ export default function ProfilePage() {
                   )}
 
                   <div className="font-bold text-lg mb-1 text-zinc-900 dark:text-zinc-50">{post.title}</div>
-                  <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
+                  <PostContentWithPreview
+                    text={post.content}
+                    className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
+                  />
 
                   <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-sm">
                     <button

@@ -1,5 +1,14 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import PostContentWithPreview from "../components/PostContentWithPreview";
+import { supabase } from "../../lib/supabase";
+import { fetchPosts, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
+import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
+import type { JSX } from "react";
+
 // LocationField component for post modal (must be outside HomePage)
 function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
   const [custom, setCustom] = React.useState(false);
@@ -51,13 +60,6 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
     </div>
   );
 }
-import React, { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "../../lib/supabase";
-import { fetchPosts, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
-import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
-import type { JSX } from "react";
 
 // Mock group and group post data
 const MOCK_GROUPS = [
@@ -889,7 +891,10 @@ export default function HomePage() {
                             />
                           )}
                           <div className="font-bold text-lg mb-1">{post.title}</div>
-                          <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
+                          <PostContentWithPreview
+                            text={post.content}
+                            className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
+                          />
                         </div>
                       ))
                     )}
@@ -989,7 +994,10 @@ export default function HomePage() {
                     />
                   )}
                   <div className="font-bold text-lg mb-1">{post.title}</div>
-                  <div className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line">{post.content}</div>
+                  <PostContentWithPreview
+                    text={post.content}
+                    className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
+                  />
 
                   <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-sm">
                     <button
