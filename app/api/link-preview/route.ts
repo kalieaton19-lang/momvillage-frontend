@@ -166,7 +166,31 @@ function isLikelyPreviewImage(url: string) {
   return /(fbcdn\.net|scontent\.|cdninstagram|fbsbx\.com|images\.)/.test(lower);
 }
 
-function extractMarketplaceSpecificImage(html: string) {
+function normalizeCandidateImage(value: string) {
+  return cleanExtractedText(value).replace(/\\/g, "");
+}
+
+function collectMatches(html: string, patterns: RegExp[]) {
+  const decodedHtml = decodeEscapedContent(html);
+  const results: string[] = [];
+
+  for (const pattern of patterns) {
+    const matches = decodedHtml.matchAll(pattern);
+    for (const match of matches) {
+      const rawValue = match[1] || match[0] || "";
+      const normalizedValue = normalizeCandidateImage(rawValue);
+      const nestedUrlMatch = normalizedValue.match(/https?:\/\/[^\s"'<>\\]+/i);
+      const candidate = nestedUrlMatch?.[0] || normalizedValue;
+      if (candidate && isLikelyPreviewImage(candidate)) {
+        results.push(candidate);
+      }
+    }
+  }
+
+  return results;
+}
+
+function collectMarketplaceSpecificImages(html: string) {
   const decodedHtml = decodeEscapedContent(html);
   const patterns = [
     /"primary_listing_photo"[\s\S]{0,1200}?"image"\s*:\s*\{[\s\S]{0,800}?"uri"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
@@ -178,19 +202,10 @@ function extractMarketplaceSpecificImage(html: string) {
     /"image_url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
   ];
 
-  for (const pattern of patterns) {
-    const match = decodedHtml.match(pattern);
-    const value = cleanExtractedText(match?.[1] || "");
-    if (value && isLikelyPreviewImage(value)) {
-      return value;
-    }
-  }
-
-  return "";
+  return collectMatches(decodedHtml, patterns);
 }
 
-function extractHeuristicImage(html: string) {
-  const decodedHtml = decodeEscapedContent(html);
+function collectHeuristicImages(html: string) {
   const candidatePatterns = [
     /"listing_photos"\s*:\s*\[(.*?)\]/gi,
     /https?:\/\/[^\s"'<>\\]+(?:fbcdn\.net|fbsbx\.com|cdninstagram\.com)[^\s"'<>\\]*/gi,
@@ -200,19 +215,67 @@ function extractHeuristicImage(html: string) {
     /"uri"\s*:\s*"(https?:[^"\\]+)"/gi,
   ];
 
-  for (const pattern of candidatePatterns) {
-    const matches = decodedHtml.matchAll(pattern);
-    for (const match of matches) {
-      const value = decodeEscapedContent(match[1] || match[0] || "");
-      const nestedUrlMatch = value.match(/https?:\/\/[^\s"'<>\\]+/i);
-      const candidate = nestedUrlMatch?.[0] || value;
-      if (isLikelyPreviewImage(candidate)) {
-        return candidate;
-      }
-    }
+  return collectMatches(html, candidatePatterns);
+}
+
+function scoreImageCandidate(url: string) {
+  const lower = url.toLowerCase();
+  let score = 0;
+
+  if (lower.includes("marketplace")) score += 30;
+  if (lower.includes("listing")) score += 20;
+  if (lower.includes("cover")) score += 10;
+  if (lower.includes("thumbnail")) score += 5;
+  if (lower.includes("scontent")) score += 15;
+  if (lower.includes("fbcdn.net")) score += 10;
+  if (/(p\d{3,4}x\d{3,4}|_\d{3,4}x\d{3,4})/.test(lower)) score += 10;
+  if (/(p50x50|p64x64|p80x80|_50x50|_64x64)/.test(lower)) score -= 20;
+
+  return score;
+}
+
+async function validateImageCandidate(url: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+        accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.9",
+        referer: "https://www.facebook.com/",
+      },
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    if (!response.ok) return false;
+
+    const contentType = response.headers.get("content-type") || "";
+    const contentLength = Number(response.headers.get("content-length") || "0");
+
+    return contentType.startsWith("image/") && (contentLength === 0 || contentLength > 2048);
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveBestImageCandidate(baseUrl: string, candidates: string[]) {
+  const uniqueCandidates = [...new Set(candidates.map((candidate) => absolutize(baseUrl, candidate)).filter(Boolean))]
+    .filter(isLikelyPreviewImage)
+    .sort((left, right) => scoreImageCandidate(right) - scoreImageCandidate(left))
+    .slice(0, 5);
+
+  for (const candidate of uniqueCandidates) {
+    const isValid = await validateImageCandidate(candidate);
+    if (isValid) return candidate;
   }
 
-  return "";
+  return uniqueCandidates[0] || "";
 }
 
 function getFallbackSiteName(target: URL) {
@@ -286,20 +349,21 @@ export async function GET(request: NextRequest) {
         { key: "twitter:description", attribute: "name" },
         { key: "description", attribute: "name" },
       ]) || extractItemProp(html, "description") || extractHeuristicDescription(html);
-    const rawImage =
+    const imageCandidates = [
       extractFirstMeta(html, [
         { key: "og:image", attribute: "property" },
         { key: "og:image:url", attribute: "property" },
         { key: "og:image:secure_url", attribute: "property" },
         { key: "twitter:image", attribute: "name" },
         { key: "twitter:image:src", attribute: "name" },
-      ]) ||
-      extractMarketplaceSpecificImage(html) ||
-      extractItemProp(html, "image") ||
-      extractLinkTag(html, "image_src") ||
-      extractJsonLdImage(html) ||
-      extractHeuristicImage(html);
-    const image = absolutize(target.toString(), rawImage);
+      ]),
+      ...collectMarketplaceSpecificImages(html),
+      extractItemProp(html, "image"),
+      extractLinkTag(html, "image_src"),
+      extractJsonLdImage(html),
+      ...collectHeuristicImages(html),
+    ].filter(Boolean);
+    const image = await resolveBestImageCandidate(target.toString(), imageCandidates);
     const siteName =
       extractFirstMeta(html, [
         { key: "og:site_name", attribute: "property" },
