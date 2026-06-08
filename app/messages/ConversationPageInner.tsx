@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNotification } from "../components/useNotification";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { sendMessageToMatch } from "./sendMessageToMatch";
 
@@ -389,6 +390,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
 
   const otherUser = getOtherUserInfo(conversation);
   const otherUserId = conversation.user1_id === user?.id ? conversation.user2_id : conversation.user1_id;
+  const otherUserProfileHref = otherUserId ? (otherUserId === user?.id ? "/profile" : `/profile/${otherUserId}`) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -409,7 +411,11 @@ export default function ConversationPageInner({ conversationId }: { conversation
           <button
             type="button"
             className="flex items-center gap-4 no-underline hover:opacity-80 bg-transparent border-none p-0"
-            onClick={() => setProfileModalOpen(true)}
+            onClick={() => {
+              if (otherUserProfileHref) {
+                router.push(otherUserProfileHref);
+              }
+            }}
             style={{ cursor: 'pointer' }}
           >
             {otherUser.photo ? (
@@ -496,7 +502,15 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
                       {msg.sender_id !== user?.id && (
-                        <div className="text-xs font-semibold mb-1 text-zinc-700 dark:text-zinc-200">{senderName}</div>
+                        <div className="text-xs font-semibold mb-1 text-zinc-700 dark:text-zinc-200">
+                          {msg.sender_id === otherUserId && otherUserProfileHref ? (
+                            <Link href={otherUserProfileHref} className="hover:underline">
+                              {senderName}
+                            </Link>
+                          ) : (
+                            senderName
+                          )}
+                        </div>
                       )}
                       <p className="break-words text-base leading-snug">{msg.message_text}</p>
                       <p className={`text-xs mt-1 ${

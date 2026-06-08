@@ -47,6 +47,11 @@ function MessagesPageInner() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const router = useRouter();
 
+  function getProfileHref(otherUserId?: string | null) {
+    if (!otherUserId) return null;
+    return otherUserId === user?.id ? "/profile" : `/profile/${otherUserId}`;
+  }
+
   useEffect(() => {
     checkUser();
   }, []);
@@ -99,6 +104,11 @@ function MessagesPageInner() {
     }
   }
 
+  function getOtherUserId(conv: Conversation) {
+    if (!user) return null;
+    return conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
+  }
+
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0">
       {/* Back Button - above banner, left side */}
@@ -135,34 +145,74 @@ function MessagesPageInner() {
             <div className="flex flex-col gap-3">
               {conversations.map(conv => {
                 const otherUser = getOtherUserInfo(conv);
+                const otherUserId = getOtherUserId(conv);
+                const profileHref = getProfileHref(otherUserId);
                 return (
-                  <button
+                  <div
                     key={conv.id}
                     className="w-full text-left py-2 px-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm flex items-center gap-3 border border-pink-100 dark:border-pink-900 hover:bg-pink-50 dark:hover:bg-pink-950 transition"
                     style={{ borderBottom: '2px solid #fce4ec' }}
                     onClick={() => router.push(`/messages/${conv.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        router.push(`/messages/${conv.id}`);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
-                    {otherUser.photo ? (
-                      <img
-                        src={otherUser.photo}
-                        alt={otherUser.name}
-                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                      />
+                    {profileHref ? (
+                      <button
+                        type="button"
+                        className="flex items-center gap-3 min-w-0"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          router.push(profileHref);
+                        }}
+                      >
+                        {otherUser.photo ? (
+                          <img
+                            src={otherUser.photo}
+                            alt={otherUser.name}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                            {otherUser.name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left hover:underline">{otherUser.name}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{conv.last_message}</div>
+                        </div>
+                      </button>
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                        {otherUser.name?.[0]?.toUpperCase() || '?'}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {otherUser.photo ? (
+                          <img
+                            src={otherUser.photo}
+                            alt={otherUser.name}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                            {otherUser.name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left">{otherUser.name}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{conv.last_message}</div>
+                        </div>
                       </div>
                     )}
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left">{otherUser.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{conv.last_message}</div>
-                    </div>
+                    {profileHref && <div className="flex-1" />}
                     <div className="flex items-center ml-2">
                       <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-400">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
