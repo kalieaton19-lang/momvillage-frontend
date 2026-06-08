@@ -98,6 +98,45 @@ function extractJsonLdImage(html: string) {
   return "";
 }
 
+function decodeEscapedContent(value: string) {
+  return value
+    .replace(/\\u002F/gi, "/")
+    .replace(/\\u003A/gi, ":")
+    .replace(/\\u0026/gi, "&")
+    .replace(/\\\//g, "/")
+    .replace(/&amp;/gi, "&");
+}
+
+function isLikelyPreviewImage(url: string) {
+  const lower = url.toLowerCase();
+  if (!/^https?:\/\//.test(lower)) return false;
+  if (lower.includes("sprite") || lower.includes("emoji") || lower.includes("icon")) return false;
+  return /(fbcdn\.net|scontent\.|cdninstagram|fbsbx\.com|images\.)/.test(lower);
+}
+
+function extractHeuristicImage(html: string) {
+  const decodedHtml = decodeEscapedContent(html);
+  const candidatePatterns = [
+    /https?:\/\/[^\s"'<>\\]+(?:fbcdn\.net|fbsbx\.com|cdninstagram\.com)[^\s"'<>\\]*/gi,
+    /https?:\/\/[^\s"'<>\\]+scontent[^\s"'<>\\]*/gi,
+    /"image"\s*:\s*"(https?:[^"\\]+)"/gi,
+    /"image_url"\s*:\s*"(https?:[^"\\]+)"/gi,
+    /"uri"\s*:\s*"(https?:[^"\\]+)"/gi,
+  ];
+
+  for (const pattern of candidatePatterns) {
+    const matches = decodedHtml.matchAll(pattern);
+    for (const match of matches) {
+      const value = decodeEscapedContent(match[1] || match[0] || "");
+      if (isLikelyPreviewImage(value)) {
+        return value;
+      }
+    }
+  }
+
+  return "";
+}
+
 function getFallbackSiteName(target: URL) {
   const hostname = target.hostname.replace(/^www\./i, "").toLowerCase();
   if (hostname.includes("facebook.com") || hostname.includes("fb.com")) {
@@ -164,16 +203,19 @@ export async function GET(request: NextRequest) {
         { key: "twitter:description", attribute: "name" },
         { key: "description", attribute: "name" },
       ]) || extractItemProp(html, "description");
-    const image = absolutize(
-      target.toString(),
+    const rawImage =
       extractFirstMeta(html, [
         { key: "og:image", attribute: "property" },
         { key: "og:image:url", attribute: "property" },
         { key: "og:image:secure_url", attribute: "property" },
         { key: "twitter:image", attribute: "name" },
         { key: "twitter:image:src", attribute: "name" },
-      ]) || extractItemProp(html, "image") || extractLinkTag(html, "image_src") || extractJsonLdImage(html),
-    );
+      ]) ||
+      extractItemProp(html, "image") ||
+      extractLinkTag(html, "image_src") ||
+      extractJsonLdImage(html) ||
+      extractHeuristicImage(html);
+    const image = absolutize(target.toString(), rawImage);
     const siteName =
       extractFirstMeta(html, [
         { key: "og:site_name", attribute: "property" },
@@ -186,6 +228,11 @@ export async function GET(request: NextRequest) {
       description,
       image,
       siteName,
+      debug: {
+        hasTitle: !!title,
+        hasDescription: !!description,
+        hasImage: !!image,
+      },
     });
   } catch {
     return NextResponse.json({ url: target.toString() });
