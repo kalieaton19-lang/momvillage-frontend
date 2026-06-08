@@ -5,6 +5,14 @@ type FetchVariant = {
   headers: Record<string, string>;
 };
 
+type ExternalPreview = {
+  url: string;
+  title: string;
+  description: string;
+  image: string;
+  siteName: string;
+};
+
 const FETCH_VARIANTS: FetchVariant[] = [
   {
     name: "facebookexternalhit",
@@ -303,6 +311,72 @@ function absolutize(baseUrl: string, maybeRelative: string) {
   }
 }
 
+function isGenericFacebookTitle(value: string) {
+  const title = value.trim().toLowerCase();
+  return title === "facebook" || title === "facebook marketplace" || title.includes("content isn't available right now");
+}
+
+function toStringOrEmpty(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+async function fetchExternalPreview(target: URL, signal: AbortSignal): Promise<ExternalPreview | null> {
+  const ogKey = process.env.OPENGRAPH_API_KEY || process.env.OG_API_KEY;
+  if (ogKey) {
+    try {
+      const response = await fetch(
+        `https://opengraph.io/api/1.1/site/${encodeURIComponent(target.toString())}?app_id=${encodeURIComponent(ogKey)}`,
+        { signal, cache: "no-store" },
+      );
+      if (response.ok) {
+        const json = (await response.json()) as {
+          hybridGraph?: { title?: string; description?: string; image?: string; url?: string; site_name?: string };
+          openGraph?: { title?: string; description?: string; image?: { url?: string }; url?: string; site_name?: string };
+        };
+        const graph = json.hybridGraph || json.openGraph || {};
+        const imageValue = typeof graph.image === "string" ? graph.image : graph.image?.url || "";
+        return {
+          url: toStringOrEmpty(graph.url) || target.toString(),
+          title: toStringOrEmpty(graph.title),
+          description: toStringOrEmpty(graph.description),
+          image: toStringOrEmpty(imageValue),
+          siteName: toStringOrEmpty(graph.site_name) || getFallbackSiteName(target),
+        };
+      }
+    } catch {
+      // ignore and continue fallback chain
+    }
+  }
+
+  const iframelyKey = process.env.IFRAMELY_API_KEY;
+  if (iframelyKey) {
+    try {
+      const response = await fetch(
+        `https://iframe.ly/api/iframely?url=${encodeURIComponent(target.toString())}&api_key=${encodeURIComponent(iframelyKey)}`,
+        { signal, cache: "no-store" },
+      );
+      if (response.ok) {
+        const json = (await response.json()) as {
+          url?: string;
+          meta?: { title?: string; description?: string; site?: string };
+          links?: { thumbnail?: Array<{ href?: string }>; icon?: Array<{ href?: string }> };
+        };
+        return {
+          url: toStringOrEmpty(json.url) || target.toString(),
+          title: toStringOrEmpty(json.meta?.title),
+          description: toStringOrEmpty(json.meta?.description),
+          image: toStringOrEmpty(json.links?.thumbnail?.[0]?.href),
+          siteName: toStringOrEmpty(json.meta?.site) || getFallbackSiteName(target),
+        };
+      }
+    } catch {
+      // ignore and return null
+    }
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   const urlParam = request.nextUrl.searchParams.get("url");
   if (!urlParam) {
@@ -396,6 +470,32 @@ export async function GET(request: NextRequest) {
         { key: "og:site_name", attribute: "property" },
         { key: "application-name", attribute: "name" },
       ]) || getFallbackSiteName(target);
+
+    const needsExternalFallback =
+      isFacebookHost &&
+      ((isGenericFacebookTitle(title) && !description) || (!title && !description && !image));
+
+    if (needsExternalFallback) {
+      const external = await fetchExternalPreview(target, controller.signal);
+      if (external && (external.title || external.description || external.image)) {
+        const externalImageCandidates = external.image ? [external.image] : [];
+        return NextResponse.json({
+          url: external.url,
+          title: external.title,
+          description: external.description,
+          image: external.image,
+          imageCandidates: externalImageCandidates,
+          siteName: external.siteName,
+          debug: {
+            hasTitle: !!external.title,
+            hasDescription: !!external.description,
+            hasImage: !!external.image,
+            imageCandidateCount: externalImageCandidates.length,
+            source: "external-fallback",
+          },
+        });
+      }
+    }
 
     return NextResponse.json({
       url: bestFinalUrl,
