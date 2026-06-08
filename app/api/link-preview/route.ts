@@ -155,8 +155,38 @@ function extractHeuristicDescription(html: string) {
 function isLikelyPreviewImage(url: string) {
   const lower = url.toLowerCase();
   if (!/^https?:\/\//.test(lower)) return false;
-  if (lower.includes("sprite") || lower.includes("emoji") || lower.includes("icon")) return false;
+  if (
+    lower.includes("sprite") ||
+    lower.includes("emoji") ||
+    lower.includes("icon") ||
+    lower.includes("profile_pic") ||
+    lower.includes("safe_image") ||
+    lower.includes("static.xx")
+  ) return false;
   return /(fbcdn\.net|scontent\.|cdninstagram|fbsbx\.com|images\.)/.test(lower);
+}
+
+function extractMarketplaceSpecificImage(html: string) {
+  const decodedHtml = decodeEscapedContent(html);
+  const patterns = [
+    /"primary_listing_photo"[\s\S]{0,1200}?"image"\s*:\s*\{[\s\S]{0,800}?"uri"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"listing_photos"\s*:\s*\[[\s\S]{0,2000}?"image"\s*:\s*\{[\s\S]{0,800}?"uri"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"cover_photo"[\s\S]{0,1200}?"image"\s*:\s*\{[\s\S]{0,800}?"uri"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"preferred_thumbnail"[\s\S]{0,1200}?"image"\s*:\s*\{[\s\S]{0,800}?"uri"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"listing_photo"[\s\S]{0,1200}?"image"\s*:\s*\{[\s\S]{0,800}?"uri"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"seo_image_url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"image_url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = decodedHtml.match(pattern);
+    const value = cleanExtractedText(match?.[1] || "");
+    if (value && isLikelyPreviewImage(value)) {
+      return value;
+    }
+  }
+
+  return "";
 }
 
 function extractHeuristicImage(html: string) {
@@ -264,6 +294,7 @@ export async function GET(request: NextRequest) {
         { key: "twitter:image", attribute: "name" },
         { key: "twitter:image:src", attribute: "name" },
       ]) ||
+      extractMarketplaceSpecificImage(html) ||
       extractItemProp(html, "image") ||
       extractLinkTag(html, "image_src") ||
       extractJsonLdImage(html) ||
