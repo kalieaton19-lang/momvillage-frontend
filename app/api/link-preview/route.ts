@@ -12,6 +12,18 @@ type FetchAttemptResult = {
 };
 
 const FETCH_VARIANTS: FetchVariant[] = [
+  // facebookexternalhit is whitelisted by Facebook and gets the full React
+  // app HTML with embedded JSON blobs for public listings. All other UAs get
+  // a JS-only login wall.
+  {
+    name: "facebookexternalhit",
+    headers: {
+      "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+    },
+  },
+  // Fallback variants for non-Facebook sites
   {
     name: "mobile-safari",
     headers: {
@@ -20,7 +32,6 @@ const FETCH_VARIANTS: FetchVariant[] = [
       "accept-language": "en-US,en;q=0.9",
       "cache-control": "no-cache",
       pragma: "no-cache",
-      referer: "https://www.facebook.com/",
     },
   },
   {
@@ -32,23 +43,6 @@ const FETCH_VARIANTS: FetchVariant[] = [
       "cache-control": "no-cache",
       pragma: "no-cache",
       referer: "https://www.google.com/",
-    },
-  },
-  {
-    name: "link-expander",
-    headers: {
-      "user-agent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "accept-language": "en-US,en;q=0.9",
-      referer: "https://l.facebook.com/",
-    },
-  },
-  {
-    name: "twitterbot",
-    headers: {
-      "user-agent": "Twitterbot/1.0",
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "accept-language": "en-US,en;q=0.9",
     },
   },
 ];
@@ -329,10 +323,10 @@ function absolutize(baseUrl: string, maybeRelative: string) {
   }
 }
 
-async function fetchBestPreviewHtml(target: URL, signal: AbortSignal) {
+async function fetchBestPreviewHtml(target: URL, signal: AbortSignal, variants = FETCH_VARIANTS) {
   let bestResult: FetchAttemptResult | null = null;
 
-  for (const variant of FETCH_VARIANTS) {
+  for (const variant of variants) {
     try {
       const response = await fetch(target.toString(), {
         signal,
@@ -385,34 +379,34 @@ export async function GET(request: NextRequest) {
   const isFacebook =
     target.hostname.includes("facebook.com") || target.hostname.includes("fb.com");
 
-  // Facebook blocks all server-side scrapers – they always redirect to a
-  // JS-only login shell with no OG tags. Return the URL immediately so the
-  // client's getFallbackPreviewMeta() shows the correct Marketplace card.
-  if (isFacebook) {
-    return NextResponse.json({
-      url: target.toString(),
-      siteName: getFallbackSiteName(target),
-      debug: { source: "fb-passthrough" },
-    });
-  }
+  // For Facebook URLs use only the facebookexternalhit UA, which Facebook
+  // whitelists and returns full React JSON blobs for public listings.
+  // All other UAs get a JS-only login wall so we skip them entirely.
+  const variants = isFacebook
+    ? FETCH_VARIANTS.filter((v) => v.name === "facebookexternalhit")
+    : FETCH_VARIANTS.filter((v) => v.name !== "facebookexternalhit");
 
-  // Fallback: direct HTML scraping (works for non-FB sites)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), isFacebook ? 10000 : 8000);
 
   try {
-    const fetchResult = await fetchBestPreviewHtml(target, controller.signal);
+    const fetchResult = await fetchBestPreviewHtml(target, controller.signal, variants);
     if (!fetchResult) {
       return NextResponse.json({ url: target.toString() });
     }
 
     const html = fetchResult.html;
     const baseUrl = fetchResult.finalUrl || target.toString();
-    const title =
+    const rawTitle =
       extractFirstMeta(html, [
         { key: "og:title", attribute: "property" },
         { key: "twitter:title", attribute: "name" },
       ]) || extractHeuristicTitle(html) || extractTitle(html);
+    // Discard generic FB shell titles – they mean the listing is private/unavailable
+    const GENERIC_FB_TITLES = ["facebook", "facebook marketplace"];
+    const title = isFacebook && GENERIC_FB_TITLES.includes(rawTitle.trim().toLowerCase())
+      ? ""
+      : rawTitle;
     const description =
       extractFirstMeta(html, [
         { key: "og:description", attribute: "property" },
