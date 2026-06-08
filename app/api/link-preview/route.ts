@@ -1,52 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-type FetchVariant = {
-  name: string;
-  headers: Record<string, string>;
-};
-
-type FetchAttemptResult = {
-  html: string;
-  finalUrl: string;
-  score: number;
-};
-
-const FETCH_VARIANTS: FetchVariant[] = [
-  // facebookexternalhit is whitelisted by Facebook and gets the full React
-  // app HTML with embedded JSON blobs for public listings. All other UAs get
-  // a JS-only login wall.
-  {
-    name: "facebookexternalhit",
-    headers: {
-      "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "accept-language": "en-US,en;q=0.9",
-    },
-  },
-  // Fallback variants for non-Facebook sites
-  {
-    name: "mobile-safari",
-    headers: {
-      "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "accept-language": "en-US,en;q=0.9",
-      "cache-control": "no-cache",
-      pragma: "no-cache",
-    },
-  },
-  {
-    name: "desktop-chrome",
-    headers: {
-      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "accept-language": "en-US,en;q=0.9",
-      "cache-control": "no-cache",
-      pragma: "no-cache",
-      referer: "https://www.google.com/",
-    },
-  },
-];
-
 function isPrivateHostname(hostname: string) {
   const lower = hostname.toLowerCase();
   if (lower === "localhost" || lower === "127.0.0.1" || lower === "::1") {
@@ -78,23 +31,6 @@ function extractFirstMeta(html: string, candidates: Array<{ key: string; attribu
 function extractTitle(html: string) {
   const match = html.match(/<title[^>]*>([^<]*)<\/title>/i);
   return match?.[1]?.trim() || "";
-}
-
-function scoreFetchedHtml(html: string) {
-  const lower = html.toLowerCase();
-  let score = 0;
-
-  if (extractFirstMeta(html, [{ key: "og:title", attribute: "property" }])) score += 4;
-  if (extractFirstMeta(html, [{ key: "og:description", attribute: "property" }])) score += 3;
-  if (extractFirstMeta(html, [{ key: "og:image", attribute: "property" }])) score += 5;
-  if (extractHeuristicTitle(html)) score += 4;
-  if (extractHeuristicDescription(html)) score += 2;
-  if (collectMarketplaceSpecificImages(html).length > 0) score += 8;
-  if (collectHeuristicImages(html).length > 0) score += 3;
-  if (lower.includes("marketplace")) score += 3;
-  if (lower.includes("login") || lower.includes("log in") || lower.includes("sign up")) score -= 6;
-
-  return score;
 }
 
 function cleanExtractedText(value: string) {
@@ -216,22 +152,6 @@ function extractHeuristicDescription(html: string) {
   return parts.join(" • ");
 }
 
-function isUnavailableFacebookListingPage(html: string) {
-  const lower = html.toLowerCase();
-  if (!lower.includes("marketplace")) return false;
-
-  const unavailableSignals = [
-    "this content isn't available right now",
-    "content isn't available right now",
-    "error facebook",
-    '"privacy":true',
-    '"isboc":false',
-    '"cometerrorroot.react"',
-  ];
-
-  return unavailableSignals.some((signal) => lower.includes(signal));
-}
-
 function isLikelyPreviewImage(url: string) {
   const lower = url.toLowerCase();
   if (!/^https?:\/\//.test(lower)) return false;
@@ -339,42 +259,6 @@ function absolutize(baseUrl: string, maybeRelative: string) {
   }
 }
 
-async function fetchBestPreviewHtml(target: URL, signal: AbortSignal, variants = FETCH_VARIANTS) {
-  let bestResult: FetchAttemptResult | null = null;
-
-  for (const variant of variants) {
-    try {
-      const response = await fetch(target.toString(), {
-        signal,
-        headers: variant.headers,
-        cache: "no-store",
-        redirect: "follow",
-      });
-
-      const contentType = response.headers.get("content-type") || "";
-      if (!response.ok || !contentType.includes("text/html")) {
-        continue;
-      }
-
-      const html = await response.text();
-      const score = scoreFetchedHtml(html);
-      const result: FetchAttemptResult = {
-        html,
-        finalUrl: response.url || target.toString(),
-        score,
-      };
-
-      if (!bestResult || result.score > bestResult.score) {
-        bestResult = result;
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return bestResult;
-}
-
 export async function GET(request: NextRequest) {
   const urlParam = request.nextUrl.searchParams.get("url");
   if (!urlParam) {
@@ -392,46 +276,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Blocked url" }, { status: 400 });
   }
 
-  const isFacebook =
-    target.hostname.includes("facebook.com") || target.hostname.includes("fb.com");
-
-  // For Facebook, try crawler UA first, then browser-like fallbacks. Some
-  // listing responses vary by endpoint/region and one may expose richer data.
-  const variants = isFacebook
-    ? FETCH_VARIANTS.filter((v) =>
-        ["facebookexternalhit", "mobile-safari", "desktop-chrome"].includes(v.name),
-      )
-    : FETCH_VARIANTS.filter((v) => v.name !== "facebookexternalhit");
-
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), isFacebook ? 10000 : 8000);
+  const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const fetchResult = await fetchBestPreviewHtml(target, controller.signal, variants);
-    if (!fetchResult) {
+    const response = await fetch(target.toString(), {
+      signal: controller.signal,
+      headers: {
+        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.9",
+        "cache-control": "no-cache",
+        pragma: "no-cache",
+        referer: "https://www.facebook.com/",
+      },
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok || !contentType.includes("text/html")) {
       return NextResponse.json({ url: target.toString() });
     }
 
-    const html = fetchResult.html;
-    if (isFacebook && isUnavailableFacebookListingPage(html)) {
-      return NextResponse.json({
-        url: target.toString(),
-        siteName: getFallbackSiteName(target),
-        debug: { source: "facebook-unavailable" },
-      });
-    }
-
-    const baseUrl = fetchResult.finalUrl || target.toString();
-    const rawTitle =
+    const html = await response.text();
+    const title =
       extractFirstMeta(html, [
         { key: "og:title", attribute: "property" },
         { key: "twitter:title", attribute: "name" },
       ]) || extractHeuristicTitle(html) || extractTitle(html);
-    // Discard generic FB shell titles – they mean the listing is private/unavailable
-    const GENERIC_FB_TITLES = ["facebook", "facebook marketplace"];
-    const title = isFacebook && GENERIC_FB_TITLES.includes(rawTitle.trim().toLowerCase())
-      ? ""
-      : rawTitle;
     const description =
       extractFirstMeta(html, [
         { key: "og:description", attribute: "property" },
@@ -452,16 +325,16 @@ export async function GET(request: NextRequest) {
       extractJsonLdImage(html),
       ...collectHeuristicImages(html),
     ].filter(Boolean);
-    const rankedImageCandidates = rankImageCandidates(baseUrl, imageCandidates);
+    const rankedImageCandidates = rankImageCandidates(target.toString(), imageCandidates);
     const image = rankedImageCandidates[0] || "";
     const siteName =
       extractFirstMeta(html, [
         { key: "og:site_name", attribute: "property" },
         { key: "application-name", attribute: "name" },
-      ]) || getFallbackSiteName(new URL(baseUrl));
+      ]) || getFallbackSiteName(target);
 
     return NextResponse.json({
-      url: baseUrl,
+      url: target.toString(),
       title,
       description,
       image,
@@ -472,8 +345,6 @@ export async function GET(request: NextRequest) {
         hasDescription: !!description,
         hasImage: !!image,
         imageCandidateCount: rankedImageCandidates.length,
-        fetchScore: fetchResult.score,
-        source: "html-scrape",
       },
     });
   } catch {
