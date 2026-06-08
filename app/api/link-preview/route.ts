@@ -33,6 +33,18 @@ function extractTitle(html: string) {
   return match?.[1]?.trim() || "";
 }
 
+function cleanExtractedText(value: string) {
+  return decodeEscapedContent(value)
+    .replace(/\\n|\\r|\n|\r/g, " ")
+    .replace(/\\"/g, '"')
+    .replace(/&#039;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function extractLinkTag(html: string, rel: string) {
   const pattern = new RegExp(
     `<link[^>]+rel=["']${rel}["'][^>]+href=["']([^"']*)["'][^>]*>|<link[^>]+href=["']([^"']*)["'][^>]+rel=["']${rel}["'][^>]*>`,
@@ -103,8 +115,41 @@ function decodeEscapedContent(value: string) {
     .replace(/\\u002F/gi, "/")
     .replace(/\\u003A/gi, ":")
     .replace(/\\u0026/gi, "&")
+    .replace(/\\u003C/gi, "<")
+    .replace(/\\u003E/gi, ">")
+    .replace(/\\u002D/gi, "-")
+    .replace(/\\u0025/gi, "%")
     .replace(/\\\//g, "/")
     .replace(/&amp;/gi, "&");
+}
+
+function extractHeuristicTitle(html: string) {
+  const decodedHtml = decodeEscapedContent(html);
+  const patterns = [
+    /"marketplace_listing_title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"listing_title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"marketplace_product_title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i,
+    /"title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*"marketplace_listing_id"/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = decodedHtml.match(pattern);
+    const value = cleanExtractedText(match?.[1] || "");
+    if (value && value.length > 3) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+function extractHeuristicDescription(html: string) {
+  const decodedHtml = decodeEscapedContent(html);
+  const priceMatch = decodedHtml.match(/"(?:formatted_)?price"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i);
+  const locationMatch = decodedHtml.match(/"location_text"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i);
+
+  const parts = [cleanExtractedText(priceMatch?.[1] || ""), cleanExtractedText(locationMatch?.[1] || "")].filter(Boolean);
+  return parts.join(" • ");
 }
 
 function isLikelyPreviewImage(url: string) {
@@ -117,6 +162,7 @@ function isLikelyPreviewImage(url: string) {
 function extractHeuristicImage(html: string) {
   const decodedHtml = decodeEscapedContent(html);
   const candidatePatterns = [
+    /"listing_photos"\s*:\s*\[(.*?)\]/gi,
     /https?:\/\/[^\s"'<>\\]+(?:fbcdn\.net|fbsbx\.com|cdninstagram\.com)[^\s"'<>\\]*/gi,
     /https?:\/\/[^\s"'<>\\]+scontent[^\s"'<>\\]*/gi,
     /"image"\s*:\s*"(https?:[^"\\]+)"/gi,
@@ -128,8 +174,10 @@ function extractHeuristicImage(html: string) {
     const matches = decodedHtml.matchAll(pattern);
     for (const match of matches) {
       const value = decodeEscapedContent(match[1] || match[0] || "");
-      if (isLikelyPreviewImage(value)) {
-        return value;
+      const nestedUrlMatch = value.match(/https?:\/\/[^\s"'<>\\]+/i);
+      const candidate = nestedUrlMatch?.[0] || value;
+      if (isLikelyPreviewImage(candidate)) {
+        return candidate;
       }
     }
   }
@@ -180,10 +228,15 @@ export async function GET(request: NextRequest) {
     const response = await fetch(target.toString(), {
       signal: controller.signal,
       headers: {
-        "user-agent": "MomVillage Link Preview Bot",
-        accept: "text/html,application/xhtml+xml",
+        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.9",
+        "cache-control": "no-cache",
+        pragma: "no-cache",
+        referer: "https://www.facebook.com/",
       },
       cache: "no-store",
+      redirect: "follow",
     });
 
     const contentType = response.headers.get("content-type") || "";
@@ -196,13 +249,13 @@ export async function GET(request: NextRequest) {
       extractFirstMeta(html, [
         { key: "og:title", attribute: "property" },
         { key: "twitter:title", attribute: "name" },
-      ]) || extractTitle(html);
+      ]) || extractHeuristicTitle(html) || extractTitle(html);
     const description =
       extractFirstMeta(html, [
         { key: "og:description", attribute: "property" },
         { key: "twitter:description", attribute: "name" },
         { key: "description", attribute: "name" },
-      ]) || extractItemProp(html, "description");
+      ]) || extractItemProp(html, "description") || extractHeuristicDescription(html);
     const rawImage =
       extractFirstMeta(html, [
         { key: "og:image", attribute: "property" },
