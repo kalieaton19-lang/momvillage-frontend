@@ -115,6 +115,11 @@ export default function HomePage() {
     location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
   });
 
+  function getProfileHref(authorUserId?: string | null) {
+    if (!authorUserId) return null;
+    return authorUserId === user?.id ? '/profile' : `/profile/${authorUserId}`;
+  }
+
   useEffect(() => {
     checkUser();
   }, []);
@@ -866,23 +871,43 @@ export default function HomePage() {
                               Support Post
                             </div>
                           )}
-                          <div className="flex items-center gap-3 mb-3">
-                            {post.author_user_id && authorPhotoById[post.author_user_id] ? (
-                              <img
-                                src={authorPhotoById[post.author_user_id]}
-                                alt={post.author_name || 'Mom'}
-                                className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                {(post.author_name || 'M').charAt(0).toUpperCase()}
+                          {getProfileHref(post.author_user_id) ? (
+                            <Link href={getProfileHref(post.author_user_id)!} className="flex items-center gap-3 mb-3 min-w-0 group w-fit max-w-full">
+                              {post.author_user_id && authorPhotoById[post.author_user_id] ? (
+                                <img
+                                  src={authorPhotoById[post.author_user_id]}
+                                  alt={post.author_name || 'Mom'}
+                                  className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                  {(post.author_name || 'M').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{post.author_name || 'Mom'}</div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                               </div>
-                            )}
-                            <div className="min-w-0">
-                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
-                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                            </Link>
+                          ) : (
+                            <div className="flex items-center gap-3 mb-3">
+                              {post.author_user_id && authorPhotoById[post.author_user_id] ? (
+                                <img
+                                  src={authorPhotoById[post.author_user_id]}
+                                  alt={post.author_name || 'Mom'}
+                                  className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                  {(post.author_name || 'M').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                              </div>
                             </div>
-                          </div>
+                          )}
                           {post.photo_url && (
                             <img
                               src={post.photo_url}
@@ -937,23 +962,43 @@ export default function HomePage() {
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {authorPhotoById[post.author_user_id] ? (
-                        <img
-                          src={authorPhotoById[post.author_user_id]}
-                          alt={post.author_name || 'Mom'}
-                          className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                          {(post.author_name || 'M').charAt(0).toUpperCase()}
+                    {getProfileHref(post.author_user_id) ? (
+                      <Link href={getProfileHref(post.author_user_id)!} className="flex items-center gap-3 min-w-0 group w-fit max-w-full">
+                        {authorPhotoById[post.author_user_id] ? (
+                          <img
+                            src={authorPhotoById[post.author_user_id]}
+                            alt={post.author_name || 'Mom'}
+                            className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                            {(post.author_name || 'M').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{post.author_name || 'Mom'}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 min-w-0">
+                        {authorPhotoById[post.author_user_id] ? (
+                          <img
+                            src={authorPhotoById[post.author_user_id]}
+                            alt={post.author_name || 'Mom'}
+                            className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                            {(post.author_name || 'M').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {user?.id === post.author_user_id && (
                       <div className="relative">
@@ -1034,27 +1079,50 @@ export default function HomePage() {
                               {visibleComments.map((comment) => {
                                 const isEditing = editingCommentId === comment.id;
                                 const displayName = authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? (profile?.full_name || 'You') : 'Mom');
+                                const commentProfileHref = getProfileHref(comment.author_user_id);
 
                                 return (
                                   <div key={comment.id} className="flex gap-3 text-sm bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-3 border border-zinc-200 dark:border-zinc-700">
                                     <div className="shrink-0">
-                                      {authorPhotoById[comment.author_user_id] ? (
-                                        <img
-                                          src={authorPhotoById[comment.author_user_id]}
-                                          alt={displayName}
-                                          className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                                        />
+                                      {commentProfileHref ? (
+                                        <Link href={commentProfileHref} className="block">
+                                          {authorPhotoById[comment.author_user_id] ? (
+                                            <img
+                                              src={authorPhotoById[comment.author_user_id]}
+                                              alt={displayName}
+                                              className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                            />
+                                          ) : (
+                                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                              {displayName.charAt(0).toUpperCase()}
+                                            </div>
+                                          )}
+                                        </Link>
                                       ) : (
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                          {displayName.charAt(0).toUpperCase()}
-                                        </div>
+                                        authorPhotoById[comment.author_user_id] ? (
+                                          <img
+                                            src={authorPhotoById[comment.author_user_id]}
+                                            alt={displayName}
+                                            className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                          />
+                                        ) : (
+                                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                                            {displayName.charAt(0).toUpperCase()}
+                                          </div>
+                                        )
                                       )}
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-start justify-between gap-3">
-                                        <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
-                                          {displayName}
-                                        </span>
+                                        {commentProfileHref ? (
+                                          <Link href={commentProfileHref} className="font-semibold text-zinc-800 dark:text-zinc-100 truncate hover:underline">
+                                            {displayName}
+                                          </Link>
+                                        ) : (
+                                          <span className="font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                                            {displayName}
+                                          </span>
+                                        )}
                                         <div className="relative shrink-0">
                                           <button
                                             type="button"
