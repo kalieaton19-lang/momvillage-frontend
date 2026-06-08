@@ -106,10 +106,19 @@ export default function PostContentWithPreview({
 
   const firstUrl = urls[0];
   const [preview, setPreview] = useState<LinkPreviewData | null>(null);
+  const [previewImageFailed, setPreviewImageFailed] = useState(false);
   const fallbackMeta = useMemo(
     () => (firstUrl ? getFallbackPreviewMeta(firstUrl) : null),
     [firstUrl],
   );
+  const proxiedPreviewImage = useMemo(() => {
+    if (!preview?.image) return "";
+    return `/api/link-preview/image?url=${encodeURIComponent(preview.image)}`;
+  }, [preview?.image]);
+
+  useEffect(() => {
+    setPreviewImageFailed(false);
+  }, [preview?.image, firstUrl]);
 
   useEffect(() => {
     let ignore = false;
@@ -211,11 +220,12 @@ export default function PostContentWithPreview({
           rel="noreferrer"
           className="mt-3 block rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900 hover:bg-pink-50 dark:hover:bg-pink-950/20 transition-colors"
         >
-          {preview.image ? (
+          {preview.image && !previewImageFailed ? (
             <img
-              src={preview.image}
+              src={proxiedPreviewImage}
               alt={preview.title || "Link preview"}
               className="w-full max-h-64 object-cover border-b border-zinc-200 dark:border-zinc-800"
+              onError={() => setPreviewImageFailed(true)}
             />
           ) : (
             <div className="border-b border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-950/40 dark:to-rose-950/30 px-4 py-3">
