@@ -11,6 +11,76 @@ function isPrivateHostname(hostname: string) {
   return false;
 }
 
+function getContentTypeFromUrl(url: URL) {
+  const pathname = url.pathname.toLowerCase();
+  if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) return "image/jpeg";
+  if (pathname.endsWith(".png")) return "image/png";
+  if (pathname.endsWith(".gif")) return "image/gif";
+  if (pathname.endsWith(".webp")) return "image/webp";
+  if (pathname.endsWith(".avif")) return "image/avif";
+  if (pathname.endsWith(".svg")) return "image/svg+xml";
+  return "";
+}
+
+function sniffImageContentType(buffer: Uint8Array) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    buffer.length >= 8 &&
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+  if (
+    buffer.length >= 6 &&
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38
+  ) {
+    return "image/gif";
+  }
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  if (
+    buffer.length >= 12 &&
+    buffer[4] === 0x66 &&
+    buffer[5] === 0x74 &&
+    buffer[6] === 0x79 &&
+    buffer[7] === 0x70 &&
+    buffer[8] === 0x61 &&
+    buffer[9] === 0x76 &&
+    buffer[10] === 0x69 &&
+    buffer[11] === 0x66
+  ) {
+    return "image/avif";
+  }
+  const textSample = new TextDecoder("utf-8").decode(buffer.slice(0, 256)).trim().toLowerCase();
+  if (textSample.startsWith("<svg") || textSample.includes("<svg")) {
+    return "image/svg+xml";
+  }
+  return "";
+}
+
 export async function GET(request: NextRequest) {
   const urlParam = request.nextUrl.searchParams.get("url");
   if (!urlParam) {
@@ -50,17 +120,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch image" }, { status: 502 });
     }
 
-    const contentType = response.headers.get("content-type") || "application/octet-stream";
-    if (!contentType.startsWith("image/")) {
+    const imageBuffer = await response.arrayBuffer();
+    const imageBytes = new Uint8Array(imageBuffer);
+    const headerContentType = response.headers.get("content-type") || "";
+    const inferredContentType =
+      (headerContentType.startsWith("image/") ? headerContentType : "") ||
+      sniffImageContentType(imageBytes) ||
+      getContentTypeFromUrl(target);
+
+    if (!inferredContentType.startsWith("image/")) {
       return NextResponse.json({ error: "Invalid image content" }, { status: 415 });
     }
-
-    const imageBuffer = await response.arrayBuffer();
 
     return new NextResponse(imageBuffer, {
       status: 200,
       headers: {
-        "content-type": contentType,
+        "content-type": inferredContentType,
         "cache-control": "public, max-age=3600, s-maxage=3600",
       },
     });
