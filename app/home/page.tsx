@@ -388,28 +388,66 @@ export default function HomePage() {
     if (!user?.id) return;
     setMyGroupsLoading(true);
     try {
-      const { data: memberships } = await supabase
+      let memberships: Array<{ group_id: string; status: "pending" | "approved" }> = [];
+      const membershipResult = await supabase
         .from("group_members")
         .select("group_id,status")
         .eq("user_id", user.id)
         .eq("status", "approved");
 
+      if (!membershipResult.error) {
+        memberships = (membershipResult.data || []) as Array<{ group_id: string; status: "pending" | "approved" }>;
+      }
+
       const membershipGroupIds = (memberships || []).map((membership: { group_id: string }) => membership.group_id).filter(Boolean);
 
-      const { data: createdGroups } = await supabase
+      const createdResult = await supabase
         .from("groups")
         .select("id,name,bio,visibility,creator_user_id,created_at")
         .eq("creator_user_id", user.id)
         .order("created_at", { ascending: false });
+      let createdGroups = createdResult.data as GroupRow[] | null;
+      if (createdResult.error) {
+        const missingBioColumn =
+          createdResult.error.code === "42703" ||
+          String(createdResult.error.message || "").toLowerCase().includes("bio");
+        if (missingBioColumn) {
+          const fallbackCreated = await supabase
+            .from("groups")
+            .select("id,name,visibility,creator_user_id,created_at")
+            .eq("creator_user_id", user.id)
+            .order("created_at", { ascending: false });
+          createdGroups = (fallbackCreated.data || []) as GroupRow[];
+        } else {
+          throw createdResult.error;
+        }
+      }
 
       let memberGroups: GroupRow[] = [];
       if (membershipGroupIds.length > 0) {
-        const { data: memberGroupRows } = await supabase
+        const memberGroupsResult = await supabase
           .from("groups")
           .select("id,name,bio,visibility,creator_user_id,created_at")
           .in("id", membershipGroupIds)
           .order("created_at", { ascending: false });
-        memberGroups = (memberGroupRows || []) as GroupRow[];
+
+        if (memberGroupsResult.error) {
+          const missingBioColumn =
+            memberGroupsResult.error.code === "42703" ||
+            String(memberGroupsResult.error.message || "").toLowerCase().includes("bio");
+          if (missingBioColumn) {
+            const fallbackMemberGroups = await supabase
+              .from("groups")
+              .select("id,name,visibility,creator_user_id,created_at")
+              .in("id", membershipGroupIds)
+              .order("created_at", { ascending: false });
+            memberGroups = (fallbackMemberGroups.data || []) as GroupRow[];
+          } else {
+            throw memberGroupsResult.error;
+          }
+        } else {
+          memberGroups = (memberGroupsResult.data || []) as GroupRow[];
+        }
       }
 
       const merged = [...((createdGroups || []) as GroupRow[]), ...memberGroups];
