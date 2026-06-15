@@ -26,7 +26,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#efefef] flex items-center justify-center overflow-hidden p-4">
+    <div className="min-h-screen bg-[#efefef] flex items-start justify-center overflow-hidden p-4 pt-[6vh]">
       <div className="w-full max-w-[900px] aspect-square relative">
         <svg viewBox="0 0 900 900" className="w-full h-full">
           <g
@@ -74,7 +74,7 @@ export default function Home() {
           </g>
 
           <text
-            x="430"
+            x="410"
             y="430"
             fill="#000"
             fontSize="92"
@@ -89,7 +89,7 @@ export default function Home() {
           </text>
 
           <text
-            x="430"
+            x="410"
             y="520"
             fill="#000"
             fontSize="92"
