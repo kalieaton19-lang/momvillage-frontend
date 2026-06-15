@@ -94,6 +94,7 @@ export default function HomePage() {
   const [groupAccessMessage, setGroupAccessMessage] = useState("");
   const [requestingAccessByGroup, setRequestingAccessByGroup] = useState<Record<string, boolean>>({});
   const [requestedAccessByGroup, setRequestedAccessByGroup] = useState<Record<string, boolean>>({});
+  const [membershipStatusByGroup, setMembershipStatusByGroup] = useState<Record<string, "pending" | "approved">>({});
   const [groupPosts, setGroupPosts] = useState<Post[]>([]);
   const [groupPostsLoading, setGroupPostsLoading] = useState(false);
   const [showGroupPostForm, setShowGroupPostForm] = useState(false);
@@ -345,7 +346,25 @@ export default function HomePage() {
       }
 
       if (error) throw error;
-      setGroups(((data || []) as GroupRow[]).map((group) => ({ ...group, bio: group.bio || null })));
+      const normalizedGroups = ((data || []) as GroupRow[]).map((group) => ({ ...group, bio: group.bio || null }));
+      setGroups(normalizedGroups);
+
+      if (user?.id && normalizedGroups.length > 0) {
+        const groupIds = normalizedGroups.map((group) => group.id);
+        const { data: membershipRows } = await supabase
+          .from("group_members")
+          .select("group_id,status")
+          .eq("user_id", user.id)
+          .in("group_id", groupIds);
+
+        const membershipMap: Record<string, "pending" | "approved"> = {};
+        (membershipRows || []).forEach((row: { group_id: string; status: "pending" | "approved" }) => {
+          if (row.group_id && (row.status === "pending" || row.status === "approved")) {
+            membershipMap[row.group_id] = row.status;
+          }
+        });
+        setMembershipStatusByGroup(membershipMap);
+      }
       if ((data || []).length === 0) {
         setGroupsError(trimmed ? "No groups found." : "No groups yet.");
       }
@@ -440,6 +459,7 @@ export default function HomePage() {
       }
 
       setRequestedAccessByGroup((prev) => ({ ...prev, [groupId]: true }));
+      setMembershipStatusByGroup((prev) => ({ ...prev, [groupId]: "pending" }));
       setGroupAccessMessage("Access request sent.");
     } catch (error) {
       console.error("Failed to request group access", error);
@@ -1072,6 +1092,7 @@ export default function HomePage() {
               (() => {
                 const selectedGroup = groups.find((group) => group.id === selectedGroupId) || null;
                 const isPrivateGroup = selectedGroup?.visibility === "by_permission";
+                const selectedGroupStatus = selectedGroup ? membershipStatusByGroup[selectedGroup.id] : undefined;
                 return (
                   <div>
                     <button
@@ -1092,10 +1113,19 @@ export default function HomePage() {
                       {isPrivateGroup ? (
                         <button
                           onClick={() => void handleRequestAccess(selectedGroup.id)}
-                          disabled={!!requestingAccessByGroup[selectedGroup.id] || !!requestedAccessByGroup[selectedGroup.id]}
+                          disabled={
+                            !!requestingAccessByGroup[selectedGroup.id] ||
+                            !!requestedAccessByGroup[selectedGroup.id] ||
+                            selectedGroupStatus === "pending" ||
+                            selectedGroupStatus === "approved"
+                          }
                           className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
                         >
-                          {requestedAccessByGroup[selectedGroup.id]
+                          {selectedGroupStatus === "approved"
+                            ? "Member"
+                            : selectedGroupStatus === "pending"
+                            ? "Pending Approval"
+                            : requestedAccessByGroup[selectedGroup.id]
                             ? "Request Sent"
                             : requestingAccessByGroup[selectedGroup.id]
                             ? "Sending..."
@@ -1268,10 +1298,19 @@ export default function HomePage() {
                           {group.visibility === "by_permission" && (
                             <button
                               onClick={() => void handleRequestAccess(group.id)}
-                              disabled={!!requestingAccessByGroup[group.id] || !!requestedAccessByGroup[group.id]}
+                              disabled={
+                                !!requestingAccessByGroup[group.id] ||
+                                !!requestedAccessByGroup[group.id] ||
+                                membershipStatusByGroup[group.id] === "pending" ||
+                                membershipStatusByGroup[group.id] === "approved"
+                              }
                               className="mt-3 px-3 py-1.5 text-xs rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
                             >
-                              {requestedAccessByGroup[group.id]
+                              {membershipStatusByGroup[group.id] === "approved"
+                                ? "Member"
+                                : membershipStatusByGroup[group.id] === "pending"
+                                ? "Pending Approval"
+                                : requestedAccessByGroup[group.id]
                                 ? "Request Sent"
                                 : requestingAccessByGroup[group.id]
                                 ? "Sending..."
