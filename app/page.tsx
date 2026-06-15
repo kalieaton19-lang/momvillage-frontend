@@ -32,56 +32,32 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -210 : phase >= 2 ? -170 : 0}px) translateY(${phase >= 3 ? -40 : phase >= 2 ? 40 : 0}px) scale(${phase >= 3 ? 0.58 : phase >= 2 ? 0.68 : 1})`,
+              transform: `translateX(${phase >= 3 ? -230 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? -120 : phase >= 2 ? 25 : 0}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
           >
             <path
-              d="M300 620 L300 430"
+              d="M250 600 L250 350 L350 550 L450 350 L450 600"
               fill="none"
               stroke="black"
-              strokeWidth="16"
-            />
-            <path
-              d="M480 620 L480 430"
-              fill="none"
-              stroke="black"
-              strokeWidth="16"
-            />
-            <path
-              d="M285 430 L390 200 L495 430"
-              fill="none"
-              stroke="black"
-              strokeWidth="16"
-            />
-            <path
-              d="M300 430 L390 570 L480 430"
-              fill="none"
-              stroke="black"
-              strokeWidth="16"
+              strokeWidth="24"
             />
           </g>
 
           <g
             style={{
-              opacity: phase >= 3 ? 1 : 0,
-              transform: `translateX(-210px) translateY(-40px)`,
+              opacity: phase >= 1 ? 1 : 0,
+              transform: `translateX(${phase >= 3 ? -230 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? 160 : phase >= 2 ? 25 : 0}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1})`,
               transformOrigin: "center",
-              transition: "opacity 1000ms ease",
+              transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
           >
             <path
-              d="M210 430 L210 260 L300 405 L390 260 L390 430"
+              d="M320 350 L450 650 L580 350"
               fill="none"
               stroke="black"
-              strokeWidth="18"
-            />
-            <path
-              d="M210 450 L300 690 L390 450"
-              fill="none"
-              stroke="black"
-              strokeWidth="18"
+              strokeWidth="24"
             />
           </g>
 
