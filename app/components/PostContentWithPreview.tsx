@@ -116,16 +116,12 @@ export default function PostContentWithPreview({
     const candidates = preview?.imageCandidates?.filter(Boolean) || [];
     const primary = preview?.image ? [preview.image] : [];
     return Array.from(new Set([...primary, ...candidates]));
-  }, [preview?.image, preview?.imageCandidates]);
-  const activePreviewImage = previewImages[previewImageIndex] || "";
+  }, [preview]);
+  const activePreviewImage = previewImages[Math.min(previewImageIndex, Math.max(previewImages.length - 1, 0))] || "";
   const proxiedPreviewImage = useMemo(() => {
     if (!activePreviewImage) return "";
     return `/api/link-preview/image?url=${encodeURIComponent(activePreviewImage)}`;
   }, [activePreviewImage]);
-
-  useEffect(() => {
-    setPreviewImageIndex(0);
-  }, [preview?.image, preview?.imageCandidates, firstUrl]);
 
   useEffect(() => {
     let ignore = false;
@@ -219,7 +215,7 @@ export default function PostContentWithPreview({
           <img
             src={firstUrl}
             alt="Shared link preview"
-            className="w-full max-h-80 object-cover"
+            className="w-full max-h-[28rem] object-contain bg-zinc-50 dark:bg-zinc-950"
           />
         </a>
       )}
@@ -235,7 +231,7 @@ export default function PostContentWithPreview({
             <img
               src={proxiedPreviewImage}
               alt={preview.title || "Link preview"}
-              className="w-full max-h-64 object-cover border-b border-zinc-200 dark:border-zinc-800"
+              className="w-full max-h-[28rem] object-contain bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800"
               onError={() => {
                 setPreviewImageIndex((currentIndex) => {
                   if (currentIndex + 1 < previewImages.length) {
