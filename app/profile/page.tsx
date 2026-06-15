@@ -170,11 +170,54 @@ export default function ProfilePage() {
   async function loadMyPosts(userId: string) {
     try {
       const myPosts = await fetchPosts({ author_user_id: userId });
-      setPosts(myPosts);
-      setPostsCount(myPosts.length);
+
+      const groupIds = [...new Set(myPosts.map((post) => post.group_id).filter((id): id is string => !!id))];
+      let visiblePosts = myPosts;
+      if (groupIds.length > 0) {
+        const [{ data: groupsData }, { data: membershipRows }] = await Promise.all([
+          supabase
+            .from("groups")
+            .select("id,visibility,creator_user_id")
+            .in("id", groupIds),
+          supabase
+            .from("group_members")
+            .select("group_id,status")
+            .eq("user_id", userId)
+            .in("group_id", groupIds),
+        ]);
+
+        const groupById: Record<string, { visibility: "open" | "by_permission"; creator_user_id: string }> = {};
+        (groupsData || []).forEach((group: any) => {
+          if (group?.id) {
+            groupById[group.id] = {
+              visibility: (group.visibility as "open" | "by_permission") || "by_permission",
+              creator_user_id: group.creator_user_id || "",
+            };
+          }
+        });
+
+        const approvedMemberships = new Set(
+          (membershipRows || [])
+            .filter((row: any) => row?.status === "approved" && row?.group_id)
+            .map((row: any) => row.group_id as string)
+        );
+
+        visiblePosts = myPosts.filter((post) => {
+          if (!post.group_id) return true;
+          const groupMeta = groupById[post.group_id];
+          if (!groupMeta) return false;
+          if (groupMeta.visibility === "open") return true;
+          if (groupMeta.creator_user_id === userId) return true;
+          return approvedMemberships.has(post.group_id);
+        });
+      }
+
+      const filteredPosts = visiblePosts;
+      setPosts(filteredPosts);
+      setPostsCount(filteredPosts.length);
 
       const authorIds = [
-        ...new Set(myPosts.map((post) => post.author_user_id).filter(Boolean)),
+        ...new Set(filteredPosts.map((post) => post.author_user_id).filter(Boolean)),
       ];
       if (authorIds.length > 0) {
         const { data: authorProfiles } = await supabase
@@ -197,7 +240,7 @@ export default function ProfilePage() {
         setAuthorNameById({});
       }
 
-      const postIds = myPosts.map((post) => post.id);
+      const postIds = filteredPosts.map((post) => post.id);
       if (postIds.length === 0) {
         setLikesCountByPost({});
         setLikedByMeByPost({});

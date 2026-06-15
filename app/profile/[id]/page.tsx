@@ -64,10 +64,54 @@ export default function ProfilePage() {
       } else {
         setProfile(data);
         const nextPosts = await fetchPosts({ author_user_id: data.id });
-        setPosts(nextPosts);
-        setPostsCount(nextPosts.length);
 
-        const authorIds = [...new Set(nextPosts.map((post) => post.author_user_id).filter(Boolean))];
+        const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((entry): entry is string => !!entry))];
+        let visiblePosts = nextPosts;
+        if (groupIds.length > 0) {
+          const viewerUserId = currentUser?.id || "";
+          const groupResult = await supabase
+            .from("groups")
+            .select("id,visibility,creator_user_id")
+            .in("id", groupIds);
+
+          const membershipResult = viewerUserId
+            ? await supabase
+                .from("group_members")
+                .select("group_id,status")
+                .eq("user_id", viewerUserId)
+                .in("group_id", groupIds)
+            : { data: [] as any[] };
+
+          const groupById: Record<string, { visibility: "open" | "by_permission"; creator_user_id: string }> = {};
+          (groupResult.data || []).forEach((group: any) => {
+            if (group?.id) {
+              groupById[group.id] = {
+                visibility: (group.visibility as "open" | "by_permission") || "by_permission",
+                creator_user_id: group.creator_user_id || "",
+              };
+            }
+          });
+
+          const approvedMemberships = new Set(
+            (membershipResult.data || [])
+              .filter((row: any) => row?.status === "approved" && row?.group_id)
+              .map((row: any) => row.group_id as string)
+          );
+
+          visiblePosts = nextPosts.filter((post) => {
+            if (!post.group_id) return true;
+            const groupMeta = groupById[post.group_id];
+            if (!groupMeta) return false;
+            if (groupMeta.visibility === "open") return true;
+            if (groupMeta.creator_user_id === viewerUserId) return true;
+            return approvedMemberships.has(post.group_id);
+          });
+        }
+
+        setPosts(visiblePosts);
+        setPostsCount(visiblePosts.length);
+
+        const authorIds = [...new Set(visiblePosts.map((post) => post.author_user_id).filter(Boolean))];
         if (authorIds.length > 0) {
           const { data: profiles } = await supabase
             .from("user_public_profiles")
@@ -87,7 +131,7 @@ export default function ProfilePage() {
           setAuthorNameById({});
         }
 
-        const postIds = nextPosts.map((post) => post.id);
+        const postIds = visiblePosts.map((post) => post.id);
         if (postIds.length > 0) {
           const interactions = await fetchPostInteractions(postIds, currentUser?.id);
           setLikesCountByPost(interactions.likesCountByPost);

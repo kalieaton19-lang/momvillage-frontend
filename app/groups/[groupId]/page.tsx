@@ -91,14 +91,15 @@ export default function GroupDetailPage() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       setProfile(authUser?.user_metadata || null);
 
-      await loadGroup(groupId);
-      await Promise.all([loadMembership(groupId, session.user.id), loadGroupPosts(groupId)]);
+      const loadedGroup = await loadGroup(groupId);
+      const loadedMembership = await loadMembership(groupId, session.user.id);
+      await loadGroupPosts(groupId, loadedGroup, loadedMembership);
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadGroup(id: string) {
+  async function loadGroup(id: string): Promise<GroupRow | null> {
     const initial = await supabase
       .from("groups")
       .select("id,name,bio,visibility,creator_user_id,created_at")
@@ -114,16 +115,19 @@ export default function GroupDetailPage() {
           .eq("id", id)
           .single();
         if (fallback.error) throw fallback.error;
-        setGroup({ ...(fallback.data as GroupRow), bio: null });
-        return;
+        const fallbackGroup = { ...(fallback.data as GroupRow), bio: null };
+        setGroup(fallbackGroup);
+        return fallbackGroup;
       }
       throw initial.error;
     }
 
-    setGroup((initial.data as GroupRow) || null);
+    const loadedGroup = (initial.data as GroupRow) || null;
+    setGroup(loadedGroup);
+    return loadedGroup;
   }
 
-  async function loadMembership(id: string, userId: string) {
+  async function loadMembership(id: string, userId: string): Promise<"pending" | "approved" | null> {
     const { data } = await supabase
       .from("group_members")
       .select("status")
@@ -133,12 +137,28 @@ export default function GroupDetailPage() {
 
     const status = (data?.status as "pending" | "approved" | undefined) || null;
     setMembershipStatus(status);
+    return status;
   }
 
-  async function loadGroupPosts(id: string) {
+  async function loadGroupPosts(
+    id: string,
+    groupOverride?: GroupRow | null,
+    membershipOverride?: "pending" | "approved" | null,
+  ) {
     setGroupPostsLoading(true);
     setGroupPostMessage("");
     try {
+      const effectiveGroup = groupOverride !== undefined ? groupOverride : group;
+      const effectiveMembership = membershipOverride !== undefined ? membershipOverride : membershipStatus;
+      const isPrivate = effectiveGroup?.visibility === "by_permission";
+      const isCreator = effectiveGroup?.creator_user_id === user?.id;
+      const canViewPrivatePosts = !isPrivate || isCreator || effectiveMembership === "approved";
+      if (!canViewPrivatePosts) {
+        setGroupPosts([]);
+        setGroupPostMessage("Join this group to view posts.");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("posts")
         .select("*")
@@ -273,6 +293,7 @@ export default function GroupDetailPage() {
         setMembershipStatus(null);
         setShowGroupPostForm(false);
         setGroupPostMessage("You left the group.");
+        await loadGroupPosts(groupId);
         return;
       }
 
@@ -294,6 +315,7 @@ export default function GroupDetailPage() {
       if (error) throw error;
       setMembershipStatus("approved");
       setGroupPostMessage("You joined the group.");
+      await loadGroupPosts(groupId);
     } catch {
       setGroupPostMessage("Could not update membership.");
     } finally {
@@ -547,8 +569,8 @@ export default function GroupDetailPage() {
         </svg>
       </button>
 
-      <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-        <div className="w-full rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 px-4 py-4 mb-3">
+      <div className="-mx-6 mb-4 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 px-6 py-4">
+        <div className="w-full px-2">
           <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 text-center">{group.name}</h1>
           <div className="text-center mt-2 mb-3">
             <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-pink-100 text-pink-700 border border-pink-300 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700">
@@ -582,7 +604,9 @@ export default function GroupDetailPage() {
             </button>
           </div>
         </div>
+      </div>
 
+      <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
         {group.bio && <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-3 whitespace-pre-line">{group.bio}</div>}
 
         {canCreateGroupPosts && showGroupPostForm && (
