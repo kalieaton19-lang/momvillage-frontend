@@ -137,21 +137,25 @@ export default function PostContentWithPreview({
       }
 
       try {
+        console.log("[PostPreview] fetching preview for:", firstUrl);
         const response = await fetch(
           `/api/link-preview?url=${encodeURIComponent(firstUrl)}`,
           { cache: "no-store" },
         );
         if (!response.ok) {
+          console.warn("[PostPreview] API error", response.status, "for", firstUrl);
           if (!ignore) {
             setPreview({ url: firstUrl });
           }
           return;
         }
         const data = (await response.json()) as LinkPreviewData;
+        console.log("[PostPreview] API response:", { url: data.url, title: data.title, description: data.description, image: data.image, candidates: data.imageCandidates?.length });
         if (!ignore) {
           setPreview(data?.url ? data : null);
         }
-      } catch {
+      } catch (err) {
+        console.error("[PostPreview] fetch threw:", err);
         if (!ignore) {
           setPreview({ url: firstUrl });
         }

@@ -405,42 +405,50 @@ export async function GET(request: NextRequest) {
   const isFacebookHost = hostname.includes("facebook.com") || hostname.includes("fb.com");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 9000);
 
   try {
     const variants = isFacebookHost
       ? FETCH_VARIANTS
       : FETCH_VARIANTS.filter((variant) => variant.name === "mobile-safari");
 
-    let bestHtml = "";
-    let bestFinalUrl = target.toString();
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (const variant of variants) {
-      try {
+    // Run all variants in parallel so they don't eat each other's timeout budget
+    const variantResults = await Promise.allSettled(
+      variants.map(async (variant) => {
         const response = await fetch(target.toString(), {
           signal: controller.signal,
           headers: variant.headers,
           cache: "no-store",
           redirect: "follow",
         });
-
         const contentType = response.headers.get("content-type") || "";
-        if (!response.ok || !contentType.includes("text/html")) continue;
-
-        const html = await response.text();
-        const score = scoreFetchedHtml(html);
-        if (score > bestScore) {
-          bestScore = score;
-          bestHtml = html;
-          bestFinalUrl = response.url || target.toString();
+        if (!response.ok || !contentType.includes("text/html")) {
+          throw new Error(`${variant.name}: HTTP ${response.status} / content-type: ${contentType}`);
         }
-      } catch {
-        continue;
+        const html = await response.text();
+        return { variant: variant.name, html, finalUrl: response.url || target.toString() };
+      }),
+    );
+
+    let bestHtml = "";
+    let bestFinalUrl = target.toString();
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (const result of variantResults) {
+      if (result.status === "rejected") continue;
+      const { html, finalUrl } = result.value;
+      const score = scoreFetchedHtml(html);
+      if (score > bestScore) {
+        bestScore = score;
+        bestHtml = html;
+        bestFinalUrl = finalUrl;
       }
     }
 
+    console.log("[link-preview]", target.toString(), "| variants:", variantResults.map((r) => r.status === "fulfilled" ? `${r.value.variant}:score=${scoreFetchedHtml(r.value.html)}` : `failed`).join(", "));
+
     if (!bestHtml) {
+      console.log("[link-preview] no html retrieved for", target.toString());
       return NextResponse.json({ url: target.toString() });
     }
 
@@ -477,6 +485,8 @@ export async function GET(request: NextRequest) {
         { key: "og:site_name", attribute: "property" },
         { key: "application-name", attribute: "name" },
       ]) || getFallbackSiteName(target);
+
+    console.log("[link-preview] extracted", { title: title.slice(0, 80), description: description.slice(0, 80), image: image.slice(0, 80), candidates: rankedImageCandidates.length });
 
     const needsExternalFallback =
       isFacebookHost &&
