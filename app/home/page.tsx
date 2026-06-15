@@ -12,6 +12,7 @@ import type { JSX } from "react";
 type GroupRow = {
   id: string;
   name: string;
+  bio?: string | null;
   visibility: "open" | "by_permission";
   creator_user_id: string;
   created_at: string;
@@ -86,9 +87,17 @@ export default function HomePage() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupBio, setNewGroupBio] = useState("");
   const [newGroupVisibility, setNewGroupVisibility] = useState<"open" | "by_permission">("open");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [createGroupMessage, setCreateGroupMessage] = useState("");
+  const [groupPosts, setGroupPosts] = useState<Post[]>([]);
+  const [groupPostsLoading, setGroupPostsLoading] = useState(false);
+  const [showGroupPostForm, setShowGroupPostForm] = useState(false);
+  const [groupPostTitle, setGroupPostTitle] = useState("");
+  const [groupPostContent, setGroupPostContent] = useState("");
+  const [creatingGroupPost, setCreatingGroupPost] = useState(false);
+  const [groupPostMessage, setGroupPostMessage] = useState("");
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
@@ -133,6 +142,11 @@ export default function HomePage() {
     }, 250);
     return () => clearTimeout(handler);
   }, [user, feedType, groupMode, groupSearch]);
+
+  useEffect(() => {
+    if (!selectedGroupId || feedType !== "groups") return;
+    void loadGroupPosts(selectedGroupId);
+  }, [selectedGroupId, feedType]);
 
   async function checkUser() {
     try {
@@ -295,7 +309,7 @@ export default function HomePage() {
       const trimmed = searchText.trim();
       let query = supabase
         .from("groups")
-        .select("id,name,visibility,creator_user_id,created_at")
+        .select("id,name,bio,visibility,creator_user_id,created_at")
         .order("created_at", { ascending: false })
         .limit(30);
 
@@ -333,16 +347,18 @@ export default function HomePage() {
         .from("groups")
         .insert({
           name: trimmedName,
+          bio: newGroupBio.trim() || null,
           visibility: newGroupVisibility,
           creator_user_id: user.id,
         })
-        .select("id,name,visibility,creator_user_id,created_at")
+        .select("id,name,bio,visibility,creator_user_id,created_at")
         .single();
 
       if (error) throw error;
 
       setCreateGroupMessage("Group created successfully!");
       setNewGroupName("");
+      setNewGroupBio("");
       setNewGroupVisibility("open");
       setGroupMode("search");
       await loadGroups("");
@@ -354,6 +370,66 @@ export default function HomePage() {
       setCreateGroupMessage(message);
     } finally {
       setCreatingGroup(false);
+    }
+  }
+
+  async function loadGroupPosts(groupId: string) {
+    setGroupPostsLoading(true);
+    setGroupPostMessage("");
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setGroupPosts((data || []) as Post[]);
+    } catch (error) {
+      console.error("Failed to load group posts", error);
+      setGroupPosts([]);
+      setGroupPostMessage("Could not load posts for this group.");
+    } finally {
+      setGroupPostsLoading(false);
+    }
+  }
+
+  async function handleCreateGroupPost() {
+    if (!user?.id || !selectedGroupId) return;
+    const trimmedTitle = groupPostTitle.trim();
+    const trimmedContent = groupPostContent.trim();
+    if (!trimmedTitle || !trimmedContent) {
+      setGroupPostMessage("Title and content are required.");
+      return;
+    }
+
+    setCreatingGroupPost(true);
+    setGroupPostMessage("");
+    try {
+      const { error } = await supabase.from("posts").insert({
+        author_user_id: user.id,
+        author_name: profile?.full_name || user.email || "Mom",
+        type: "general",
+        scope: "public",
+        visibility: "public",
+        title: trimmedTitle,
+        content: trimmedContent,
+        location: profile?.city ? `${profile.city}${profile.state ? `, ${profile.state}` : ""}` : null,
+        group_id: selectedGroupId,
+      });
+
+      if (error) throw error;
+
+      setGroupPostTitle("");
+      setGroupPostContent("");
+      setShowGroupPostForm(false);
+      setGroupPostMessage("Post created.");
+      await loadGroupPosts(selectedGroupId);
+    } catch (error) {
+      console.error("Failed to create group post", error);
+      setGroupPostMessage("Could not create group post.");
+    } finally {
+      setCreatingGroupPost(false);
     }
   }
 
@@ -931,12 +1007,75 @@ export default function HomePage() {
                       <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
                         {selectedGroup?.name || "Group"}
                       </h2>
+                      {selectedGroup?.bio && (
+                        <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-3 whitespace-pre-line">
+                          {selectedGroup.bio}
+                        </div>
+                      )}
                       <div className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
                         Visibility: {selectedGroup?.visibility === "by_permission" ? "By Permission" : "Open"}
                       </div>
-                      <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Group posts view is coming next. Search currently shows all groups in the app.
-                      </div>
+                      <button
+                        onClick={() => setShowGroupPostForm((value) => !value)}
+                        className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
+                      >
+                        {showGroupPostForm ? "Cancel" : "Create Post"}
+                      </button>
+
+                      {showGroupPostForm && (
+                        <div className="mt-3 space-y-2">
+                          <input
+                            type="text"
+                            value={groupPostTitle}
+                            onChange={(event) => setGroupPostTitle(event.target.value)}
+                            placeholder="Post title"
+                            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          />
+                          <textarea
+                            value={groupPostContent}
+                            onChange={(event) => setGroupPostContent(event.target.value)}
+                            placeholder="What do you want to share with this group?"
+                            rows={4}
+                            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          />
+                          <button
+                            onClick={() => void handleCreateGroupPost()}
+                            disabled={creatingGroupPost}
+                            className="px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                          >
+                            {creatingGroupPost ? "Posting..." : "Publish to Group"}
+                          </button>
+                        </div>
+                      )}
+
+                      {groupPostMessage && (
+                        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{groupPostMessage}</div>
+                      )}
+                    </div>
+
+                    <div className="mt-4">
+                      <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-50">Posts</h3>
+                      {groupPostsLoading ? (
+                        <div className="text-sm text-zinc-500">Loading posts...</div>
+                      ) : groupPosts.length === 0 ? (
+                        <div className="text-sm text-zinc-500">No posts in this group yet.</div>
+                      ) : (
+                        groupPosts.map((post) => (
+                          <div
+                            key={post.id}
+                            className="border rounded-xl p-4 mb-3 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+                          >
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50">{post.title}</div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                              {post.author_name || "Mom"} • {new Date(post.created_at).toLocaleString()}
+                            </div>
+                            <PostContentWithPreview
+                              text={post.content}
+                              className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
+                            />
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 );
@@ -976,6 +1115,13 @@ export default function HomePage() {
                       value={newGroupName}
                       onChange={(event) => setNewGroupName(event.target.value)}
                       placeholder="Group name"
+                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                    <textarea
+                      value={newGroupBio}
+                      onChange={(event) => setNewGroupBio(event.target.value)}
+                      placeholder="Group bio (what is this group about?)"
+                      rows={3}
                       className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
                     />
                     <select
@@ -1024,6 +1170,9 @@ export default function HomePage() {
                           onClick={() => setSelectedGroupId(group.id)}
                         >
                           <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
+                          {group.bio && (
+                            <div className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2">{group.bio}</div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             {group.visibility === "by_permission" ? "By Permission" : "Open"}
                           </div>

@@ -12,6 +12,7 @@ export interface Post {
   title: string;
   content: string;
   location?: string;
+  group_id?: string | null;
   photo_url?: string;
   comments_disabled?: boolean;
   start_time?: string;
