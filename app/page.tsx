@@ -38,26 +38,38 @@ export default function Home() {
             }}
           >
             <path
-              d="M250 600 L250 350 L350 550 L450 350 L450 600"
+              d="M300 620 L300 430"
               fill="none"
               stroke="black"
-              strokeWidth="24"
+              strokeWidth="16"
+            />
+            <path
+              d="M480 620 L480 430"
+              fill="none"
+              stroke="black"
+              strokeWidth="16"
+            />
+            <path
+              d="M300 430 L390 570 L480 430"
+              fill="none"
+              stroke="black"
+              strokeWidth="16"
             />
           </g>
 
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -230 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? 160 : phase >= 2 ? 25 : 0}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1})`,
+              transform: `translateX(${phase >= 3 ? -230 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? 160 : phase >= 2 ? 25 : 0}px) rotate(${phase >= 3 ? 0 : 180}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
           >
             <path
-              d="M320 350 L450 650 L580 350"
+              d="M285 430 L390 200 L495 430"
               fill="none"
               stroke="black"
-              strokeWidth="24"
+              strokeWidth="16"
             />
           </g>
 
