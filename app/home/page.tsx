@@ -9,6 +9,14 @@ import { fetchPosts, createPost, fetchPostInteractions, togglePostLike, addPostC
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
 import type { JSX } from "react";
 
+type GroupRow = {
+  id: string;
+  name: string;
+  visibility: "open" | "by_permission";
+  creator_user_id: string;
+  created_at: string;
+};
+
 // LocationField component for post modal (must be outside HomePage)
 function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
   const [custom, setCustom] = React.useState(false);
@@ -61,25 +69,6 @@ function LocationField({ profileLocation, formLocation, setForm }: { profileLoca
   );
 }
 
-// Mock group and group post data
-const MOCK_GROUPS = [
-  { id: '1', name: 'Single Moms Support' },
-  { id: '2', name: 'Moms of Toddlers' },
-  { id: '3', name: 'Working Moms' },
-];
-const MOCK_GROUP_POSTS = {
-  '1': [
-    { id: 'g1p1', title: 'Welcome to Single Moms!', content: 'Introduce yourself!', author_name: 'Alice', created_at: new Date().toISOString() },
-    { id: 'g1p2', title: 'Meetup this weekend', content: 'Anyone up for coffee?', author_name: 'Beth', created_at: new Date().toISOString() },
-  ],
-  '2': [
-    { id: 'g2p1', title: 'Toddler tantrums', content: 'Share your tips!', author_name: 'Cara', created_at: new Date().toISOString() },
-  ],
-  '3': [
-    { id: 'g3p1', title: 'Work/life balance', content: 'How do you manage?', author_name: 'Dana', created_at: new Date().toISOString() },
-  ],
-};
-
 export default function HomePage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -91,6 +80,10 @@ export default function HomePage() {
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
+  const [groupSearch, setGroupSearch] = useState("");
+  const [groups, setGroups] = useState<GroupRow[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [groupsError, setGroupsError] = useState("");
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
@@ -127,6 +120,14 @@ export default function HomePage() {
   useEffect(() => {
     if (user) loadPosts();
   }, [user, feedType]);
+
+  useEffect(() => {
+    if (!user || feedType !== "groups") return;
+    const handler = setTimeout(() => {
+      void loadGroups(groupSearch);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [user, feedType, groupSearch]);
 
   async function checkUser() {
     try {
@@ -279,6 +280,36 @@ export default function HomePage() {
       setCommentsByPost({});
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadGroups(searchText: string) {
+    setGroupsLoading(true);
+    setGroupsError("");
+    try {
+      const trimmed = searchText.trim();
+      let query = supabase
+        .from("groups")
+        .select("id,name,visibility,creator_user_id,created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (trimmed) {
+        query = query.ilike("name", `%${trimmed}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setGroups((data || []) as GroupRow[]);
+      if ((data || []).length === 0) {
+        setGroupsError(trimmed ? "No groups found." : "No groups yet.");
+      }
+    } catch (error) {
+      console.error("Failed to load groups", error);
+      setGroups([]);
+      setGroupsError("Could not load groups.");
+    } finally {
+      setGroupsLoading(false);
     }
   }
 
@@ -843,9 +874,7 @@ export default function HomePage() {
           {feedType === 'groups' ? (
             selectedGroupId ? (
               (() => {
-                // ...existing group logic...
-                const groupId = selectedGroupId as keyof typeof MOCK_GROUP_POSTS;
-                const posts = MOCK_GROUP_POSTS[groupId] || [];
+                const selectedGroup = groups.find((group) => group.id === selectedGroupId) || null;
                 return (
                   <div>
                     <button
@@ -854,94 +883,46 @@ export default function HomePage() {
                     >
                       ← Back to Groups
                     </button>
-                    <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
-                      {MOCK_GROUPS.find(g => g.id === selectedGroupId)?.name}
-                    </h2>
-                    {/* TODO: Replace MOCK_GROUP_POSTS with real group posts from backend */}
-                    {posts.length === 0 ? (
-                      <div className="text-center text-zinc-500 py-8">No posts in this group yet.</div>
-                    ) : (
-                      posts.map((post: any) => (
-                        <div
-                          key={post.id}
-                          className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-pink-300 ring-2 ring-pink-200/70 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-pink-700 dark:ring-pink-800/70 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
-                        >
-                          {post.type === 'support' && (
-                            <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-xl bg-pink-600 text-white text-xs font-semibold uppercase tracking-wide">
-                              Support Post
-                            </div>
-                          )}
-                          {getProfileHref(post.author_user_id) ? (
-                            <Link href={getProfileHref(post.author_user_id)!} className="flex items-center gap-3 mb-3 min-w-0 group w-fit max-w-full">
-                              {post.author_user_id && authorPhotoById[post.author_user_id] ? (
-                                <img
-                                  src={authorPhotoById[post.author_user_id]}
-                                  alt={post.author_name || 'Mom'}
-                                  className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                  {(post.author_name || 'M').charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{post.author_name || 'Mom'}</div>
-                                <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
-                              </div>
-                            </Link>
-                          ) : (
-                            <div className="flex items-center gap-3 mb-3">
-                              {post.author_user_id && authorPhotoById[post.author_user_id] ? (
-                                <img
-                                  src={authorPhotoById[post.author_user_id]}
-                                  alt={post.author_name || 'Mom'}
-                                  className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                                  {(post.author_name || 'M').charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
-                                <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
-                              </div>
-                            </div>
-                          )}
-                          {post.photo_url && (
-                            <img
-                              src={post.photo_url}
-                              alt="Post photo"
-                              className="w-full rounded-xl object-cover max-h-72 mb-2 border border-zinc-100 dark:border-zinc-800"
-                            />
-                          )}
-                          <div className="font-bold text-lg mb-1">{post.title}</div>
-                          <PostContentWithPreview
-                            text={post.content}
-                            className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
-                          />
-                        </div>
-                      ))
-                    )}
+                    <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                      <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
+                        {selectedGroup?.name || "Group"}
+                      </h2>
+                      <div className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
+                        Visibility: {selectedGroup?.visibility === "by_permission" ? "By Permission" : "Open"}
+                      </div>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                        Group posts view is coming next. Search currently shows all groups in the app.
+                      </div>
+                    </div>
                   </div>
                 );
               })()
             ) : (
               <div>
-                <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Your Groups</h2>
-                {/* TODO: Replace MOCK_GROUPS with real groups from backend */}
+                <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Search Groups</h2>
+                <input
+                  type="text"
+                  value={groupSearch}
+                  onChange={(event) => setGroupSearch(event.target.value)}
+                  placeholder="Search all groups..."
+                  className="w-full mb-4 rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                />
+                {groupsLoading && <div className="text-sm text-zinc-500 mb-3">Searching groups...</div>}
+                {groupsError && !groupsLoading && <div className="text-sm text-zinc-500 mb-3">{groupsError}</div>}
                 <div className="grid gap-3">
-                  {MOCK_GROUPS.map(group => (
+                  {groups.map((group) => (
                     <button
                       key={group.id}
                       className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
                       onClick={() => setSelectedGroupId(group.id)}
                     >
-                      <span className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</span>
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                        {group.visibility === "by_permission" ? "By Permission" : "Open"}
+                      </div>
                     </button>
                   ))}
                 </div>
-                <div className="text-xs text-zinc-500 mt-4">(TODO: Show real groups and allow joining/leaving groups)</div>
               </div>
             )
           ) : loading ? (
