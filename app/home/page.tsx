@@ -1526,7 +1526,7 @@ export default function HomePage() {
                             {post.group_id && (
                               <>
                                 <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
-                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 underline hover:text-pink-700 dark:hover:text-pink-200 truncate">
+                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 font-bold hover:text-pink-700 dark:hover:text-pink-200 truncate">
                                   {groupNameById[post.group_id] || 'Group'}
                                 </Link>
                               </>
@@ -1554,7 +1554,7 @@ export default function HomePage() {
                             {post.group_id && (
                               <>
                                 <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
-                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 underline hover:text-pink-700 dark:hover:text-pink-200 truncate">
+                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 font-bold hover:text-pink-700 dark:hover:text-pink-200 truncate">
                                   {groupNameById[post.group_id] || 'Group'}
                                 </Link>
                               </>
