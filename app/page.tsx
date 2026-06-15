@@ -27,12 +27,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#efefef] flex items-start justify-center overflow-hidden p-4 pt-[6vh]">
-      <div className="w-full max-w-[900px] aspect-square relative">
+      <div className="w-full max-w-[900px] flex flex-col items-center">
+        <div className="w-full aspect-square relative">
         <svg viewBox="0 0 900 900" className="w-full h-full">
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? -120 : phase >= 2 ? 25 : 0}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
+              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -120 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
@@ -60,7 +61,7 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? 190 : phase >= 2 ? 25 : 0}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
+              transform: `translateX(${phase >= 3 ? -52 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? 154 : phase >= 2 ? 25 : 40}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
@@ -118,12 +119,13 @@ export default function Home() {
             A village of moms, for moms
           </text>
         </svg>
+        </div>
 
         <div
-          className="absolute left-1/2 -translate-x-1/2 bottom-8 flex flex-col sm:flex-row gap-3"
+          className="mt-3 flex flex-col sm:flex-row gap-3"
           style={{
             opacity: showButtons ? 1 : 0,
-            transform: `translate(-50%, ${showButtons ? 0 : 12}px)`,
+            transform: `translateY(${showButtons ? 0 : 12}px)`,
             transition: "opacity 500ms ease, transform 500ms ease",
             pointerEvents: showButtons ? "auto" : "none",
           }}
