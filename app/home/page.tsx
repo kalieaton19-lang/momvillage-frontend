@@ -557,6 +557,13 @@ export default function HomePage() {
     }
   }
 
+  function isMissingGroupIdColumnError(error: any) {
+    return (
+      error?.code === "42703" ||
+      String(error?.message || "").toLowerCase().includes("group_id")
+    );
+  }
+
   async function loadGroupPosts(groupId: string) {
     setGroupPostsLoading(true);
     setGroupPostMessage("");
@@ -572,7 +579,11 @@ export default function HomePage() {
     } catch (error) {
       console.error("Failed to load group posts", error);
       setGroupPosts([]);
-      setGroupPostMessage("Could not load posts for this group.");
+      if (isMissingGroupIdColumnError(error)) {
+        setGroupPostMessage("Group posts require migration 016 (posts.group_id). Please run it in Supabase.");
+      } else {
+        setGroupPostMessage("Could not load posts for this group.");
+      }
     } finally {
       setGroupPostsLoading(false);
     }
@@ -611,7 +622,11 @@ export default function HomePage() {
       await loadGroupPosts(selectedGroupId);
     } catch (error) {
       console.error("Failed to create group post", error);
-      setGroupPostMessage("Could not create group post.");
+      if (isMissingGroupIdColumnError(error)) {
+        setGroupPostMessage("Could not create group post: run migration 016 to add posts.group_id.");
+      } else {
+        setGroupPostMessage("Could not create group post.");
+      }
     } finally {
       setCreatingGroupPost(false);
     }
@@ -1180,7 +1195,11 @@ export default function HomePage() {
               (() => {
                 const selectedGroup = groups.find((group) => group.id === selectedGroupId) || null;
                 const isPrivateGroup = selectedGroup?.visibility === "by_permission";
-                const selectedGroupStatus = selectedGroup ? membershipStatusByGroup[selectedGroup.id] : undefined;
+                const isGroupCreator = selectedGroup?.creator_user_id === user?.id;
+                const selectedGroupStatus = selectedGroup
+                  ? membershipStatusByGroup[selectedGroup.id] || (isGroupCreator ? "approved" : undefined)
+                  : undefined;
+                const canCreateGroupPosts = !isPrivateGroup || selectedGroupStatus === "approved";
                 return (
                   <div>
                     <button
@@ -1201,7 +1220,7 @@ export default function HomePage() {
                           {selectedGroup.bio}
                         </div>
                       )}
-                      {isPrivateGroup ? (
+                      {!canCreateGroupPosts ? (
                         <button
                           onClick={() => void handleRequestAccess(selectedGroup.id)}
                           disabled={
@@ -1212,9 +1231,7 @@ export default function HomePage() {
                           }
                           className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
                         >
-                          {selectedGroupStatus === "approved"
-                            ? "Member"
-                            : selectedGroupStatus === "pending"
+                          {selectedGroupStatus === "pending"
                             ? "Pending Approval"
                             : requestedAccessByGroup[selectedGroup.id]
                             ? "Request Sent"
@@ -1231,7 +1248,7 @@ export default function HomePage() {
                         </button>
                       )}
 
-                      {!isPrivateGroup && showGroupPostForm && (
+                      {canCreateGroupPosts && showGroupPostForm && (
                         <div className="mt-3 space-y-2">
                           <input
                             type="text"
