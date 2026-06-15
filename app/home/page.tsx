@@ -91,6 +91,9 @@ export default function HomePage() {
   const [newGroupVisibility, setNewGroupVisibility] = useState<"open" | "by_permission">("open");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [createGroupMessage, setCreateGroupMessage] = useState("");
+  const [groupAccessMessage, setGroupAccessMessage] = useState("");
+  const [requestingAccessByGroup, setRequestingAccessByGroup] = useState<Record<string, boolean>>({});
+  const [requestedAccessByGroup, setRequestedAccessByGroup] = useState<Record<string, boolean>>({});
   const [groupPosts, setGroupPosts] = useState<Post[]>([]);
   const [groupPostsLoading, setGroupPostsLoading] = useState(false);
   const [showGroupPostForm, setShowGroupPostForm] = useState(false);
@@ -370,6 +373,36 @@ export default function HomePage() {
       setCreateGroupMessage(message);
     } finally {
       setCreatingGroup(false);
+    }
+  }
+
+  async function handleRequestAccess(groupId: string) {
+    if (!user?.id) return;
+    setRequestingAccessByGroup((prev) => ({ ...prev, [groupId]: true }));
+    setGroupAccessMessage("");
+    try {
+      const { error } = await supabase.from("group_members").insert({
+        group_id: groupId,
+        user_id: user.id,
+        status: "pending",
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          setRequestedAccessByGroup((prev) => ({ ...prev, [groupId]: true }));
+          setGroupAccessMessage("Access request already submitted.");
+          return;
+        }
+        throw error;
+      }
+
+      setRequestedAccessByGroup((prev) => ({ ...prev, [groupId]: true }));
+      setGroupAccessMessage("Access request sent.");
+    } catch (error) {
+      console.error("Failed to request group access", error);
+      setGroupAccessMessage("Could not request access.");
+    } finally {
+      setRequestingAccessByGroup((prev) => ({ ...prev, [groupId]: false }));
     }
   }
 
@@ -995,6 +1028,7 @@ export default function HomePage() {
             selectedGroupId ? (
               (() => {
                 const selectedGroup = groups.find((group) => group.id === selectedGroupId) || null;
+                const isPrivateGroup = selectedGroup?.visibility === "by_permission";
                 return (
                   <div>
                     <button
@@ -1012,17 +1046,28 @@ export default function HomePage() {
                           {selectedGroup.bio}
                         </div>
                       )}
-                      <div className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
-                        Visibility: {selectedGroup?.visibility === "by_permission" ? "By Permission" : "Open"}
-                      </div>
-                      <button
-                        onClick={() => setShowGroupPostForm((value) => !value)}
-                        className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
-                      >
-                        {showGroupPostForm ? "Cancel" : "Create Post"}
-                      </button>
+                      {isPrivateGroup ? (
+                        <button
+                          onClick={() => void handleRequestAccess(selectedGroup.id)}
+                          disabled={!!requestingAccessByGroup[selectedGroup.id] || !!requestedAccessByGroup[selectedGroup.id]}
+                          className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                        >
+                          {requestedAccessByGroup[selectedGroup.id]
+                            ? "Request Sent"
+                            : requestingAccessByGroup[selectedGroup.id]
+                            ? "Sending..."
+                            : "Request Access"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowGroupPostForm((value) => !value)}
+                          className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
+                        >
+                          {showGroupPostForm ? "Cancel" : "Create Post"}
+                        </button>
+                      )}
 
-                      {showGroupPostForm && (
+                      {!isPrivateGroup && showGroupPostForm && (
                         <div className="mt-3 space-y-2">
                           <input
                             type="text"
@@ -1048,8 +1093,8 @@ export default function HomePage() {
                         </div>
                       )}
 
-                      {groupPostMessage && (
-                        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{groupPostMessage}</div>
+                      {(groupPostMessage || groupAccessMessage) && (
+                        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{groupPostMessage || groupAccessMessage}</div>
                       )}
                     </div>
 
@@ -1164,19 +1209,33 @@ export default function HomePage() {
                     {groupsError && !groupsLoading && <div className="text-sm text-zinc-500 mb-3">{groupsError}</div>}
                     <div className="grid gap-3">
                       {groups.map((group) => (
-                        <button
+                        <div
                           key={group.id}
-                          className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
-                          onClick={() => setSelectedGroupId(group.id)}
+                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
                         >
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
+                          <button
+                            className="w-full text-left"
+                            onClick={() => setSelectedGroupId(group.id)}
+                          >
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
+                          </button>
                           {group.bio && (
                             <div className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2">{group.bio}</div>
                           )}
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            {group.visibility === "by_permission" ? "By Permission" : "Open"}
-                          </div>
-                        </button>
+                          {group.visibility === "by_permission" && (
+                            <button
+                              onClick={() => void handleRequestAccess(group.id)}
+                              disabled={!!requestingAccessByGroup[group.id] || !!requestedAccessByGroup[group.id]}
+                              className="mt-3 px-3 py-1.5 text-xs rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                            >
+                              {requestedAccessByGroup[group.id]
+                                ? "Request Sent"
+                                : requestingAccessByGroup[group.id]
+                                ? "Sending..."
+                                : "Request Access"}
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
