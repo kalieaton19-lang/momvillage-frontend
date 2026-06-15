@@ -227,7 +227,9 @@ function collectMatches(html: string, patterns: RegExp[]) {
   const results: string[] = [];
 
   for (const pattern of patterns) {
-    const matches = decodedHtml.matchAll(pattern);
+    const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+    const safePattern = new RegExp(pattern.source, flags);
+    const matches = decodedHtml.matchAll(safePattern);
     for (const match of matches) {
       const rawValue = match[1] || match[0] || "";
       const normalizedValue = normalizeCandidateImage(rawValue);
@@ -453,33 +455,75 @@ export async function GET(request: NextRequest) {
     }
 
     const html = bestHtml;
+    const socialTitle = extractFirstMeta(html, [
+      { key: "og:title", attribute: "property" },
+      { key: "twitter:title", attribute: "name" },
+    ]);
+    const documentTitle = extractTitle(html);
+    const metadataTitle = socialTitle || documentTitle;
+    const heuristicTitle = extractHeuristicTitle(html);
+    const isMarketplaceUrl = target.toString().toLowerCase().includes("marketplace");
+    const shouldPreferHeuristicTitle =
+      isMarketplaceUrl && (isGenericFacebookTitle(metadataTitle) || !metadataTitle) && !!heuristicTitle;
     const title =
-      extractFirstMeta(html, [
-        { key: "og:title", attribute: "property" },
-        { key: "twitter:title", attribute: "name" },
-      ]) || extractHeuristicTitle(html) || extractTitle(html);
+      shouldPreferHeuristicTitle
+        ? heuristicTitle
+        : metadataTitle || heuristicTitle;
+    const titleSource = shouldPreferHeuristicTitle
+      ? "heuristic-marketplace"
+      : socialTitle
+      ? "meta-og-twitter"
+      : documentTitle
+      ? "document-title"
+      : heuristicTitle
+      ? "heuristic"
+      : "none";
     const description =
       extractFirstMeta(html, [
         { key: "og:description", attribute: "property" },
         { key: "twitter:description", attribute: "name" },
         { key: "description", attribute: "name" },
       ]) || extractItemProp(html, "description") || extractHeuristicDescription(html);
-    const imageCandidates = [
-      extractFirstMeta(html, [
+    const socialImage = extractFirstMeta(html, [
         { key: "og:image", attribute: "property" },
         { key: "og:image:url", attribute: "property" },
         { key: "og:image:secure_url", attribute: "property" },
         { key: "twitter:image", attribute: "name" },
         { key: "twitter:image:src", attribute: "name" },
-      ]),
-      ...collectMarketplaceSpecificImages(html),
-      extractItemProp(html, "image"),
-      extractLinkTag(html, "image_src"),
-      extractJsonLdImage(html),
-      ...collectHeuristicImages(html),
+      ]);
+    const marketplaceImages = collectMarketplaceSpecificImages(html);
+    const itemPropImage = extractItemProp(html, "image");
+    const linkTagImage = extractLinkTag(html, "image_src");
+    const jsonLdImage = extractJsonLdImage(html);
+    const heuristicImages = collectHeuristicImages(html);
+    const imageCandidates = [
+      socialImage,
+      ...marketplaceImages,
+      itemPropImage,
+      linkTagImage,
+      jsonLdImage,
+      ...heuristicImages,
     ].filter(Boolean);
     const rankedImageCandidates = rankImageCandidates(target.toString(), imageCandidates);
     const image = rankedImageCandidates[0] || "";
+    const absoluteSelectedImage = image ? absolutize(target.toString(), image) : "";
+    const isSelectedImageFrom = (candidate: string) =>
+      !!absoluteSelectedImage && !!candidate && absolutize(target.toString(), candidate) === absoluteSelectedImage;
+    const imageSource = !absoluteSelectedImage
+      ? "none"
+      : isSelectedImageFrom(socialImage)
+      ? "meta-og-twitter"
+      : marketplaceImages.some(isSelectedImageFrom)
+      ? "marketplace-specific"
+      : isSelectedImageFrom(itemPropImage)
+      ? "itemprop"
+      : isSelectedImageFrom(linkTagImage)
+      ? "link-tag"
+      : isSelectedImageFrom(jsonLdImage)
+      ? "json-ld"
+      : heuristicImages.some(isSelectedImageFrom)
+      ? "heuristic"
+      : "ranked-unknown";
     const siteName =
       extractFirstMeta(html, [
         { key: "og:site_name", attribute: "property" },
@@ -509,6 +553,8 @@ export async function GET(request: NextRequest) {
             hasImage: !!external.image,
             imageCandidateCount: externalImageCandidates.length,
             source: "external-fallback",
+            titleSource: external.title ? "external-fallback" : "none",
+            imageSource: external.image ? "external-fallback" : "none",
           },
         });
       }
@@ -526,6 +572,8 @@ export async function GET(request: NextRequest) {
         hasDescription: !!description,
         hasImage: !!image,
         imageCandidateCount: rankedImageCandidates.length,
+        titleSource,
+        imageSource,
       },
     });
   } catch {
