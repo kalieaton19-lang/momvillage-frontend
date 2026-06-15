@@ -84,6 +84,8 @@ export default function HomePage() {
   const [groupMode, setGroupMode] = useState<"actions" | "search" | "create">("actions");
   const [groupSearch, setGroupSearch] = useState("");
   const [groups, setGroups] = useState<GroupRow[]>([]);
+  const [myGroups, setMyGroups] = useState<GroupRow[]>([]);
+  const [myGroupsLoading, setMyGroupsLoading] = useState(false);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
@@ -146,6 +148,11 @@ export default function HomePage() {
     }, 250);
     return () => clearTimeout(handler);
   }, [user, feedType, groupMode, groupSearch]);
+
+  useEffect(() => {
+    if (!user || feedType !== "groups") return;
+    void loadMyGroups();
+  }, [user, feedType]);
 
   useEffect(() => {
     if (!selectedGroupId || feedType !== "groups") return;
@@ -377,6 +384,48 @@ export default function HomePage() {
     }
   }
 
+  async function loadMyGroups() {
+    if (!user?.id) return;
+    setMyGroupsLoading(true);
+    try {
+      const { data: memberships } = await supabase
+        .from("group_members")
+        .select("group_id,status")
+        .eq("user_id", user.id)
+        .eq("status", "approved");
+
+      const membershipGroupIds = (memberships || []).map((membership: { group_id: string }) => membership.group_id).filter(Boolean);
+
+      const { data: createdGroups } = await supabase
+        .from("groups")
+        .select("id,name,bio,visibility,creator_user_id,created_at")
+        .eq("creator_user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      let memberGroups: GroupRow[] = [];
+      if (membershipGroupIds.length > 0) {
+        const { data: memberGroupRows } = await supabase
+          .from("groups")
+          .select("id,name,bio,visibility,creator_user_id,created_at")
+          .in("id", membershipGroupIds)
+          .order("created_at", { ascending: false });
+        memberGroups = (memberGroupRows || []) as GroupRow[];
+      }
+
+      const merged = [...((createdGroups || []) as GroupRow[]), ...memberGroups];
+      const dedupedById = new Map<string, GroupRow>();
+      merged.forEach((group) => {
+        if (group?.id) dedupedById.set(group.id, { ...group, bio: group.bio || null });
+      });
+      setMyGroups(Array.from(dedupedById.values()));
+    } catch (error) {
+      console.error("Failed to load user groups", error);
+      setMyGroups([]);
+    } finally {
+      setMyGroupsLoading(false);
+    }
+  }
+
   async function handleCreateGroup() {
     if (!user) return;
     const trimmedName = newGroupName.trim();
@@ -427,6 +476,7 @@ export default function HomePage() {
       setNewGroupVisibility("open");
       setGroupMode("search");
       await loadGroups("");
+      await loadMyGroups();
       if (data?.id) setSelectedGroupId(data.id);
     } catch (error: any) {
       const message = error?.message?.includes("duplicate")
@@ -1202,21 +1252,43 @@ export default function HomePage() {
               <div>
                 <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Groups</h2>
                 {groupMode === "actions" && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button
-                      className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
-                      onClick={() => setGroupMode("create")}
-                    >
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">Create Group</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Start a new group for moms in the app.</div>
-                    </button>
-                    <button
-                      className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
-                      onClick={() => setGroupMode("search")}
-                    >
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">Search Groups</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Browse and search all groups in the app.</div>
-                    </button>
+                  <div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        className="w-full rounded-xl p-4 shadow-sm border-2 border-pink-200 bg-pink-50 text-pink-700 dark:bg-pink-950/20 dark:text-pink-200 dark:border-pink-800 hover:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400 active:border-pink-600 transition"
+                        onClick={() => setGroupMode("create")}
+                      >
+                        <div className="font-semibold text-center">Create Group</div>
+                      </button>
+                      <button
+                        className="w-full rounded-xl p-4 shadow-sm border-2 border-pink-200 bg-pink-50 text-pink-700 dark:bg-pink-950/20 dark:text-pink-200 dark:border-pink-800 hover:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400 active:border-pink-600 transition"
+                        onClick={() => setGroupMode("search")}
+                      >
+                        <div className="font-semibold text-center">Search Groups</div>
+                      </button>
+                    </div>
+
+                    <div className="mt-5">
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Your Groups</h3>
+                      {myGroupsLoading ? (
+                        <div className="text-sm text-zinc-500">Loading your groups...</div>
+                      ) : myGroups.length === 0 ? (
+                        <div className="text-sm text-zinc-500">You haven’t joined any groups yet.</div>
+                      ) : (
+                        <div className="grid gap-2">
+                          {myGroups.map((group) => (
+                            <button
+                              key={group.id}
+                              onClick={() => setSelectedGroupId(group.id)}
+                              className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
+                            >
+                              <div className="font-medium text-zinc-900 dark:text-zinc-50">{group.name}</div>
+                              {group.bio && <div className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5 line-clamp-1">{group.bio}</div>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
