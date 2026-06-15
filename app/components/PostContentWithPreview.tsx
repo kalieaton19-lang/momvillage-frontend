@@ -122,6 +122,7 @@ export default function PostContentWithPreview({
     if (!activePreviewImage) return "";
     return `/api/link-preview/image?url=${encodeURIComponent(activePreviewImage)}`;
   }, [activePreviewImage]);
+  const hasPostPreview = !!firstUrl && !isImageUrl(firstUrl) && !!preview;
 
   useEffect(() => {
     let ignore = false;
@@ -188,6 +189,7 @@ export default function PostContentWithPreview({
       <div className={className}>
         {parts.map((part, index) =>
           part.type === "link" ? (
+            hasPostPreview && part.value === firstUrl ? null : (
             <a
               key={`${part.value}-${index}`}
               href={part.value}
@@ -197,6 +199,7 @@ export default function PostContentWithPreview({
             >
               {part.value}
             </a>
+            )
           ) : (
             <span key={`text-${index}`} className="whitespace-pre-line">
               {part.value}
@@ -220,7 +223,7 @@ export default function PostContentWithPreview({
         </a>
       )}
 
-      {firstUrl && !isImageUrl(firstUrl) && preview && (
+      {hasPostPreview && (
         <a
           href={preview.url}
           target="_blank"
@@ -260,9 +263,6 @@ export default function PostContentWithPreview({
                 {preview.description || fallbackMeta?.description}
               </div>
             )}
-            <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 break-all">
-              {preview.url}
-            </div>
           </div>
         </a>
       )}
