@@ -1520,12 +1520,12 @@ export default function HomePage() {
                         </Link>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1 min-w-0 text-sm">
-                            <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
+                            <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-base text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
                               {post.author_name || 'Mom'}
                             </Link>
                             {post.group_id && (
                               <>
-                                <span className="text-pink-600 dark:text-pink-300 shrink-0">Posted in</span>
+                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
                                 <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 underline hover:text-pink-700 dark:hover:text-pink-200 truncate">
                                   {groupNameById[post.group_id] || 'Group'}
                                 </Link>
@@ -1550,10 +1550,10 @@ export default function HomePage() {
                         )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-1 min-w-0 text-sm">
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                            <div className="font-semibold text-base text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
                             {post.group_id && (
                               <>
-                                <span className="text-pink-600 dark:text-pink-300 shrink-0">Posted in</span>
+                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
                                 <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 underline hover:text-pink-700 dark:hover:text-pink-200 truncate">
                                   {groupNameById[post.group_id] || 'Group'}
                                 </Link>
