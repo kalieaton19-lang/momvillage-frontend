@@ -106,6 +106,7 @@ export default function HomePage() {
   const [groupPostMessage, setGroupPostMessage] = useState("");
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
+  const [groupNameById, setGroupNameById] = useState<Record<string, string>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
   const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
   const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
@@ -233,6 +234,29 @@ export default function HomePage() {
 
       setPosts(nextPosts);
 
+      // Hydrate group names for group posts on main feed
+      try {
+        const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((id): id is string => !!id))];
+        if (groupIds.length === 0) {
+          setGroupNameById({});
+        } else {
+          const { data: groupsData } = await supabase
+            .from("groups")
+            .select("id,name")
+            .in("id", groupIds);
+
+          const groupMap: Record<string, string> = {};
+          (groupsData || []).forEach((group: any) => {
+            if (group?.id && group?.name) {
+              groupMap[group.id] = group.name;
+            }
+          });
+          setGroupNameById(groupMap);
+        }
+      } catch (e) {
+        setGroupNameById({});
+      }
+
       // Hydrate author profile photos for post cards (non-blocking)
       try {
         const authorIds = [...new Set(nextPosts.map((post) => post.author_user_id).filter(Boolean))];
@@ -303,6 +327,7 @@ export default function HomePage() {
       }
     } catch (e) {
       setPosts([]);
+      setGroupNameById({});
       setAuthorPhotoById({});
       setLikesCountByPost({});
       setLikedByMeByPost({});
@@ -1493,6 +1518,11 @@ export default function HomePage() {
                         )}
                         <div className="min-w-0">
                           <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{post.author_name || 'Mom'}</div>
+                          {post.group_id && (
+                            <div className="text-xs text-pink-600 dark:text-pink-300 truncate">
+                              User posted in {groupNameById[post.group_id] || 'Group'}
+                            </div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                         </div>
                       </Link>
@@ -1511,6 +1541,11 @@ export default function HomePage() {
                         )}
                         <div className="min-w-0">
                           <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                          {post.group_id && (
+                            <div className="text-xs text-pink-600 dark:text-pink-300 truncate">
+                              User posted in {groupNameById[post.group_id] || 'Group'}
+                            </div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                         </div>
                       </div>
