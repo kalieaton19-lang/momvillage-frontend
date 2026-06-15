@@ -28,8 +28,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#efefef] flex items-start justify-center overflow-hidden p-4 pt-[6vh]">
       <div className="w-full max-w-[900px] flex flex-col items-center">
-        <div className="w-full aspect-square relative">
-        <svg viewBox="0 0 900 900" className="w-full h-full">
+        <div className="w-full aspect-square relative overflow-hidden">
+        <svg viewBox="0 0 900 900" className="w-full h-full scale-[2.4] sm:scale-100 origin-center">
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
@@ -61,7 +61,7 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -82 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? 188 : phase >= 2 ? 25 : 40}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
+              transform: `translateX(${phase >= 3 ? -56 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? 188 : phase >= 2 ? 25 : 40}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
