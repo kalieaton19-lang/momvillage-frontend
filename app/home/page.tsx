@@ -1146,10 +1146,13 @@ export default function HomePage() {
                 return (
                   <div>
                     <button
-                      className="mb-4 text-pink-600 hover:underline text-sm"
+                      className="inline-flex items-center justify-center w-10 h-10 mb-4 bg-white text-pink-500 border border-pink-200 rounded-full shadow hover:bg-pink-50 transition-colors dark:bg-zinc-900 dark:border-zinc-700"
                       onClick={() => { setSelectedGroupId(null); setGroupMode("search"); }}
+                      aria-label="Back"
                     >
-                      ← Back to Groups
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                      </svg>
                     </button>
                     <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
                       <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
@@ -1295,10 +1298,13 @@ export default function HomePage() {
                 {groupMode === "create" && (
                   <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
                     <button
-                      className="text-pink-600 hover:underline text-sm"
+                      className="inline-flex items-center justify-center w-10 h-10 bg-white text-pink-500 border border-pink-200 rounded-full shadow hover:bg-pink-50 transition-colors dark:bg-zinc-900 dark:border-zinc-700"
                       onClick={() => setGroupMode("actions")}
+                      aria-label="Back"
                     >
-                      ← Back
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                      </svg>
                     </button>
                     <input
                       type="text"
@@ -1338,10 +1344,13 @@ export default function HomePage() {
                 {groupMode === "search" && (
                   <div>
                     <button
-                      className="mb-3 text-pink-600 hover:underline text-sm"
+                      className="inline-flex items-center justify-center w-10 h-10 mb-3 bg-white text-pink-500 border border-pink-200 rounded-full shadow hover:bg-pink-50 transition-colors dark:bg-zinc-900 dark:border-zinc-700"
                       onClick={() => setGroupMode("actions")}
+                      aria-label="Back"
                     >
-                      ← Back
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                      </svg>
                     </button>
                     <input
                       type="text"
