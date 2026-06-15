@@ -1519,17 +1519,19 @@ export default function HomePage() {
                           )}
                         </Link>
                         <div className="min-w-0">
-                          <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline block">
-                            {post.author_name || 'Mom'}
-                          </Link>
-                          {post.group_id && (
-                            <div className="text-xs text-pink-600 dark:text-pink-300 truncate">
-                              {(post.author_name || 'Mom')} posted in {" "}
-                              <Link href={`/groups/${post.group_id}`} className="underline hover:text-pink-700 dark:hover:text-pink-200">
-                                {groupNameById[post.group_id] || 'Group'}
-                              </Link>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1 min-w-0 text-sm">
+                            <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
+                              {post.author_name || 'Mom'}
+                            </Link>
+                            {post.group_id && (
+                              <>
+                                <span className="text-pink-600 dark:text-pink-300 shrink-0">Posted in</span>
+                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 underline hover:text-pink-700 dark:hover:text-pink-200 truncate">
+                                  {groupNameById[post.group_id] || 'Group'}
+                                </Link>
+                              </>
+                            )}
+                          </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                         </div>
                       </div>
@@ -1547,15 +1549,17 @@ export default function HomePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
-                          {post.group_id && (
-                            <div className="text-xs text-pink-600 dark:text-pink-300 truncate">
-                              {(post.author_name || 'Mom')} posted in {" "}
-                              <Link href={`/groups/${post.group_id}`} className="underline hover:text-pink-700 dark:hover:text-pink-200">
-                                {groupNameById[post.group_id] || 'Group'}
-                              </Link>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1 min-w-0 text-sm">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{post.author_name || 'Mom'}</div>
+                            {post.group_id && (
+                              <>
+                                <span className="text-pink-600 dark:text-pink-300 shrink-0">Posted in</span>
+                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 underline hover:text-pink-700 dark:hover:text-pink-200 truncate">
+                                  {groupNameById[post.group_id] || 'Group'}
+                                </Link>
+                              </>
+                            )}
+                          </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
                         </div>
                       </div>
