@@ -80,10 +80,15 @@ export default function HomePage() {
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null); // For groups logic
+  const [groupMode, setGroupMode] = useState<"actions" | "search" | "create">("actions");
   const [groupSearch, setGroupSearch] = useState("");
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupVisibility, setNewGroupVisibility] = useState<"open" | "by_permission">("open");
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [createGroupMessage, setCreateGroupMessage] = useState("");
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
@@ -122,12 +127,12 @@ export default function HomePage() {
   }, [user, feedType]);
 
   useEffect(() => {
-    if (!user || feedType !== "groups") return;
+    if (!user || feedType !== "groups" || groupMode !== "search") return;
     const handler = setTimeout(() => {
       void loadGroups(groupSearch);
     }, 250);
     return () => clearTimeout(handler);
-  }, [user, feedType, groupSearch]);
+  }, [user, feedType, groupMode, groupSearch]);
 
   async function checkUser() {
     try {
@@ -310,6 +315,45 @@ export default function HomePage() {
       setGroupsError("Could not load groups.");
     } finally {
       setGroupsLoading(false);
+    }
+  }
+
+  async function handleCreateGroup() {
+    if (!user) return;
+    const trimmedName = newGroupName.trim();
+    if (!trimmedName) {
+      setCreateGroupMessage("Group name is required.");
+      return;
+    }
+
+    setCreatingGroup(true);
+    setCreateGroupMessage("");
+    try {
+      const { data, error } = await supabase
+        .from("groups")
+        .insert({
+          name: trimmedName,
+          visibility: newGroupVisibility,
+          creator_user_id: user.id,
+        })
+        .select("id,name,visibility,creator_user_id,created_at")
+        .single();
+
+      if (error) throw error;
+
+      setCreateGroupMessage("Group created successfully!");
+      setNewGroupName("");
+      setNewGroupVisibility("open");
+      setGroupMode("search");
+      await loadGroups("");
+      if (data?.id) setSelectedGroupId(data.id);
+    } catch (error: any) {
+      const message = error?.message?.includes("duplicate")
+        ? "A group with that name already exists."
+        : "Could not create group.";
+      setCreateGroupMessage(message);
+    } finally {
+      setCreatingGroup(false);
     }
   }
 
@@ -867,7 +911,7 @@ export default function HomePage() {
         <div className="flex gap-3 mb-4">
           <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'local' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Local</button>
           <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'village' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>My Village</button>
-          <button onClick={() => { setFeedType('groups'); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'groups' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Groups</button>
+          <button onClick={() => { setFeedType('groups'); setSelectedGroupId(null); setGroupMode('actions'); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'groups' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Groups</button>
         </div>
         {/* Feed logic: Local, Village, Groups */}
         <main className="flex-1 overflow-y-auto">
@@ -879,7 +923,7 @@ export default function HomePage() {
                   <div>
                     <button
                       className="mb-4 text-pink-600 hover:underline text-sm"
-                      onClick={() => setSelectedGroupId(null)}
+                      onClick={() => { setSelectedGroupId(null); setGroupMode("search"); }}
                     >
                       ← Back to Groups
                     </button>
@@ -899,30 +943,95 @@ export default function HomePage() {
               })()
             ) : (
               <div>
-                <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Search Groups</h2>
-                <input
-                  type="text"
-                  value={groupSearch}
-                  onChange={(event) => setGroupSearch(event.target.value)}
-                  placeholder="Search all groups..."
-                  className="w-full mb-4 rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                />
-                {groupsLoading && <div className="text-sm text-zinc-500 mb-3">Searching groups...</div>}
-                {groupsError && !groupsLoading && <div className="text-sm text-zinc-500 mb-3">{groupsError}</div>}
-                <div className="grid gap-3">
-                  {groups.map((group) => (
+                <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Groups</h2>
+                {groupMode === "actions" && (
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <button
-                      key={group.id}
                       className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
-                      onClick={() => setSelectedGroupId(group.id)}
+                      onClick={() => setGroupMode("create")}
                     >
-                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                        {group.visibility === "by_permission" ? "By Permission" : "Open"}
-                      </div>
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">Create Group</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Start a new group for moms in the app.</div>
                     </button>
-                  ))}
-                </div>
+                    <button
+                      className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
+                      onClick={() => setGroupMode("search")}
+                    >
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">Search Groups</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Browse and search all groups in the app.</div>
+                    </button>
+                  </div>
+                )}
+
+                {groupMode === "create" && (
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+                    <button
+                      className="text-pink-600 hover:underline text-sm"
+                      onClick={() => setGroupMode("actions")}
+                    >
+                      ← Back
+                    </button>
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(event) => setNewGroupName(event.target.value)}
+                      placeholder="Group name"
+                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                    <select
+                      value={newGroupVisibility}
+                      onChange={(event) => setNewGroupVisibility(event.target.value as "open" | "by_permission")}
+                      className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    >
+                      <option value="open">Open</option>
+                      <option value="by_permission">By Permission</option>
+                    </select>
+                    <button
+                      onClick={() => void handleCreateGroup()}
+                      disabled={creatingGroup}
+                      className="px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                    >
+                      {creatingGroup ? "Creating..." : "Create Group"}
+                    </button>
+                    {createGroupMessage && (
+                      <div className="text-sm text-zinc-600 dark:text-zinc-300">{createGroupMessage}</div>
+                    )}
+                  </div>
+                )}
+
+                {groupMode === "search" && (
+                  <div>
+                    <button
+                      className="mb-3 text-pink-600 hover:underline text-sm"
+                      onClick={() => setGroupMode("actions")}
+                    >
+                      ← Back
+                    </button>
+                    <input
+                      type="text"
+                      value={groupSearch}
+                      onChange={(event) => setGroupSearch(event.target.value)}
+                      placeholder="Search all groups..."
+                      className="w-full mb-4 rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                    {groupsLoading && <div className="text-sm text-zinc-500 mb-3">Searching groups...</div>}
+                    {groupsError && !groupsLoading && <div className="text-sm text-zinc-500 mb-3">{groupsError}</div>}
+                    <div className="grid gap-3">
+                      {groups.map((group) => (
+                        <button
+                          key={group.id}
+                          className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
+                          onClick={() => setSelectedGroupId(group.id)}
+                        >
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                            {group.visibility === "by_permission" ? "By Permission" : "Open"}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           ) : loading ? (
