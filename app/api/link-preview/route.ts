@@ -322,6 +322,14 @@ function toStringOrEmpty(value: unknown) {
 
 async function fetchExternalPreview(target: URL, signal: AbortSignal): Promise<ExternalPreview | null> {
   const ogKey = process.env.OPENGRAPH_API_KEY || process.env.OG_API_KEY;
+  const iframelyKey = process.env.IFRAMELY_API_KEY;
+  if (!ogKey && !iframelyKey) {
+    console.warn(
+      "[link-preview] ⚠️  No external API key found. Set OPENGRAPH_API_KEY (https://www.opengraph.io) " +
+      "or IFRAMELY_API_KEY (https://iframely.com) in .env.local to enable the Facebook Marketplace fallback.",
+    );
+    return null;
+  }
   if (ogKey) {
     try {
       const response = await fetch(
@@ -348,7 +356,6 @@ async function fetchExternalPreview(target: URL, signal: AbortSignal): Promise<E
     }
   }
 
-  const iframelyKey = process.env.IFRAMELY_API_KEY;
   if (iframelyKey) {
     try {
       const response = await fetch(
