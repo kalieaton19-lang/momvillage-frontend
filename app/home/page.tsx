@@ -232,29 +232,64 @@ export default function HomePage() {
         nextPosts = await fetchPosts({ scope: 'public' });
       }
 
-      setPosts(nextPosts);
-
-      // Hydrate group names for group posts on main feed
+      // Enforce group post visibility on local/village feeds:
+      // show only if group is open OR current user is creator/member.
       try {
         const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((id): id is string => !!id))];
         if (groupIds.length === 0) {
           setGroupNameById({});
+          setPosts(nextPosts);
         } else {
-          const { data: groupsData } = await supabase
-            .from("groups")
-            .select("id,name")
-            .in("id", groupIds);
+          const [{ data: groupsData }, { data: membershipRows }] = await Promise.all([
+            supabase
+              .from("groups")
+              .select("id,name,visibility,creator_user_id")
+              .in("id", groupIds),
+            supabase
+              .from("group_members")
+              .select("group_id,status")
+              .eq("user_id", user.id)
+              .in("group_id", groupIds),
+          ]);
 
-          const groupMap: Record<string, string> = {};
+          const groupById: Record<string, { name: string; visibility: "open" | "by_permission"; creator_user_id: string }> = {};
           (groupsData || []).forEach((group: any) => {
-            if (group?.id && group?.name) {
-              groupMap[group.id] = group.name;
+            if (group?.id) {
+              groupById[group.id] = {
+                name: group.name || "Group",
+                visibility: (group.visibility as "open" | "by_permission") || "by_permission",
+                creator_user_id: group.creator_user_id || "",
+              };
             }
           });
+
+          const approvedMemberGroupIds = new Set(
+            (membershipRows || [])
+              .filter((row: any) => row?.status === "approved" && row?.group_id)
+              .map((row: any) => row.group_id as string)
+          );
+
+          const visiblePosts = nextPosts.filter((post) => {
+            if (!post.group_id) return true;
+            const groupMeta = groupById[post.group_id];
+            if (!groupMeta) return false;
+            if (groupMeta.visibility === "open") return true;
+            if (groupMeta.creator_user_id === user.id) return true;
+            return approvedMemberGroupIds.has(post.group_id);
+          });
+
+          const groupMap: Record<string, string> = {};
+          Object.entries(groupById).forEach(([id, meta]) => {
+            groupMap[id] = meta.name;
+          });
+
+          nextPosts = visiblePosts;
           setGroupNameById(groupMap);
+          setPosts(nextPosts);
         }
       } catch (e) {
         setGroupNameById({});
+        setPosts(nextPosts.filter((post) => !post.group_id));
       }
 
       // Hydrate author profile photos for post cards (non-blocking)
