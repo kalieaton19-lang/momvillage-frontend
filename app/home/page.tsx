@@ -320,16 +320,39 @@ export default function HomePage() {
         query = query.ilike("name", `%${trimmed}%`);
       }
 
-      const { data, error } = await query;
+      const initialResult = await query;
+      let data = (initialResult.data || null) as Array<Partial<GroupRow>> | null;
+      let error = initialResult.error;
+
+      const missingBioColumn =
+        error?.code === "42703" ||
+        String(error?.message || "").toLowerCase().includes("bio");
+
+      if (missingBioColumn) {
+        let fallbackQuery = supabase
+          .from("groups")
+          .select("id,name,visibility,creator_user_id,created_at")
+          .order("created_at", { ascending: false })
+          .limit(30);
+
+        if (trimmed) {
+          fallbackQuery = fallbackQuery.ilike("name", `%${trimmed}%`);
+        }
+
+        const fallbackResult = await fallbackQuery;
+        data = (fallbackResult.data || null) as Array<Partial<GroupRow>> | null;
+        error = fallbackResult.error;
+      }
+
       if (error) throw error;
-      setGroups((data || []) as GroupRow[]);
+      setGroups(((data || []) as GroupRow[]).map((group) => ({ ...group, bio: group.bio || null })));
       if ((data || []).length === 0) {
         setGroupsError(trimmed ? "No groups found." : "No groups yet.");
       }
     } catch (error) {
       console.error("Failed to load groups", error);
       setGroups([]);
-      setGroupsError("Could not load groups.");
+      setGroupsError("Could not load groups. Please verify your groups table/policies in Supabase.");
     } finally {
       setGroupsLoading(false);
     }
@@ -346,7 +369,7 @@ export default function HomePage() {
     setCreatingGroup(true);
     setCreateGroupMessage("");
     try {
-      const { data, error } = await supabase
+      const initialInsertResult = await supabase
         .from("groups")
         .insert({
           name: trimmedName,
@@ -356,6 +379,26 @@ export default function HomePage() {
         })
         .select("id,name,bio,visibility,creator_user_id,created_at")
         .single();
+      let data = (initialInsertResult.data || null) as Partial<GroupRow> | null;
+      let error = initialInsertResult.error;
+
+      const missingBioColumn =
+        error?.code === "42703" ||
+        String(error?.message || "").toLowerCase().includes("bio");
+
+      if (missingBioColumn) {
+        const fallback = await supabase
+          .from("groups")
+          .insert({
+            name: trimmedName,
+            visibility: newGroupVisibility,
+            creator_user_id: user.id,
+          })
+          .select("id,name,visibility,creator_user_id,created_at")
+          .single();
+        data = (fallback.data || null) as Partial<GroupRow> | null;
+        error = fallback.error;
+      }
 
       if (error) throw error;
 
@@ -369,7 +412,7 @@ export default function HomePage() {
     } catch (error: any) {
       const message = error?.message?.includes("duplicate")
         ? "A group with that name already exists."
-        : "Could not create group.";
+        : "Could not create group. Please verify groups table/policies in Supabase.";
       setCreateGroupMessage(message);
     } finally {
       setCreatingGroup(false);
