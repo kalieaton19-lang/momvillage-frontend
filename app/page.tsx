@@ -60,7 +60,7 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -230 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? 160 : phase >= 2 ? 25 : 0}px) rotate(${phase >= 3 ? 0 : 180}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1})`,
+              transform: `translateX(${phase >= 3 ? -230 : phase >= 2 ? -145 : 0}px) translateY(${phase >= 3 ? 160 : phase >= 2 ? 25 : 0}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
