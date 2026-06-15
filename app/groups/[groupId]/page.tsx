@@ -41,6 +41,7 @@ export default function GroupDetailPage() {
   const [groupPostContent, setGroupPostContent] = useState("");
   const [creatingGroupPost, setCreatingGroupPost] = useState(false);
   const [requestingAccess, setRequestingAccess] = useState(false);
+  const [updatingMembership, setUpdatingMembership] = useState(false);
   const [membershipStatus, setMembershipStatus] = useState<"pending" | "approved" | null>(null);
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
@@ -252,6 +253,51 @@ export default function GroupDetailPage() {
       setGroupPostMessage("Could not request access.");
     } finally {
       setRequestingAccess(false);
+    }
+  }
+
+  async function handleJoinOrLeaveGroup() {
+    if (!user?.id || !groupId || !group) return;
+    if (isGroupCreator) return;
+
+    setUpdatingMembership(true);
+    setGroupPostMessage("");
+    try {
+      if (membershipStatus === "approved") {
+        const { error } = await supabase
+          .from("group_members")
+          .delete()
+          .eq("group_id", groupId)
+          .eq("user_id", user.id);
+        if (error) throw error;
+        setMembershipStatus(null);
+        setShowGroupPostForm(false);
+        setGroupPostMessage("You left the group.");
+        return;
+      }
+
+      if (group.visibility === "by_permission") {
+        await handleRequestAccess();
+        return;
+      }
+
+      const { error } = await supabase
+        .from("group_members")
+        .upsert(
+          {
+            group_id: groupId,
+            user_id: user.id,
+            status: "approved",
+          },
+          { onConflict: "group_id,user_id" }
+        );
+      if (error) throw error;
+      setMembershipStatus("approved");
+      setGroupPostMessage("You joined the group.");
+    } catch {
+      setGroupPostMessage("Could not update membership.");
+    } finally {
+      setUpdatingMembership(false);
     }
   }
 
@@ -502,30 +548,42 @@ export default function GroupDetailPage() {
       </button>
 
       <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-        <h1 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50 text-center">{group.name}</h1>
-        <div className="text-center mb-3">
-          <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-pink-100 text-pink-700 border border-pink-300 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700">
-            Status: {groupMembershipLabel}
-          </span>
+        <div className="w-full rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 px-4 py-4 mb-3">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 text-center">{group.name}</h1>
+          <div className="text-center mt-2 mb-3">
+            <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-pink-100 text-pink-700 border border-pink-300 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700">
+              Status: {groupMembershipLabel}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={() => setShowGroupPostForm((value) => !value)}
+              disabled={!canCreateGroupPosts}
+              className="px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 disabled:opacity-50 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
+            >
+              {showGroupPostForm ? "Cancel" : "Create Post"}
+            </button>
+            <button
+              onClick={() => void handleJoinOrLeaveGroup()}
+              disabled={isGroupCreator || updatingMembership || membershipStatus === "pending" || requestingAccess}
+              className="px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 disabled:opacity-50 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
+            >
+              {isGroupCreator
+                ? "Creator"
+                : membershipStatus === "approved"
+                  ? "Leave Group"
+                  : membershipStatus === "pending"
+                    ? "Pending Approval"
+                    : updatingMembership
+                      ? "Updating..."
+                      : group.visibility === "by_permission"
+                        ? "Join Group"
+                        : "Join Group"}
+            </button>
+          </div>
         </div>
-        {group.bio && <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-3 whitespace-pre-line">{group.bio}</div>}
 
-        {!canCreateGroupPosts ? (
-          <button
-            onClick={() => void handleRequestAccess()}
-            disabled={requestingAccess || membershipStatus === "pending"}
-            className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
-          >
-            {membershipStatus === "pending" ? "Pending Approval" : requestingAccess ? "Sending..." : "Request Access"}
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowGroupPostForm((value) => !value)}
-            className="mt-2 px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
-          >
-            {showGroupPostForm ? "Cancel" : "Create Post"}
-          </button>
-        )}
+        {group.bio && <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-3 whitespace-pre-line">{group.bio}</div>}
 
         {canCreateGroupPosts && showGroupPostForm && (
           <div className="mt-3 space-y-2">
