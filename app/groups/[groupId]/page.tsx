@@ -63,6 +63,13 @@ export default function GroupDetailPage() {
   const isPrivateGroup = group?.visibility === "by_permission";
   const isGroupCreator = group?.creator_user_id === user?.id;
   const canCreateGroupPosts = !isPrivateGroup || membershipStatus === "approved" || isGroupCreator;
+  const groupMembershipLabel = isGroupCreator
+    ? "Creator"
+    : membershipStatus === "approved"
+      ? "Member"
+      : membershipStatus === "pending"
+        ? "Pending Approval"
+        : "Not a Member";
 
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
@@ -495,7 +502,12 @@ export default function GroupDetailPage() {
       </button>
 
       <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-        <h1 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">{group.name}</h1>
+        <h1 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-50 text-center">{group.name}</h1>
+        <div className="text-center mb-3">
+          <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-pink-100 text-pink-700 border border-pink-300 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700">
+            Status: {groupMembershipLabel}
+          </span>
+        </div>
         {group.bio && <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-3 whitespace-pre-line">{group.bio}</div>}
 
         {!canCreateGroupPosts ? (
@@ -509,7 +521,7 @@ export default function GroupDetailPage() {
         ) : (
           <button
             onClick={() => setShowGroupPostForm((value) => !value)}
-            className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
+            className="mt-2 px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
           >
             {showGroupPostForm ? "Cancel" : "Create Post"}
           </button>
@@ -534,7 +546,7 @@ export default function GroupDetailPage() {
             <button
               onClick={() => void handleCreateGroupPost()}
               disabled={creatingGroupPost}
-              className="px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+              className="px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
             >
               {creatingGroupPost ? "Posting..." : "Publish to Group"}
             </button>
