@@ -515,7 +515,7 @@ export default function HomePage() {
       setGroupMode("search");
       await loadGroups("");
       await loadMyGroups();
-      if (data?.id) setSelectedGroupId(data.id);
+      if (data?.id) router.push(`/groups/${data.id}`);
     } catch (error: any) {
       const message = error?.message?.includes("duplicate")
         ? "A group with that name already exists."
@@ -1337,7 +1337,7 @@ export default function HomePage() {
                           {myGroups.map((group) => (
                             <button
                               key={group.id}
-                              onClick={() => setSelectedGroupId(group.id)}
+                              onClick={() => router.push(`/groups/${group.id}`)}
                               className="w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
                             >
                               <div className="font-medium text-zinc-900 dark:text-zinc-50">{group.name}</div>
@@ -1424,7 +1424,7 @@ export default function HomePage() {
                         >
                           <button
                             className="w-full text-left"
-                            onClick={() => setSelectedGroupId(group.id)}
+                            onClick={() => router.push(`/groups/${group.id}`)}
                           >
                             <div className="font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</div>
                           </button>
