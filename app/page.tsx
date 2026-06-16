@@ -89,14 +89,14 @@ export default function Home() {
           </g>
 
           <text
-            x="410"
+            x="418"
             y="430"
             fill="#000"
-            fontSize="92"
+            fontSize="98"
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
-              transform: `translateX(${phase >= 2 ? 0 : 120}px) translateY(${phase >= 3 ? 55 : 0}px)`,
+              transform: `translateX(${phase >= 2 ? 0 : 120}px) translateY(${phase >= 3 ? 64 : 0}px)`,
               transition: "opacity 1300ms ease, transform 1300ms ease-in-out",
             }}
           >
@@ -104,10 +104,10 @@ export default function Home() {
           </text>
 
           <text
-            x="410"
+            x="416"
             y="520"
             fill="#000"
-            fontSize="92"
+            fontSize="98"
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
