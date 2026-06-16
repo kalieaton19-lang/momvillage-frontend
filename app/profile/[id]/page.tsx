@@ -576,6 +576,32 @@ export default function ProfilePage() {
             </div>
           </div>
           {/* Message Button removed from banner as now redundant */}
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              aria-label="Profile actions"
+              onClick={() => setOpenPostMenuId(openPostMenuId ? null : "profile-menu")}
+              className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+            >
+              ⋯
+            </button>
+            {openPostMenuId === "profile-menu" && (
+              <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReportModalType("account");
+                    setReportModalTargetId(profileUserId || "");
+                    setReportModalOpen(true);
+                    setOpenPostMenuId(null);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                >
+                  Report profile
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         {/* Status banner or invite button below banner */}
         {currentUser && currentUser.id !== profileUserId && (
