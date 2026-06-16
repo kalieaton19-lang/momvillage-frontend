@@ -33,7 +33,7 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -184 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.2})`,
+              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -184 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.8 : phase >= 2 ? 0.82 : 1.2})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
@@ -81,10 +81,10 @@ export default function Home() {
             }}
           >
             <path
-              d="M304 430 L354 565 L404 430"
+              d="M302 426 L354 572 L406 426"
               fill="none"
               stroke="black"
-              strokeWidth="12"
+              strokeWidth="14"
             />
           </g>
 
@@ -92,7 +92,7 @@ export default function Home() {
             x="418"
             y="430"
             fill="#000"
-            fontSize="100"
+            fontSize="102"
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
@@ -107,7 +107,7 @@ export default function Home() {
             x="416"
             y="520"
             fill="#000"
-            fontSize="100"
+            fontSize="102"
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
@@ -136,7 +136,7 @@ export default function Home() {
         </div>
 
         <div
-          className="mt-3 flex flex-col sm:flex-row gap-3"
+          className="mt-10 sm:mt-3 flex flex-col sm:flex-row gap-3"
           style={{
             opacity: showButtons ? 1 : 0,
             transform: `translateY(${showButtons ? 0 : 12}px)`,
