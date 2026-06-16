@@ -33,7 +33,7 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -230 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.2})`,
+              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -184 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.2})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
@@ -92,7 +92,7 @@ export default function Home() {
             x="418"
             y="430"
             fill="#000"
-            fontSize="98"
+            fontSize="100"
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
@@ -107,7 +107,7 @@ export default function Home() {
             x="416"
             y="520"
             fill="#000"
-            fontSize="98"
+            fontSize="100"
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
