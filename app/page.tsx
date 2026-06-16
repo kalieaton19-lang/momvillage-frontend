@@ -27,13 +27,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#efefef] flex items-start justify-center overflow-hidden p-4 pt-[6vh]">
-      <div className="w-full max-w-[900px] flex flex-col items-center">
+      <div className="w-full max-w-[760px] md:max-w-[900px] flex flex-col items-center">
         <div className="w-full aspect-square relative overflow-hidden">
-        <svg viewBox="0 0 900 900" className="w-full h-full scale-[1.85] sm:scale-[1.45] md:scale-[1.2] lg:scale-100 origin-center">
+        <svg viewBox="0 0 900 900" className="w-full h-full scale-[1.2] sm:scale-[1.08] md:scale-[1.02] lg:scale-100 origin-center">
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -120 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
+              transform: `translateX(${phase >= 3 ? -70 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? -230 : phase >= 2 ? 25 : 40}px) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.2})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
@@ -61,7 +61,7 @@ export default function Home() {
           <g
             style={{
               opacity: phase >= 1 && phase < 3 ? 1 : 0,
-              transform: `translateX(${phase >= 3 ? -66 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? 130 : phase >= 2 ? 25 : 40}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.28})`,
+              transform: `translateX(${phase >= 3 ? -66 : phase >= 2 ? -145 : 60}px) translateY(${phase >= 3 ? 90 : phase >= 2 ? 25 : 40}px) rotate(${phase >= 3 ? 180 : 0}deg) scale(${phase >= 3 ? 0.72 : phase >= 2 ? 0.82 : 1.2})`,
               transformOrigin: "center",
               transition: "opacity 900ms ease, transform 1300ms ease-in-out",
             }}
@@ -81,7 +81,7 @@ export default function Home() {
             }}
           >
             <path
-              d="M304 502 L354 637 L404 502"
+              d="M304 430 L354 565 L404 430"
               fill="none"
               stroke="black"
               strokeWidth="12"
@@ -96,7 +96,7 @@ export default function Home() {
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
-              transform: `translateX(${phase >= 2 ? 0 : 120}px) translateY(${phase >= 3 ? 160 : 0}px)`,
+              transform: `translateX(${phase >= 2 ? 0 : 120}px) translateY(${phase >= 3 ? 55 : 0}px)`,
               transition: "opacity 1300ms ease, transform 1300ms ease-in-out",
             }}
           >
@@ -111,7 +111,7 @@ export default function Home() {
             className={scriptFont.className}
             style={{
               opacity: phase >= 2 ? 1 : 0,
-              transform: `translateX(${phase >= 2 ? 0 : -80}px) translateY(${phase >= 3 ? -70 : 0}px)`,
+              transform: `translateX(${phase >= 2 ? 0 : -80}px) translateY(${phase >= 3 ? -175 : 0}px)`,
               transition: "opacity 1300ms ease, transform 1300ms ease-in-out",
             }}
           >
@@ -120,13 +120,13 @@ export default function Home() {
 
           <text
             x="450"
-            y="770"
+            y="740"
             textAnchor="middle"
             fill="#111"
             fontSize="31"
             style={{
               opacity: phase >= 3 ? 1 : 0,
-              transform: `translateY(${phase >= 3 ? -18 : 0}px)`,
+              transform: `translateY(${phase >= 3 ? -10 : 0}px)`,
               transition: "opacity 850ms ease, transform 850ms ease",
             }}
           >
@@ -146,7 +146,7 @@ export default function Home() {
         >
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-full bg-zinc-900 text-white px-6 py-3 font-medium hover:bg-zinc-800"
+            className="inline-flex items-center justify-center rounded-full border border-pink-300 bg-white text-pink-700 px-6 py-3 font-medium hover:bg-pink-50"
           >
             Login
           </Link>
