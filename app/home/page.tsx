@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import PostContentWithPreview from "../components/PostContentWithPreview";
+import ReportModal, { ReportType, ReportReason } from "../components/ReportModal";
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
@@ -121,6 +122,9 @@ export default function HomePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = React.useRef<HTMLInputElement>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportModalType, setReportModalType] = useState<ReportType>("post");
+  const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -935,6 +939,37 @@ export default function HomePage() {
     }
   }
 
+  async function handleReport(reason: ReportReason, details?: string) {
+    try {
+      const endpoint = reportModalType === "post" 
+        ? "/api/reports/post"
+        : reportModalType === "comment"
+        ? "/api/reports/comment"
+        : "/api/reports/account";
+
+      const body = reportModalType === "post"
+        ? { postId: reportModalTargetId, reason, details }
+        : reportModalType === "comment"
+        ? { commentId: reportModalTargetId, reason, details }
+        : { accountUserId: reportModalTargetId, reason, details };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit report");
+      }
+
+      alert("Report submitted. Thank you for helping keep our community safe.");
+      setReportModalOpen(false);
+    } catch (error: any) {
+      throw error;
+    }
+  }
 
   async function handleCreatePost(e: React.FormEvent) {
       // Log session before RPC for debugging
@@ -1630,6 +1665,34 @@ export default function HomePage() {
                         )}
                       </div>
                     )}
+                    {user?.id !== post.author_user_id && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="Post actions"
+                          onClick={() => setOpenPostMenuId((prev) => (prev === post.id ? null : post.id))}
+                          className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+                        >
+                          ⋯
+                        </button>
+                        {openPostMenuId === post.id && (
+                          <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReportModalType("post");
+                                setReportModalTargetId(post.id);
+                                setReportModalOpen(true);
+                                setOpenPostMenuId(null);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                            >
+                              Report post
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {post.photo_url && (
                     <img
@@ -1752,6 +1815,20 @@ export default function HomePage() {
                                                   Delete
                                                 </button>
                                               )}
+                                              {comment.author_user_id !== user?.id && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setReportModalType("comment");
+                                                    setReportModalTargetId(comment.id);
+                                                    setReportModalOpen(true);
+                                                    setOpenCommentMenuId(null);
+                                                  }}
+                                                  className="w-full text-left px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                                >
+                                                  Report
+                                                </button>
+                                              )}
                                             </div>
                                           )}
                                         </div>
@@ -1845,6 +1922,13 @@ export default function HomePage() {
             </>
           )}
         </main>
+        <ReportModal
+          isOpen={reportModalOpen}
+          reportType={reportModalType}
+          targetId={reportModalTargetId}
+          onClose={() => setReportModalOpen(false)}
+          onSubmit={handleReport}
+        />
       </div>
     </div>
   );

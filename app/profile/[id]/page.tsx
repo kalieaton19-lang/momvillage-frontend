@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { fetchPosts, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../../lib/posts";
 import PostContentWithPreview from "../../components/PostContentWithPreview";
+import ReportModal, { ReportType, ReportReason } from "../../components/ReportModal";
 import type { Post } from "../../../types/post";
 
 export default function ProfilePage() {
@@ -40,6 +41,9 @@ export default function ProfilePage() {
   const [showVillageModal, setShowVillageModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportModalType, setReportModalType] = useState<ReportType>("post");
+  const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
 
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
@@ -341,6 +345,38 @@ export default function ProfilePage() {
       alert(`Share failed${maybeCode}: ${e?.message || "Unknown error"}`);
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
+  async function handleReport(reason: ReportReason, details?: string) {
+    try {
+      const endpoint = reportModalType === "post" 
+        ? "/api/reports/post"
+        : reportModalType === "comment"
+        ? "/api/reports/comment"
+        : "/api/reports/account";
+
+      const body = reportModalType === "post"
+        ? { postId: reportModalTargetId, reason, details }
+        : reportModalType === "comment"
+        ? { commentId: reportModalTargetId, reason, details }
+        : { accountUserId: reportModalTargetId, reason, details };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit report");
+      }
+
+      alert("Report submitted. Thank you for helping keep our community safe.");
+      setReportModalOpen(false);
+    } catch (error: any) {
+      throw error;
     }
   }
 
@@ -744,6 +780,34 @@ export default function ProfilePage() {
                         )}
                       </div>
                     )}
+                    {currentUser?.id !== post.author_user_id && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="Post actions"
+                          onClick={() => setOpenPostMenuId((prev) => (prev === post.id ? null : post.id))}
+                          className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
+                        >
+                          ⋯
+                        </button>
+                        {openPostMenuId === post.id && (
+                          <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReportModalType("post");
+                                setReportModalTargetId(post.id);
+                                setReportModalOpen(true);
+                                setOpenPostMenuId(null);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                            >
+                              Report post
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {post.photo_url && (
@@ -866,6 +930,20 @@ export default function ProfilePage() {
                                                   className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 >
                                                   Delete
+                                                </button>
+                                              )}
+                                              {comment.author_user_id !== currentUser?.id && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setReportModalType("comment");
+                                                    setReportModalTargetId(comment.id);
+                                                    setReportModalOpen(true);
+                                                    setOpenCommentMenuId(null);
+                                                  }}
+                                                  className="w-full text-left px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                                >
+                                                  Report
                                                 </button>
                                               )}
                                             </div>
@@ -1007,6 +1085,13 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      <ReportModal
+        isOpen={reportModalOpen}
+        reportType={reportModalType}
+        targetId={reportModalTargetId}
+        onClose={() => setReportModalOpen(false)}
+        onSubmit={handleReport}
+      />
     </div>
   );
 }
