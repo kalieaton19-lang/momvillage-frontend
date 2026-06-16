@@ -29,7 +29,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#efefef] flex items-start justify-center overflow-hidden p-4 pt-[6vh]">
       <div className="w-full max-w-[900px] flex flex-col items-center">
         <div className="w-full aspect-square relative overflow-hidden">
-        <svg viewBox="0 0 900 900" className="w-full h-full scale-[2.4] sm:scale-100 origin-center">
+        <svg viewBox="0 0 900 900" className="w-full h-full scale-[1.85] sm:scale-[1.45] md:scale-[1.2] lg:scale-100 origin-center">
           <g
             style={{
               opacity: phase >= 1 ? 1 : 0,
@@ -81,10 +81,10 @@ export default function Home() {
             }}
           >
             <path
-              d="M304 520 L354 655 L404 520"
+              d="M304 502 L354 637 L404 502"
               fill="none"
               stroke="black"
-              strokeWidth="16"
+              strokeWidth="12"
             />
           </g>
 
