@@ -269,7 +269,27 @@ export default function HomePage() {
       setUser(session.user);
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser?.user_metadata) {
-        setProfile(currentUser.user_metadata);
+        const { data: publicProfile } = await supabase
+          .from("user_public_profiles")
+          .select("id, full_name, name, city, state, profile_photo_url")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        setProfile({
+          ...currentUser.user_metadata,
+          full_name:
+            publicProfile?.full_name ||
+            publicProfile?.name ||
+            currentUser.user_metadata?.full_name ||
+            currentUser.user_metadata?.name ||
+            "",
+          city: publicProfile?.city || currentUser.user_metadata?.city || "",
+          state: publicProfile?.state || currentUser.user_metadata?.state || "",
+          profile_photo_url:
+            publicProfile?.profile_photo_url ||
+            currentUser.user_metadata?.profile_photo_url ||
+            "",
+        });
       }
     } catch (error) {
       console.error('Error checking user:', error);
@@ -399,7 +419,7 @@ export default function HomePage() {
         } else {
           const { data: authorProfiles } = await supabase
             .from('user_public_profiles')
-            .select('id, profile_photo_url, full_name')
+            .select('id, profile_photo_url, full_name, name')
             .in('id', authorIds);
 
           const authorPhotoMap: Record<string, string> = {};
@@ -408,8 +428,9 @@ export default function HomePage() {
             if (profile?.id && profile?.profile_photo_url) {
               authorPhotoMap[profile.id] = profile.profile_photo_url;
             }
-            if (profile?.id && profile?.full_name) {
-              authorNameMap[profile.id] = getSafeDisplayName(profile.full_name);
+            const canonicalName = profile?.full_name || profile?.name;
+            if (profile?.id && canonicalName) {
+              authorNameMap[profile.id] = getSafeDisplayName(canonicalName);
             }
           });
           setAuthorPhotoById(authorPhotoMap);
@@ -434,13 +455,14 @@ export default function HomePage() {
         if (unknownCommentAuthorIds.length > 0) {
           const { data: commentAuthorProfiles } = await supabase
             .from('user_public_profiles')
-            .select('id, full_name, profile_photo_url')
+            .select('id, full_name, name, profile_photo_url')
             .in('id', unknownCommentAuthorIds);
           if (commentAuthorProfiles) {
             setAuthorNameById((prev) => {
               const updated = { ...prev };
               commentAuthorProfiles.forEach((p: any) => {
-                if (p?.id && p?.full_name) updated[p.id] = getSafeDisplayName(p.full_name);
+                const canonicalName = p?.full_name || p?.name;
+                if (p?.id && canonicalName) updated[p.id] = getSafeDisplayName(canonicalName);
               });
               return updated;
             });
@@ -741,7 +763,7 @@ export default function HomePage() {
       if (authorIds.length > 0) {
         const { data: authorProfiles } = await supabase
           .from("user_public_profiles")
-          .select("id, profile_photo_url, full_name")
+          .select("id, profile_photo_url, full_name, name")
           .in("id", authorIds);
 
         if (authorProfiles) {
@@ -758,8 +780,9 @@ export default function HomePage() {
           setAuthorNameById((prev) => {
             const updated = { ...prev };
             authorProfiles.forEach((profile: any) => {
-              if (profile?.id && profile?.full_name) {
-                updated[profile.id] = getSafeDisplayName(profile.full_name);
+              const canonicalName = profile?.full_name || profile?.name;
+              if (profile?.id && canonicalName) {
+                updated[profile.id] = getSafeDisplayName(canonicalName);
               }
             });
             return updated;

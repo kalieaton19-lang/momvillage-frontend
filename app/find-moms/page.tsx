@@ -75,7 +75,7 @@ export default function FindMomsPage() {
         try {
           res = await supabase
             .from('user_public_profiles')
-            .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
+            .select('id,full_name,name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
           json = { users: res.data };
         } catch (fetchErr) {
           if (typeof window !== 'undefined') {
@@ -99,7 +99,7 @@ export default function FindMomsPage() {
           .map((u: any) => ({
             id: u.id,
             user_metadata: {
-              full_name: getSafeDisplayName(u.full_name),
+              full_name: getSafeDisplayName(u.full_name || u.name),
               city: u.city,
               state: u.state,
               zip_code: u.zip_code,

@@ -69,13 +69,14 @@ async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {
 
   const { data: profiles } = await supabase
     .from("user_public_profiles")
-    .select("id,full_name")
+    .select("id,full_name,name")
     .in("id", authorIds);
 
   const fullNameById: Record<string, string> = {};
   (profiles || []).forEach((profile: any) => {
-    if (profile?.id && profile?.full_name) {
-      fullNameById[profile.id] = profile.full_name;
+    const canonicalName = profile?.full_name || profile?.name;
+    if (profile?.id && canonicalName) {
+      fullNameById[profile.id] = canonicalName;
     }
   });
 

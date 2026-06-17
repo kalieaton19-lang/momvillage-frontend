@@ -87,14 +87,17 @@ export default function ProfilePage() {
       setError("");
       const { data, error } = await supabase
         .from("user_public_profiles")
-        .select("id, full_name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio")
+        .select("id, full_name, name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio")
         .eq("id", profileUserId)
         .single();
       if (error) {
         setError("Profile not found.");
         setProfile(null);
       } else {
-        setProfile(data);
+        setProfile({
+          ...data,
+          full_name: data?.full_name || data?.name || "",
+        });
         const nextPosts = await fetchPosts({ author_user_id: data.id });
 
         const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((entry): entry is string => !!entry))];
@@ -147,14 +150,15 @@ export default function ProfilePage() {
         if (authorIds.length > 0) {
           const { data: profiles } = await supabase
             .from("user_public_profiles")
-            .select("id, full_name, profile_photo_url")
+            .select("id, full_name, name, profile_photo_url")
             .in("id", authorIds);
 
           const photoMap: Record<string, string> = {};
           const nameMap: Record<string, string> = {};
           (profiles || []).forEach((entry: any) => {
             if (entry?.id && entry?.profile_photo_url) photoMap[entry.id] = entry.profile_photo_url;
-            if (entry?.id && entry?.full_name) nameMap[entry.id] = getSafeDisplayName(entry.full_name);
+            const canonicalName = entry?.full_name || entry?.name;
+            if (entry?.id && canonicalName) nameMap[entry.id] = getSafeDisplayName(canonicalName);
           });
           setAuthorPhotoById(photoMap);
           setAuthorNameById(nameMap);
@@ -181,7 +185,7 @@ export default function ProfilePage() {
           if (unknownCommenterIds.length > 0) {
             const { data: commentProfiles } = await supabase
               .from("user_public_profiles")
-              .select("id, full_name, profile_photo_url")
+              .select("id, full_name, name, profile_photo_url")
               .in("id", unknownCommenterIds);
             if (commentProfiles) {
               setAuthorPhotoById((prev) => {
@@ -194,7 +198,8 @@ export default function ProfilePage() {
               setAuthorNameById((prev) => {
                 const updated = { ...prev };
                 commentProfiles.forEach((entry: any) => {
-                  if (entry?.id && entry?.full_name) updated[entry.id] = getSafeDisplayName(entry.full_name);
+                  const canonicalName = entry?.full_name || entry?.name;
+                  if (entry?.id && canonicalName) updated[entry.id] = getSafeDisplayName(canonicalName);
                 });
                 return updated;
               });

@@ -91,7 +91,26 @@ export default function GroupDetailPage() {
       setUser(session.user);
 
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      setProfile(authUser?.user_metadata || null);
+      const { data: publicProfile } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, name, city, state, profile_photo_url")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      setProfile({
+        ...(authUser?.user_metadata || {}),
+        full_name:
+          publicProfile?.full_name ||
+          publicProfile?.name ||
+          authUser?.user_metadata?.full_name ||
+          authUser?.user_metadata?.name ||
+          "",
+        city: publicProfile?.city || authUser?.user_metadata?.city || "",
+        state: publicProfile?.state || authUser?.user_metadata?.state || "",
+        profile_photo_url:
+          publicProfile?.profile_photo_url ||
+          authUser?.user_metadata?.profile_photo_url ||
+          "",
+      });
 
       const loadedGroup = await loadGroup(groupId);
       const loadedMembership = await loadMembership(groupId, session.user.id);
@@ -179,7 +198,7 @@ export default function GroupDetailPage() {
         } else {
           const { data: authorProfiles } = await supabase
             .from("user_public_profiles")
-            .select("id, profile_photo_url, full_name")
+            .select("id, profile_photo_url, full_name, name")
             .in("id", authorIds);
 
           const authorPhotoMap: Record<string, string> = {};
@@ -188,8 +207,9 @@ export default function GroupDetailPage() {
             if (entry?.id && entry?.profile_photo_url) {
               authorPhotoMap[entry.id] = entry.profile_photo_url;
             }
-            if (entry?.id && entry?.full_name) {
-              authorNameMap[entry.id] = entry.full_name;
+            const canonicalName = entry?.full_name || entry?.name;
+            if (entry?.id && canonicalName) {
+              authorNameMap[entry.id] = canonicalName;
             }
           });
           setAuthorPhotoById(authorPhotoMap);
@@ -214,13 +234,14 @@ export default function GroupDetailPage() {
         if (unknownCommentAuthorIds.length > 0) {
           const { data: commentAuthorProfiles } = await supabase
             .from("user_public_profiles")
-            .select("id, full_name, profile_photo_url")
+            .select("id, full_name, name, profile_photo_url")
             .in("id", unknownCommentAuthorIds);
           if (commentAuthorProfiles) {
             setAuthorNameById((prev) => {
               const updated = { ...prev };
               commentAuthorProfiles.forEach((entry: any) => {
-                if (entry?.id && entry?.full_name) updated[entry.id] = entry.full_name;
+                const canonicalName = entry?.full_name || entry?.name;
+                if (entry?.id && canonicalName) updated[entry.id] = canonicalName;
               });
               return updated;
             });
