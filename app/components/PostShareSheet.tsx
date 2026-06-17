@@ -39,17 +39,34 @@ export default function PostShareSheet({
     null
   );
   const [hasTrackedShare, setHasTrackedShare] = useState(false);
+  const [villagerSearch, setVillagerSearch] = useState("");
+  const [selectedVillagerId, setSelectedVillagerId] = useState<string | null>(null);
 
   const shareUrl = useMemo(() => {
     if (!post || typeof window === "undefined") return "";
     return `${window.location.origin}/home?post=${encodeURIComponent(post.id)}`;
   }, [post]);
 
+  const filteredVillagers = useMemo(() => {
+    const query = villagerSearch.trim().toLowerCase();
+    if (!query) return villagers;
+    return villagers.filter((villager) =>
+      (villager.full_name || "Mom").toLowerCase().includes(query)
+    );
+  }, [villagers, villagerSearch]);
+
+  const selectedVillager = useMemo(
+    () => villagers.find((villager) => villager.id === selectedVillagerId) || null,
+    [villagers, selectedVillagerId]
+  );
+
   useEffect(() => {
     if (!isOpen) {
       setHasTrackedShare(false);
       setSendingToVillagerId(null);
       setLoadingVillagers(false);
+      setVillagerSearch("");
+      setSelectedVillagerId(null);
       return;
     }
     if (!currentUser?.id) return;
@@ -137,6 +154,20 @@ export default function PostShareSheet({
     }
   }
 
+  async function handleOtherShare() {
+    if (!post || !shareUrl) return;
+    await trackShareIfNeeded();
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      await (navigator as any).share({
+        title: post.title,
+        text: post.content,
+        url: shareUrl,
+      });
+      return;
+    }
+    await handleCopyLink();
+  }
+
   async function ensureConversation(villager: Villager) {
     if (!currentUser?.id) throw new Error("You must be signed in.");
 
@@ -200,69 +231,73 @@ export default function PostShareSheet({
     }
   }
 
+  async function handleSendToSelectedVillager() {
+    if (!selectedVillager) return;
+    await handleShareToVillager(selectedVillager);
+  }
+
   if (!isOpen || !post) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/45 p-3 sm:p-4">
       <div className="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Share Post</div>
-          <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 truncate">{post.title}</div>
+        <div className="relative px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-4 top-4 text-pink-600 hover:text-pink-700 dark:text-pink-300 dark:hover:text-pink-200 text-2xl font-bold"
+            aria-label="Close share popup"
+          >
+            ×
+          </button>
+          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50 pr-8">Share Post</div>
+          <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 truncate pr-8">{post.title}</div>
         </div>
 
         <div className="p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => void handleTextMessage()}
-              className="rounded-xl border border-pink-300 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:bg-pink-900/20 dark:border-pink-700 dark:text-pink-200 px-3 py-3 text-sm font-semibold"
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.8}
+              stroke="currentColor"
+              className="w-4 h-4 text-zinc-500"
             >
-              Text Message
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleCopyLink()}
-              className="rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-3 py-3 text-sm font-semibold"
-            >
-              Copy Link
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await trackShareIfNeeded();
-                if (shareUrl && typeof navigator !== "undefined" && (navigator as any).share) {
-                  await (navigator as any).share({
-                    title: post.title,
-                    text: post.content,
-                    url: shareUrl,
-                  });
-                } else {
-                  await handleCopyLink();
-                }
-              }}
-              className="rounded-xl border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-200 px-3 py-3 text-sm font-semibold"
-            >
-              Share Sheet
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m21 21-4.35-4.35m0 0A7.5 7.5 0 1 0 6.3 6.3a7.5 7.5 0 0 0 10.6 10.6Z"
+              />
+            </svg>
+            <input
+              value={villagerSearch}
+              onChange={(event) => setVillagerSearch(event.target.value)}
+              placeholder="Search villagers"
+              className="w-full bg-transparent outline-none text-sm text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
+            />
           </div>
 
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-700">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             <div className="px-3 py-2 text-xs uppercase tracking-wide font-semibold text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
-              Share to another villager
+              Recommended Villagers
             </div>
             <div className="max-h-56 overflow-y-auto">
               {loadingVillagers ? (
                 <div className="px-3 py-3 text-sm text-zinc-500">Loading villagers...</div>
-              ) : villagers.length === 0 ? (
+              ) : filteredVillagers.length === 0 ? (
                 <div className="px-3 py-3 text-sm text-zinc-500">No village members available yet.</div>
               ) : (
-                villagers.map((villager) => (
+                filteredVillagers.map((villager) => (
                   <button
                     key={villager.id}
                     type="button"
-                    onClick={() => void handleShareToVillager(villager)}
-                    disabled={sendingToVillagerId === villager.id}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
+                    onClick={() => setSelectedVillagerId(villager.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-left border-b border-zinc-100 dark:border-zinc-800 last:border-b-0 transition ${
+                      selectedVillagerId === villager.id
+                        ? "bg-pink-50 dark:bg-pink-900/20 ring-2 ring-pink-400 ring-inset"
+                        : "hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                    }`}
                   >
                     {villager.profile_photo_url ? (
                       <img
@@ -280,24 +315,66 @@ export default function PostShareSheet({
                         {villager.full_name || "Mom"}
                       </div>
                     </div>
-                    <div className="text-xs text-pink-600 dark:text-pink-300 font-semibold">
-                      {sendingToVillagerId === villager.id ? "Sending..." : "Send"}
-                    </div>
+                    {selectedVillagerId === villager.id && (
+                      <div className="text-xs text-pink-600 dark:text-pink-300 font-semibold">
+                        Selected
+                      </div>
+                    )}
                   </button>
                 ))
               )}
             </div>
           </div>
+
+          {selectedVillager && (
+            <button
+              type="button"
+              onClick={() => void handleSendToSelectedVillager()}
+              disabled={sendingToVillagerId === selectedVillager.id}
+              className="w-full rounded-xl border border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45 px-4 py-3 text-sm font-bold disabled:opacity-60"
+            >
+              {sendingToVillagerId === selectedVillager.id
+                ? "Sending..."
+                : `Send to ${selectedVillager.full_name || "Villager"}`}
+            </button>
+          )}
         </div>
 
-        <div className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm font-semibold"
-          >
-            Close
-          </button>
+        <div className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => void handleTextMessage()}
+              className="flex flex-col items-center gap-1 rounded-xl border border-pink-300 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:bg-pink-900/20 dark:border-pink-700 dark:text-pink-200 px-2 py-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75h6.75m-6.75 3h4.5M3.75 19.5h16.5a.75.75 0 0 0 .75-.75V5.25a.75.75 0 0 0-.75-.75H3.75a.75.75 0 0 0-.75.75v13.5a.75.75 0 0 0 .75.75Z" />
+              </svg>
+              <span className="text-xs font-semibold">Text</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleCopyLink()}
+              className="flex flex-col items-center gap-1 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-2 py-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757a4.5 4.5 0 0 1-6.364 0m1.757-9.878-1.757 1.757a4.5 4.5 0 0 0 0 6.364m-1.06-1.06a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757a4.5 4.5 0 0 1 6.364 0" />
+              </svg>
+              <span className="text-xs font-semibold">Copy Link</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleOtherShare()}
+              className="flex flex-col items-center gap-1 rounded-xl border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-200 px-2 py-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a3.75 3.75 0 0 0 0 5.303l3.974 3.973a3.75 3.75 0 0 0 5.303 0l3.974-3.973a3.75 3.75 0 0 0 0-5.303l-3.974-3.973a3.75 3.75 0 0 0-5.303 0l-.75.75a.75.75 0 0 1-1.06 0l-.75-.75a3.75 3.75 0 1 0-5.303 5.303l3.974 3.973" />
+              </svg>
+              <span className="text-xs font-semibold">Other</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
