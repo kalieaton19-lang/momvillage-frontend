@@ -24,6 +24,8 @@ interface MomProfile {
   };
 }
 
+type MomRelationshipStatus = "none" | "invited" | "in_village";
+
 export default function FindMomsPage() {
   const router = useRouter();
   const [moms, setMoms] = useState<MomProfile[]>([]);
@@ -33,6 +35,8 @@ export default function FindMomsPage() {
   const [searchMode, setSearchMode] = useState<"name" | "messages">("name");
   const [searchQuery, setSearchQuery] = useState("");
   const [messagedUserIds, setMessagedUserIds] = useState<Set<string>>(new Set());
+  const [relationshipStatusByMomId, setRelationshipStatusByMomId] = useState<Record<string, MomRelationshipStatus>>({});
+  const [statusLoadingByMomId, setStatusLoadingByMomId] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     async function fetchMoms() {
@@ -129,6 +133,108 @@ export default function FindMomsPage() {
     loadMessagedUsers();
   }, [user?.id]);
 
+  useEffect(() => {
+    async function loadRelationshipStatuses() {
+      if (!user?.id || moms.length === 0) {
+        setRelationshipStatusByMomId({});
+        return;
+      }
+
+      const momIdSet = new Set(moms.map((mom) => mom.id));
+      const defaultStatuses: Record<string, MomRelationshipStatus> = {};
+      moms.forEach((mom) => {
+        defaultStatuses[mom.id] = "none";
+      });
+
+      const { data, error } = await supabase
+        .from("village_invitations")
+        .select("from_user_id,to_user_id,status")
+        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`);
+
+      if (error) {
+        setRelationshipStatusByMomId(defaultStatuses);
+        return;
+      }
+
+      (data || []).forEach((invite: any) => {
+        const otherUserId = invite.from_user_id === user.id ? invite.to_user_id : invite.from_user_id;
+        if (!otherUserId || !momIdSet.has(otherUserId)) return;
+
+        if (invite.status === "accepted") {
+          defaultStatuses[otherUserId] = "in_village";
+          return;
+        }
+
+        if (
+          invite.status === "pending" &&
+          invite.from_user_id === user.id &&
+          defaultStatuses[otherUserId] !== "in_village"
+        ) {
+          defaultStatuses[otherUserId] = "invited";
+        }
+      });
+
+      setRelationshipStatusByMomId(defaultStatuses);
+    }
+
+    void loadRelationshipStatuses();
+  }, [user?.id, moms]);
+
+  async function handleInviteToVillage(momId: string) {
+    if (!user?.id) {
+      return { ok: false, message: "Please sign in to invite moms." };
+    }
+
+    setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: true }));
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .insert({ from_user_id: user.id, to_user_id: momId, status: "pending" });
+
+      if (error) throw error;
+
+      setRelationshipStatusByMomId((prev) => ({ ...prev, [momId]: "invited" }));
+      return { ok: true, message: "Invitation sent!" };
+    } catch (error) {
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to send invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
+    }
+  }
+
+  async function handleUninvite(momId: string) {
+    if (!user?.id) {
+      return { ok: false, message: "Please sign in to manage invitations." };
+    }
+
+    setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: true }));
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .delete()
+        .eq("from_user_id", user.id)
+        .eq("to_user_id", momId)
+        .eq("status", "pending");
+
+      if (error) throw error;
+
+      setRelationshipStatusByMomId((prev) => ({ ...prev, [momId]: "none" }));
+      return { ok: true, message: "Invitation removed." };
+    } catch (error) {
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to remove invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
+    }
+  }
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   const nameSuggestions =
@@ -224,7 +330,10 @@ export default function FindMomsPage() {
                     <NameSuggestionRow
                       key={mom.id}
                       mom={mom}
-                      currentUserId={user?.id}
+                      relationshipStatus={relationshipStatusByMomId[mom.id] || "none"}
+                      statusLoading={!!statusLoadingByMomId[mom.id]}
+                      onInvite={handleInviteToVillage}
+                      onUninvite={handleUninvite}
                     />
                   ))}
                 </div>
@@ -242,7 +351,14 @@ export default function FindMomsPage() {
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
               {messagesVisibleMoms.map((mom) => (
-                <MomCard key={mom.id} mom={mom} currentUserId={user?.id} />
+                <MomCard
+                  key={mom.id}
+                  mom={mom}
+                  relationshipStatus={relationshipStatusByMomId[mom.id] || "none"}
+                  statusLoading={!!statusLoadingByMomId[mom.id]}
+                  onInvite={handleInviteToVillage}
+                  onUninvite={handleUninvite}
+                />
               ))}
             </div>
           )}
@@ -254,41 +370,38 @@ export default function FindMomsPage() {
 
 interface MomCardProps {
   mom: MomProfile;
-  currentUserId?: string;
+  relationshipStatus: MomRelationshipStatus;
+  statusLoading: boolean;
+  onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
 }
 
 interface NameSuggestionRowProps {
   mom: MomProfile;
-  currentUserId?: string;
+  relationshipStatus: MomRelationshipStatus;
+  statusLoading: boolean;
+  onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
 }
 
-function NameSuggestionRow({ mom, currentUserId }: NameSuggestionRowProps) {
+function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite }: NameSuggestionRowProps) {
   const { showNotification, NotificationComponent } = useNotification();
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [invited, setInvited] = useState(false);
 
-  async function handleInviteToVillage() {
-    if (!currentUserId) {
-      showNotification("Please sign in to invite moms.");
+  async function handleInviteClick() {
+    const result = await onInvite(mom.id);
+    showNotification(result.message);
+  }
+
+  async function handleInvitedClick() {
+    const shouldUninvite = window.confirm(
+      `Uninvite ${mom.user_metadata?.full_name || "this mom"}?`
+    );
+    if (!shouldUninvite) {
       return;
     }
-    setInviteLoading(true);
-    try {
-      const { error } = await supabase
-        .from("village_invitations")
-        .insert({ from_user_id: currentUserId, to_user_id: mom.id, status: "pending" });
-      if (error) throw error;
-      setInvited(true);
-      showNotification("Invitation sent!");
-    } catch (error) {
-      const errMsg =
-        error && typeof error === "object" && "message" in error
-          ? (error as Error).message
-          : "Failed to send invitation.";
-      showNotification(errMsg);
-    } finally {
-      setInviteLoading(false);
-    }
+
+    const result = await onUninvite(mom.id);
+    showNotification(result.message);
   }
 
   return (
@@ -317,11 +430,29 @@ function NameSuggestionRow({ mom, currentUserId }: NameSuggestionRowProps) {
         </div>
       </div>
       <button
-        onClick={handleInviteToVillage}
-        disabled={inviteLoading || invited}
-        className={`shrink-0 px-3 py-1.5 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full text-xs font-semibold transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45 ${inviteLoading || invited ? "opacity-50 cursor-not-allowed" : ""}`}
+        onClick={
+          relationshipStatus === "invited"
+            ? () => void handleInvitedClick()
+            : () => void handleInviteClick()
+        }
+        disabled={statusLoading || relationshipStatus === "in_village"}
+        className={`shrink-0 px-3 py-1.5 border rounded-full text-xs font-semibold transition-colors ${
+          relationshipStatus === "in_village"
+            ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
+            : relationshipStatus === "invited"
+            ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
+            : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+        } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
       >
-        {invited ? "Invited" : inviteLoading ? "Sending..." : "Invite"}
+        {relationshipStatus === "in_village"
+          ? "In Your Village"
+          : relationshipStatus === "invited"
+          ? statusLoading
+            ? "Updating..."
+            : "Invited"
+          : statusLoading
+          ? "Sending..."
+          : "Invite"}
       </button>
       {NotificationComponent}
     </div>
@@ -330,36 +461,26 @@ function NameSuggestionRow({ mom, currentUserId }: NameSuggestionRowProps) {
 
 
 
-function MomCard({ mom, currentUserId }: MomCardProps) {
+function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
   const { showNotification, NotificationComponent } = useNotification();
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [invited, setInvited] = useState(false);
 
-  async function handleInviteToVillage() {
-    if (!currentUserId) {
-      showNotification("Please sign in to invite moms.");
+  async function handleInviteClick() {
+    const result = await onInvite(mom.id);
+    showNotification(result.message);
+  }
+
+  async function handleInvitedClick() {
+    const shouldUninvite = window.confirm(
+      `Uninvite ${metadata?.full_name || "this mom"}?`
+    );
+    if (!shouldUninvite) {
       return;
     }
-    setInviteLoading(true);
-    try {
-      const { error } = await supabase
-        .from("village_invitations")
-        .insert({ from_user_id: currentUserId, to_user_id: mom.id, status: "pending" });
-      if (error) throw error;
-      setInvited(true);
-      showNotification("Invitation sent!");
-    } catch (error) {
-      const errMsg =
-        error && typeof error === "object" && "message" in error
-          ? (error as Error).message
-          : "Failed to send invitation.";
-      showNotification(errMsg);
-      console.error("Error inviting:", error);
-    } finally {
-      setInviteLoading(false);
-    }
+
+    const result = await onUninvite(mom.id);
+    showNotification(result.message);
   }
 
   return (
@@ -402,11 +523,29 @@ function MomCard({ mom, currentUserId }: MomCardProps) {
           </div>
           <div className="mt-4 flex gap-2">
             <button
-              onClick={handleInviteToVillage}
-              disabled={inviteLoading || invited}
-              className={`flex-1 px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full text-sm font-medium transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45 ${inviteLoading || invited ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={
+                relationshipStatus === "invited"
+                  ? () => void handleInvitedClick()
+                  : () => void handleInviteClick()
+              }
+              disabled={statusLoading || relationshipStatus === "in_village"}
+              className={`flex-1 px-4 py-2 border rounded-full text-sm font-medium transition-colors ${
+                relationshipStatus === "in_village"
+                  ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
+                  : relationshipStatus === "invited"
+                  ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
+                  : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+              } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
             >
-              {invited ? "Invitation Sent" : inviteLoading ? "Sending..." : "Invite to Village"}
+              {relationshipStatus === "in_village"
+                ? "In Your Village"
+                : relationshipStatus === "invited"
+                ? statusLoading
+                  ? "Updating..."
+                  : "Invited"
+                : statusLoading
+                ? "Sending..."
+                : "Invite to Village"}
             </button>
             <button
               onClick={() => router.push(`/messages`)}
