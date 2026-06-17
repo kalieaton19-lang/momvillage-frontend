@@ -4,9 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import PostContentWithPreview from "../components/PostContentWithPreview";
+import PostShareSheet from "../components/PostShareSheet";
 import ReportModal, { ReportType, ReportReason } from "../components/ReportModal";
 import { supabase } from "../../lib/supabase";
-import { fetchPosts, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
+import { fetchPosts, fetchPostById, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
 import type { JSX } from "react";
 
@@ -125,6 +126,9 @@ export default function HomePage() {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportModalType, setReportModalType] = useState<ReportType>("post");
   const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
+  const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
+  const [sharedPostId, setSharedPostId] = useState<string | null>(null);
+  const [didFocusSharedPost, setDidFocusSharedPost] = useState(false);
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -143,8 +147,73 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const queryPostId = new URLSearchParams(window.location.search).get("post");
+    const hashPostId = window.location.hash.startsWith("#post-")
+      ? window.location.hash.replace("#post-", "")
+      : null;
+    const targetPostId = (queryPostId || hashPostId || "").trim();
+    if (targetPostId) {
+      setSharedPostId(targetPostId);
+      setDidFocusSharedPost(false);
+    }
+  }, []);
+
+  useEffect(() => {
     if (user) loadPosts();
-  }, [user, feedType]);
+  }, [user, feedType, sharedPostId]);
+
+  useEffect(() => {
+    if (!user?.id || !sharedPostId) return;
+    if (posts.some((post) => post.id === sharedPostId)) return;
+    const targetPostId = sharedPostId;
+
+    let cancelled = false;
+    async function ensureSharedPostInFeed() {
+      const sharedPost = await fetchPostById(targetPostId);
+      if (!sharedPost || cancelled) return;
+      if (sharedPost.visibility !== "public") return;
+      setPosts((prev) =>
+        prev.some((post) => post.id === sharedPost.id)
+          ? prev
+          : [sharedPost, ...prev]
+      );
+    }
+
+    void ensureSharedPostInFeed();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, sharedPostId, posts]);
+
+  useEffect(() => {
+    if (!sharedPostId || didFocusSharedPost) return;
+    const target = document.getElementById(`post-${sharedPostId}`);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.add("ring-2", "ring-pink-400", "ring-offset-2");
+    setDidFocusSharedPost(true);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("post") === sharedPostId) {
+        params.delete("post");
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}#post-${sharedPostId}`;
+        window.history.replaceState({}, "", nextUrl);
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      target.classList.remove("ring-2", "ring-pink-400", "ring-offset-2");
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      target.classList.remove("ring-2", "ring-pink-400", "ring-offset-2");
+    };
+  }, [sharedPostId, didFocusSharedPost, posts]);
 
   useEffect(() => {
     if (!user || feedType !== "groups" || groupMode !== "search") return;
@@ -914,18 +983,19 @@ export default function HomePage() {
       alert("Only public posts can be shared.");
       return;
     }
+    setShareSheetPost(post);
+  }
+
+  async function handleTrackShare(post: Post) {
+    if (!user?.id) return;
+    if (post.visibility !== "public") {
+      alert("Only public posts can be shared.");
+      return;
+    }
     setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
       await sharePost(post.id, user.id);
       setSharesCountByPost((prev) => ({ ...prev, [post.id]: (prev[post.id] || 0) + 1 }));
-
-      const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/home#post-${post.id}` : "";
-      if (typeof navigator !== "undefined" && (navigator as any).share && shareUrl) {
-        await (navigator as any).share({ title: post.title, text: post.content, url: shareUrl });
-      } else if (shareUrl && typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("Post link copied to clipboard.");
-      }
     } catch (e: any) {
       const maybeCode = e?.code ? ` (${e.code})` : "";
       const maybeDetails = e?.details ? `\n${e.details}` : "";
@@ -1928,6 +1998,13 @@ export default function HomePage() {
           targetId={reportModalTargetId}
           onClose={() => setReportModalOpen(false)}
           onSubmit={handleReport}
+        />
+        <PostShareSheet
+          isOpen={!!shareSheetPost}
+          post={shareSheetPost}
+          currentUser={user ? { id: user.id, user_metadata: user.user_metadata } : null}
+          onClose={() => setShareSheetPost(null)}
+          onShareTracked={handleTrackShare}
         />
       </div>
     </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PostContentWithPreview from "../../components/PostContentWithPreview";
+import PostShareSheet from "../../components/PostShareSheet";
 import { supabase } from "../../../lib/supabase";
 import { addPostComment, fetchPostInteractions, PostCommentRow, sharePost, togglePostLike } from "../../../lib/posts";
 import { Post } from "../../../types/post";
@@ -56,6 +57,7 @@ export default function GroupDetailPage() {
   const [expandedCommentsByPost, setExpandedCommentsByPost] = useState<Record<string, boolean>>({});
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
+  const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
 
   useEffect(() => {
     void initialize();
@@ -384,18 +386,16 @@ export default function GroupDetailPage() {
   async function handleShare(post: Post) {
     if (!user?.id) return;
     if (post.visibility !== "public") return;
+    setShareSheetPost(post);
+  }
+
+  async function handleTrackShare(post: Post) {
+    if (!user?.id) return;
+    if (post.visibility !== "public") return;
     setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
       await sharePost(post.id, user.id);
       setSharesCountByPost((prev) => ({ ...prev, [post.id]: (prev[post.id] || 0) + 1 }));
-
-      const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/home#post-${post.id}` : "";
-      if (typeof navigator !== "undefined" && (navigator as any).share && shareUrl) {
-        await (navigator as any).share({ title: post.title, text: post.content, url: shareUrl });
-      } else if (shareUrl && typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("Post link copied to clipboard.");
-      }
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
@@ -942,6 +942,13 @@ export default function GroupDetailPage() {
           ))
         )}
       </div>
+      <PostShareSheet
+        isOpen={!!shareSheetPost}
+        post={shareSheetPost}
+        currentUser={user ? { id: user.id, user_metadata: user.user_metadata } : null}
+        onClose={() => setShareSheetPost(null)}
+        onShareTracked={handleTrackShare}
+      />
     </div>
   );
 }

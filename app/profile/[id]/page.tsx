@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { fetchPosts, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../../lib/posts";
 import PostContentWithPreview from "../../components/PostContentWithPreview";
+import PostShareSheet from "../../components/PostShareSheet";
 import ReportModal, { ReportType, ReportReason } from "../../components/ReportModal";
 import type { Post } from "../../../types/post";
 
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportModalType, setReportModalType] = useState<ReportType>("post");
   const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
+  const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
 
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
@@ -332,6 +334,15 @@ export default function ProfilePage() {
       alert("Only public posts can be shared.");
       return;
     }
+    setShareSheetPost(post);
+  }
+
+  async function handleTrackShare(post: Post) {
+    if (!currentUser?.id) return;
+    if (post.visibility !== "public") {
+      alert("Only public posts can be shared.");
+      return;
+    }
     setInteractionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
       await sharePost(post.id, currentUser.id);
@@ -339,7 +350,6 @@ export default function ProfilePage() {
         ...prev,
         [post.id]: (prev[post.id] || 0) + 1,
       }));
-      alert("Shared!");
     } catch (e: any) {
       const maybeCode = e?.code ? ` (${e.code})` : "";
       alert(`Share failed${maybeCode}: ${e?.message || "Unknown error"}`);
@@ -1119,6 +1129,13 @@ export default function ProfilePage() {
         targetId={reportModalTargetId}
         onClose={() => setReportModalOpen(false)}
         onSubmit={handleReport}
+      />
+      <PostShareSheet
+        isOpen={!!shareSheetPost}
+        post={shareSheetPost}
+        currentUser={currentUser ? { id: currentUser.id, user_metadata: currentUser.user_metadata } : null}
+        onClose={() => setShareSheetPost(null)}
+        onShareTracked={handleTrackShare}
       />
     </div>
   );
