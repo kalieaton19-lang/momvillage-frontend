@@ -94,9 +94,13 @@ export default function ProfilePage() {
         setError("Profile not found.");
         setProfile(null);
       } else {
+        const metadataName =
+          profileUserId === currentUser?.id
+            ? (currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || "")
+            : "";
         setProfile({
           ...data,
-          full_name: data?.full_name || data?.name || "",
+          full_name: metadataName || data?.full_name || data?.name || "",
         });
         const nextPosts = await fetchPosts({ author_user_id: data.id });
 

@@ -187,10 +187,10 @@ export default function ProfilePage() {
         console.log("Loaded user metadata:", user.user_metadata);
         setProfile({
           full_name:
-            publicProfile?.full_name ||
-            publicProfile?.name ||
             user.user_metadata.full_name ||
             user.user_metadata.name ||
+            publicProfile?.full_name ||
+            publicProfile?.name ||
             "",
           phone: user.user_metadata.phone || "",
           address: user.user_metadata.address || "",

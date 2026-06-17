@@ -99,10 +99,10 @@ export default function GroupDetailPage() {
       setProfile({
         ...(authUser?.user_metadata || {}),
         full_name:
-          publicProfile?.full_name ||
-          publicProfile?.name ||
           authUser?.user_metadata?.full_name ||
           authUser?.user_metadata?.name ||
+          publicProfile?.full_name ||
+          publicProfile?.name ||
           "",
         city: publicProfile?.city || authUser?.user_metadata?.city || "",
         state: publicProfile?.state || authUser?.user_metadata?.state || "",

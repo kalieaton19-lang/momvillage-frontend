@@ -278,10 +278,10 @@ export default function HomePage() {
         setProfile({
           ...currentUser.user_metadata,
           full_name:
-            publicProfile?.full_name ||
-            publicProfile?.name ||
             currentUser.user_metadata?.full_name ||
             currentUser.user_metadata?.name ||
+            publicProfile?.full_name ||
+            publicProfile?.name ||
             "",
           city: publicProfile?.city || currentUser.user_metadata?.city || "",
           state: publicProfile?.state || currentUser.user_metadata?.state || "",
