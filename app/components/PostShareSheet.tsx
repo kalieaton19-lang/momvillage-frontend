@@ -357,9 +357,8 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 14.25 14.25 9.75" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 16.5 6 18a3 3 0 0 0 4.243 4.243l1.5-1.5" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 7.5 18 6a3 3 0 1 1 4.243 4.243l-1.5 1.5" />
+                <ellipse cx="9" cy="12" rx="4.75" ry="3.25" transform="rotate(-28 9 12)" />
+                <ellipse cx="15" cy="12" rx="4.75" ry="3.25" transform="rotate(-28 15 12)" />
               </svg>
               <span className="text-xs font-semibold">Copy Link</span>
             </button>
@@ -370,7 +369,8 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 0 0 0.001M12 12a.75.75 0 1 0 0 0.001M17.25 12a.75.75 0 1 0 0 0.001" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 11.25 19.5 4.5 12.75 19.5l-1.875-6.375L4.5 11.25Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.875 13.125 19.5 4.5" />
               </svg>
               <span className="text-xs font-semibold">Other</span>
             </button>
