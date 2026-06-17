@@ -279,49 +279,47 @@ export default function PostShareSheet({
           </div>
 
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-            <div className="px-3 py-2 text-xs uppercase tracking-wide font-semibold text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
-              Recommended Villagers
-            </div>
             <div className="max-h-56 overflow-y-auto">
               {loadingVillagers ? (
                 <div className="px-3 py-3 text-sm text-zinc-500">Loading villagers...</div>
               ) : filteredVillagers.length === 0 ? (
                 <div className="px-3 py-3 text-sm text-zinc-500">No village members available yet.</div>
               ) : (
-                filteredVillagers.map((villager) => (
-                  <button
-                    key={villager.id}
-                    type="button"
-                    onClick={() => setSelectedVillagerId(villager.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-left border-b border-zinc-100 dark:border-zinc-800 last:border-b-0 transition ${
-                      selectedVillagerId === villager.id
-                        ? "bg-pink-50 dark:bg-pink-900/20 ring-2 ring-pink-400 ring-inset"
-                        : "hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    {villager.profile_photo_url ? (
-                      <img
-                        src={villager.profile_photo_url}
-                        alt={villager.full_name || "Mom"}
-                        className="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                        {(villager.full_name || "M").charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 p-3">
+                  {filteredVillagers.map((villager) => (
+                    <button
+                      key={villager.id}
+                      type="button"
+                      onClick={() => setSelectedVillagerId(villager.id)}
+                      className="flex flex-col items-center gap-1 text-center"
+                    >
+                      {villager.profile_photo_url ? (
+                        <img
+                          src={villager.profile_photo_url}
+                          alt={villager.full_name || "Mom"}
+                          className={`w-14 h-14 rounded-full object-cover border-2 transition ${
+                            selectedVillagerId === villager.id
+                              ? "border-pink-500 ring-2 ring-pink-300"
+                              : "border-zinc-200 dark:border-zinc-700"
+                          }`}
+                        />
+                      ) : (
+                        <div
+                          className={`w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border-2 transition ${
+                            selectedVillagerId === villager.id
+                              ? "border-pink-500 ring-2 ring-pink-300"
+                              : "border-pink-300"
+                          }`}
+                        >
+                          {(villager.full_name || "M").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 leading-tight line-clamp-2 px-1">
                         {villager.full_name || "Mom"}
                       </div>
-                    </div>
-                    {selectedVillagerId === villager.id && (
-                      <div className="text-xs text-pink-600 dark:text-pink-300 font-semibold">
-                        Selected
-                      </div>
-                    )}
-                  </button>
-                ))
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -359,7 +357,7 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757a4.5 4.5 0 0 1-6.364 0m1.757-9.878-1.757 1.757a4.5 4.5 0 0 0 0 6.364m-1.06-1.06a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757a4.5 4.5 0 0 1 6.364 0" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v1.125A2.625 2.625 0 0 1 13.125 21H6.375A2.625 2.625 0 0 1 3.75 18.375V9.75A2.625 2.625 0 0 1 6.375 7.125H7.5m8.25 10.125h1.875A2.625 2.625 0 0 0 20.25 14.625V6.375A2.625 2.625 0 0 0 17.625 3.75H9.375A2.625 2.625 0 0 0 6.75 6.375V8.25" />
               </svg>
               <span className="text-xs font-semibold">Copy Link</span>
             </button>
@@ -370,7 +368,7 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a3.75 3.75 0 0 0 0 5.303l3.974 3.973a3.75 3.75 0 0 0 5.303 0l3.974-3.973a3.75 3.75 0 0 0 0-5.303l-3.974-3.973a3.75 3.75 0 0 0-5.303 0l-.75.75a.75.75 0 0 1-1.06 0l-.75-.75a3.75 3.75 0 1 0-5.303 5.303l3.974 3.973" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 0 0 0.001M12 12a.75.75 0 1 0 0 0.001M17.25 12a.75.75 0 1 0 0 0.001" />
               </svg>
               <span className="text-xs font-semibold">Other</span>
             </button>
