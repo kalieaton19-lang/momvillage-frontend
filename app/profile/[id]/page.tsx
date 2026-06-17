@@ -38,6 +38,15 @@ function getSafeDisplayName(name?: string | null, fallback = "Mom") {
   return pretty || fallback;
 }
 
+function pickCanonicalProfileName(profile: any) {
+  const fullName = (profile?.full_name || "").trim();
+  const name = (profile?.name || "").trim();
+  const fullNameLooksLikeEmail = fullName.includes("@");
+  if (fullName && !fullNameLooksLikeEmail) return fullName;
+  if (name) return name;
+  return fullName;
+}
+
 export default function ProfilePage() {
   const { id } = useParams();
   const router = useRouter();
@@ -100,7 +109,7 @@ export default function ProfilePage() {
             : "";
         setProfile({
           ...data,
-          full_name: metadataName || data?.full_name || data?.name || "",
+          full_name: metadataName || pickCanonicalProfileName(data) || "",
         });
         const nextPosts = await fetchPosts({ author_user_id: data.id });
 
@@ -161,7 +170,7 @@ export default function ProfilePage() {
           const nameMap: Record<string, string> = {};
           (profiles || []).forEach((entry: any) => {
             if (entry?.id && entry?.profile_photo_url) photoMap[entry.id] = entry.profile_photo_url;
-            const canonicalName = entry?.full_name || entry?.name;
+            const canonicalName = pickCanonicalProfileName(entry);
             if (entry?.id && canonicalName) nameMap[entry.id] = getSafeDisplayName(canonicalName);
           });
           setAuthorPhotoById(photoMap);
@@ -202,7 +211,7 @@ export default function ProfilePage() {
               setAuthorNameById((prev) => {
                 const updated = { ...prev };
                 commentProfiles.forEach((entry: any) => {
-                  const canonicalName = entry?.full_name || entry?.name;
+                  const canonicalName = pickCanonicalProfileName(entry);
                   if (entry?.id && canonicalName) updated[entry.id] = getSafeDisplayName(canonicalName);
                 });
                 return updated;

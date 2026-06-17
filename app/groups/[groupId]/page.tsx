@@ -25,6 +25,15 @@ function isMissingGroupIdColumnError(error: any) {
   );
 }
 
+function pickCanonicalProfileName(profile: any) {
+  const fullName = (profile?.full_name || "").trim();
+  const name = (profile?.name || "").trim();
+  const fullNameLooksLikeEmail = fullName.includes("@");
+  if (fullName && !fullNameLooksLikeEmail) return fullName;
+  if (name) return name;
+  return fullName;
+}
+
 export default function GroupDetailPage() {
   const router = useRouter();
   const params = useParams<{ groupId: string }>();
@@ -207,7 +216,7 @@ export default function GroupDetailPage() {
             if (entry?.id && entry?.profile_photo_url) {
               authorPhotoMap[entry.id] = entry.profile_photo_url;
             }
-            const canonicalName = entry?.full_name || entry?.name;
+            const canonicalName = pickCanonicalProfileName(entry);
             if (entry?.id && canonicalName) {
               authorNameMap[entry.id] = canonicalName;
             }
@@ -240,7 +249,7 @@ export default function GroupDetailPage() {
             setAuthorNameById((prev) => {
               const updated = { ...prev };
               commentAuthorProfiles.forEach((entry: any) => {
-                const canonicalName = entry?.full_name || entry?.name;
+                const canonicalName = pickCanonicalProfileName(entry);
                 if (entry?.id && canonicalName) updated[entry.id] = canonicalName;
               });
               return updated;

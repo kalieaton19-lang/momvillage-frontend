@@ -46,6 +46,15 @@ function getSafeDisplayName(name?: string | null, fallback = "Mom") {
   return pretty || fallback;
 }
 
+function pickCanonicalProfileName(profile: any) {
+  const fullName = (profile?.full_name || "").trim();
+  const name = (profile?.name || "").trim();
+  const fullNameLooksLikeEmail = fullName.includes("@");
+  if (fullName && !fullNameLooksLikeEmail) return fullName;
+  if (name) return name;
+  return fullName;
+}
+
 // LocationField component for post modal (must be outside HomePage)
 function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
   const [custom, setCustom] = React.useState(false);
@@ -428,7 +437,7 @@ export default function HomePage() {
             if (profile?.id && profile?.profile_photo_url) {
               authorPhotoMap[profile.id] = profile.profile_photo_url;
             }
-            const canonicalName = profile?.full_name || profile?.name;
+            const canonicalName = pickCanonicalProfileName(profile);
             if (profile?.id && canonicalName) {
               authorNameMap[profile.id] = getSafeDisplayName(canonicalName);
             }
@@ -461,7 +470,7 @@ export default function HomePage() {
             setAuthorNameById((prev) => {
               const updated = { ...prev };
               commentAuthorProfiles.forEach((p: any) => {
-                const canonicalName = p?.full_name || p?.name;
+                const canonicalName = pickCanonicalProfileName(p);
                 if (p?.id && canonicalName) updated[p.id] = getSafeDisplayName(canonicalName);
               });
               return updated;
@@ -780,7 +789,7 @@ export default function HomePage() {
           setAuthorNameById((prev) => {
             const updated = { ...prev };
             authorProfiles.forEach((profile: any) => {
-              const canonicalName = profile?.full_name || profile?.name;
+              const canonicalName = pickCanonicalProfileName(profile);
               if (profile?.id && canonicalName) {
                 updated[profile.id] = getSafeDisplayName(canonicalName);
               }

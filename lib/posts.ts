@@ -62,6 +62,15 @@ function getSafeDisplayName(name?: string | null, fallback = "Mom"): string {
   return pretty || fallback;
 }
 
+function pickCanonicalProfileName(profile: any): string {
+  const fullName = (profile?.full_name || "").trim();
+  const name = (profile?.name || "").trim();
+  const fullNameLooksLikeEmail = fullName.includes("@");
+  if (fullName && !fullNameLooksLikeEmail) return fullName;
+  if (name) return name;
+  return fullName;
+}
+
 async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {
   if (!posts.length) return posts;
   const authorIds = [...new Set(posts.map((post) => post.author_user_id).filter(Boolean))];
@@ -74,7 +83,7 @@ async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {
 
   const fullNameById: Record<string, string> = {};
   (profiles || []).forEach((profile: any) => {
-    const canonicalName = profile?.full_name || profile?.name;
+    const canonicalName = pickCanonicalProfileName(profile);
     if (profile?.id && canonicalName) {
       fullNameById[profile.id] = canonicalName;
     }

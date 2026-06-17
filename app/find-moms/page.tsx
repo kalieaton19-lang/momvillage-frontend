@@ -51,6 +51,15 @@ function getSafeDisplayName(fullName?: string | null): string {
   return pretty || "Mom";
 }
 
+function pickCanonicalProfileName(profile: any): string {
+  const fullName = (profile?.full_name || "").trim();
+  const name = (profile?.name || "").trim();
+  const fullNameLooksLikeEmail = fullName.includes("@");
+  if (fullName && !fullNameLooksLikeEmail) return fullName;
+  if (name) return name;
+  return fullName;
+}
+
 export default function FindMomsPage() {
   const router = useRouter();
   const [moms, setMoms] = useState<MomProfile[]>([]);
@@ -99,7 +108,7 @@ export default function FindMomsPage() {
           .map((u: any) => ({
             id: u.id,
             user_metadata: {
-              full_name: getSafeDisplayName(u.full_name || u.name),
+              full_name: getSafeDisplayName(pickCanonicalProfileName(u)),
               city: u.city,
               state: u.state,
               zip_code: u.zip_code,
