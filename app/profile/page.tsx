@@ -54,11 +54,6 @@ function getSafeDisplayName(name?: string | null, fallback = "Mom") {
   const withWordBreaks = cleaned.replace(/([a-z])([A-Z])/g, "$1 $2");
   const words = withWordBreaks.split(" ").filter(Boolean);
 
-  if (words.length === 1 && words[0].length > 12) {
-    const midpoint = Math.floor(words[0].length / 2);
-    words.splice(0, 1, words[0].slice(0, midpoint), words[0].slice(midpoint));
-  }
-
   const pretty = words
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ")
