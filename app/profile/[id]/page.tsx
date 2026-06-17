@@ -533,7 +533,7 @@ export default function ProfilePage() {
       </div>
       <div className="w-full max-w-2xl mx-auto">
         <div className="relative w-full flex flex-row items-stretch gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
-          <div className="absolute left-3 top-3 sm:left-4 sm:top-4 z-20">
+          <div className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20">
             <div className="relative">
               <button
                 type="button"
@@ -544,7 +544,7 @@ export default function ProfilePage() {
                 ⋯
               </button>
               {openPostMenuId === "profile-menu" && (
-                <div className="absolute left-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
                   <button
                     type="button"
                     onClick={() => {
