@@ -293,9 +293,29 @@ function NameSuggestionRow({ mom, currentUserId }: NameSuggestionRowProps) {
 
   return (
     <div className="px-4 py-3 flex items-center justify-between gap-3 bg-white dark:bg-zinc-900">
-      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
-        {mom.user_metadata?.full_name || "Mom"}
-      </span>
+      <div className="flex items-center gap-3 min-w-0">
+        {mom.user_metadata?.profile_photo_url ? (
+          <img
+            src={mom.user_metadata.profile_photo_url}
+            alt={mom.user_metadata?.full_name || "Mom"}
+            className="w-11 h-11 rounded-full object-cover border-2 border-pink-300 flex-shrink-0"
+          />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+            {(mom.user_metadata?.full_name || "M").charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
+            {mom.user_metadata?.full_name || "Mom"}
+          </div>
+          {(mom.user_metadata?.city || mom.user_metadata?.state) && (
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+              {[mom.user_metadata?.city, mom.user_metadata?.state].filter(Boolean).join(", ")}
+            </div>
+          )}
+        </div>
+      </div>
       <button
         onClick={handleInviteToVillage}
         disabled={inviteLoading || invited}
