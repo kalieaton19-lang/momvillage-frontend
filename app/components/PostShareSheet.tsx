@@ -41,6 +41,7 @@ export default function PostShareSheet({
   const [hasTrackedShare, setHasTrackedShare] = useState(false);
   const [villagerSearch, setVillagerSearch] = useState("");
   const [selectedVillagerId, setSelectedVillagerId] = useState<string | null>(null);
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
 
   const shareUrl = useMemo(() => {
     if (!post || typeof window === "undefined") return "";
@@ -67,6 +68,7 @@ export default function PostShareSheet({
       setLoadingVillagers(false);
       setVillagerSearch("");
       setSelectedVillagerId(null);
+      setSelectedAction(null);
       return;
     }
     if (!currentUser?.id) return;
@@ -341,8 +343,8 @@ export default function PostShareSheet({
           <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
-              onClick={() => void handleTextMessage()}
-              className="flex flex-col items-center gap-2 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-3 py-2.5"
+              onClick={() => { setSelectedAction("text"); void handleTextMessage(); }}
+              className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-2.5 transition ${selectedAction === "text" ? "border-pink-500 ring-2 ring-pink-300 bg-white text-zinc-700" : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-8 h-8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12c0-3.728 3.525-6.75 7.875-6.75S18 8.272 18 12s-3.525 6.75-7.875 6.75a9.9 9.9 0 0 1-2.347-.281l-3.528 1.281 1.044-2.932A6.42 6.42 0 0 1 2.25 12Z" />
@@ -352,8 +354,8 @@ export default function PostShareSheet({
 
             <button
               type="button"
-              onClick={() => void handleCopyLink()}
-              className="flex flex-col items-center gap-2 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-3 py-2.5"
+              onClick={() => { setSelectedAction("copy"); void handleCopyLink(); }}
+              className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-2.5 transition ${selectedAction === "copy" ? "border-pink-500 ring-2 ring-pink-300 bg-white text-zinc-700" : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-7 h-7">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
@@ -363,8 +365,8 @@ export default function PostShareSheet({
 
             <button
               type="button"
-              onClick={() => void handleOtherShare()}
-              className="flex flex-col items-center gap-2 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-3 py-2.5"
+              onClick={() => { setSelectedAction("other"); void handleOtherShare(); }}
+              className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-2.5 transition ${selectedAction === "other" ? "border-pink-500 ring-2 ring-pink-300 bg-white text-zinc-700" : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-7 h-7">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
