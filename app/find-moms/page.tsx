@@ -8,7 +8,6 @@ import { useNotification } from "../components/useNotification";
 
 interface MomProfile {
   id: string;
-  email?: string;
   user_metadata?: {
     full_name?: string;
     city?: string;
@@ -25,6 +24,13 @@ interface MomProfile {
 }
 
 type MomRelationshipStatus = "none" | "invited" | "in_village";
+
+function getSafeDisplayName(fullName?: string | null): string {
+  const normalized = (fullName || "").trim();
+  if (!normalized) return "Mom";
+  if (normalized.includes("@")) return "Mom";
+  return normalized;
+}
 
 export default function FindMomsPage() {
   const router = useRouter();
@@ -50,7 +56,7 @@ export default function FindMomsPage() {
         try {
           res = await supabase
             .from('user_public_profiles')
-            .select('*');
+            .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
           json = { users: res.data };
         } catch (fetchErr) {
           if (typeof window !== 'undefined') {
@@ -61,9 +67,6 @@ export default function FindMomsPage() {
           setLoading(false);
           return;
         }
-        if (typeof window !== 'undefined') {
-          console.log('Full user_public_profiles response:', json);
-        }
         if (!json?.users) {
           setMoms([]);
           setLoadError('Failed to load users');
@@ -71,17 +74,13 @@ export default function FindMomsPage() {
           return;
         }
         const users = (json?.users || []) as Array<any>;
-        if (typeof window !== 'undefined') {
-          console.log('All public profiles:', users);
-        }
         // Exclude current user from moms list
         const otherMoms: MomProfile[] = (users || [])
           .filter((u: any) => u.id !== authUser?.id)
           .map((u: any) => ({
             id: u.id,
-            email: u.email ?? undefined,
             user_metadata: {
-              full_name: u.full_name,
+              full_name: getSafeDisplayName(u.full_name),
               city: u.city,
               state: u.state,
               zip_code: u.zip_code,
@@ -94,10 +93,6 @@ export default function FindMomsPage() {
               services_needed: u.services_needed,
             },
           })) || [];
-        // Debug: log the moms array to check profile_photo_url
-        if (typeof window !== 'undefined') {
-          console.log('DEBUG moms array:', JSON.stringify(otherMoms, null, 2));
-        }
         setMoms(otherMoms);
         setLoadError(null);
       } catch (err: any) {
@@ -240,7 +235,7 @@ export default function FindMomsPage() {
   const nameSuggestions =
     searchMode === "name" && normalizedQuery
       ? moms.filter((mom) =>
-          (mom.user_metadata?.full_name || "")
+          getSafeDisplayName(mom.user_metadata?.full_name)
             .toLowerCase()
             .includes(normalizedQuery),
         )
@@ -250,7 +245,7 @@ export default function FindMomsPage() {
     .filter((mom) => messagedUserIds.has(mom.id))
     .filter((mom) => {
       if (!normalizedQuery) return true;
-      return (mom.user_metadata?.full_name || "")
+      return getSafeDisplayName(mom.user_metadata?.full_name)
         .toLowerCase()
         .includes(normalizedQuery);
     });
@@ -394,7 +389,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
   async function handleInvitedClick() {
     const shouldUninvite = window.confirm(
-      `Uninvite ${mom.user_metadata?.full_name || "this mom"}?`
+      `Uninvite ${getSafeDisplayName(mom.user_metadata?.full_name)}?`
     );
     if (!shouldUninvite) {
       return;
@@ -410,17 +405,17 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
         {mom.user_metadata?.profile_photo_url ? (
           <img
             src={mom.user_metadata.profile_photo_url}
-            alt={mom.user_metadata?.full_name || "Mom"}
+            alt={getSafeDisplayName(mom.user_metadata?.full_name)}
             className="w-11 h-11 rounded-full object-cover border-2 border-pink-300 flex-shrink-0"
           />
         ) : (
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-            {(mom.user_metadata?.full_name || "M").charAt(0).toUpperCase()}
+            {getSafeDisplayName(mom.user_metadata?.full_name).charAt(0).toUpperCase()}
           </div>
         )}
         <div className="min-w-0">
           <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
-            {mom.user_metadata?.full_name || "Mom"}
+            {getSafeDisplayName(mom.user_metadata?.full_name)}
           </div>
           {(mom.user_metadata?.city || mom.user_metadata?.state) && (
             <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -473,7 +468,7 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite 
 
   async function handleInvitedClick() {
     const shouldUninvite = window.confirm(
-      `Uninvite ${metadata?.full_name || "this mom"}?`
+      `Uninvite ${getSafeDisplayName(metadata?.full_name)}?`
     );
     if (!shouldUninvite) {
       return;
@@ -489,17 +484,17 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite 
         {metadata?.profile_photo_url ? (
           <img
             src={metadata.profile_photo_url}
-            alt={metadata.full_name || 'Mom'}
+            alt={getSafeDisplayName(metadata?.full_name)}
             className="w-16 h-16 rounded-full object-cover border-2 border-pink-300"
           />
         ) : (
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xl font-semibold">
-            {metadata?.full_name?.[0]?.toUpperCase() || '?'}
+            {getSafeDisplayName(metadata?.full_name).charAt(0).toUpperCase() || '?'}
           </div>
         )}
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            {metadata?.full_name || 'Mom'}
+            {getSafeDisplayName(metadata?.full_name)}
           </h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {metadata?.city}, {metadata?.state}
