@@ -346,7 +346,7 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-pink-300 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:bg-pink-900/20 dark:border-pink-700 dark:text-pink-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75h6.75m-6.75 3h4.5M3.75 19.5h16.5a.75.75 0 0 0 .75-.75V5.25a.75.75 0 0 0-.75-.75H3.75a.75.75 0 0 0-.75.75v13.5a.75.75 0 0 0 .75.75Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12c0-3.728 3.525-6.75 7.875-6.75S18 8.272 18 12s-3.525 6.75-7.875 6.75a9.9 9.9 0 0 1-2.347-.281l-3.528 1.281 1.044-2.932A6.42 6.42 0 0 1 2.25 12Z" />
               </svg>
               <span className="text-xs font-semibold">Text</span>
             </button>
@@ -357,7 +357,9 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757a4.5 4.5 0 0 1-6.364 0m1.757-9.878-1.757 1.757a4.5 4.5 0 0 0 0 6.364m-1.06-1.06a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757a4.5 4.5 0 0 1 6.364 0" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 14.25 14.25 9.75" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 16.5 6 18a3 3 0 0 0 4.243 4.243l1.5-1.5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 7.5 18 6a3 3 0 1 1 4.243 4.243l-1.5 1.5" />
               </svg>
               <span className="text-xs font-semibold">Copy Link</span>
             </button>
