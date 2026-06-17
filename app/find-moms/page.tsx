@@ -80,12 +80,20 @@ export default function FindMomsPage() {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
         // Fetch all public profiles (with photos) for the moms list
-        let json;
+        let json: { users?: Array<Record<string, unknown>>; error?: string; code?: string | null } | null = null;
+        let apiErrorMessage: string | null = null;
         try {
-          const apiRes = await fetch('/api/find-moms', { method: 'GET' });
+          const apiRes = await fetch('/api/find-moms', { method: 'GET', cache: 'no-store' });
           if (apiRes.ok) {
             json = await apiRes.json();
           } else {
+            const apiErrJson = await apiRes.json().catch(() => null);
+            const apiErrMessage =
+              (apiErrJson && typeof apiErrJson === 'object' && 'error' in apiErrJson && typeof apiErrJson.error === 'string'
+                ? apiErrJson.error
+                : null) || `API request failed (${apiRes.status})`;
+            apiErrorMessage = apiErrMessage;
+
             const primaryRes = await supabase
               .from('user_public_profiles')
               .select('id,full_name,name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
@@ -96,25 +104,26 @@ export default function FindMomsPage() {
                 .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url');
 
               if (fallbackRes.error) {
-                throw fallbackRes.error;
+                throw new Error(`${apiErrMessage}; fallback failed: ${fallbackRes.error.message}`);
               }
               json = { users: fallbackRes.data };
             } else {
               json = { users: primaryRes.data };
             }
           }
-        } catch (fetchErr) {
+        } catch (fetchErr: unknown) {
           if (typeof window !== 'undefined') {
             console.error('Error fetching user_public_profiles:', fetchErr);
           }
           setMoms([]);
-          setLoadError('Failed to load users');
+          const fetchErrorMessage = fetchErr instanceof Error ? fetchErr.message : 'Failed to load users';
+          setLoadError(fetchErrorMessage);
           setLoading(false);
           return;
         }
         if (!json?.users) {
           setMoms([]);
-          setLoadError('Failed to load users');
+          setLoadError(apiErrorMessage || json?.error || 'Failed to load users');
           setLoading(false);
           return;
         }
