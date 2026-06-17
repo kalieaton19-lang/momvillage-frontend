@@ -357,7 +357,7 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H17a4 4 0 0 1 0 8h-3m-4 0H7a4 4 0 0 1 0-8h3m-1.5 8h7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757a4.5 4.5 0 0 1-6.364 0m1.757-9.878-1.757 1.757a4.5 4.5 0 0 0 0 6.364m-1.06-1.06a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757a4.5 4.5 0 0 1 6.364 0" />
               </svg>
               <span className="text-xs font-semibold">Copy Link</span>
             </button>
