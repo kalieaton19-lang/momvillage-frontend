@@ -39,8 +39,32 @@ import { Post, PostType, PostScope, PostVisibility } from "../types/post";
 function getSafeDisplayName(name?: string | null, fallback = "Mom"): string {
   const normalized = (name || "").trim();
   if (!normalized) return fallback;
-  if (normalized.includes("@")) return fallback;
-  return normalized;
+  const emailLocalPart = normalized.includes("@")
+    ? normalized.split("@")[0]
+    : normalized;
+
+  const cleaned = emailLocalPart
+    .replace(/[._-]+/g, " ")
+    .replace(/[0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return fallback;
+
+  const withWordBreaks = cleaned.replace(/([a-z])([A-Z])/g, "$1 $2");
+  const words = withWordBreaks.split(" ").filter(Boolean);
+
+  if (words.length === 1 && words[0].length > 12) {
+    const midpoint = Math.floor(words[0].length / 2);
+    words.splice(0, 1, words[0].slice(0, midpoint), words[0].slice(midpoint));
+  }
+
+  const pretty = words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ")
+    .trim();
+
+  return pretty || fallback;
 }
 
 async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {

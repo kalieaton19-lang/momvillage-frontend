@@ -28,8 +28,32 @@ type MomRelationshipStatus = "none" | "invited" | "in_village";
 function getSafeDisplayName(fullName?: string | null): string {
   const normalized = (fullName || "").trim();
   if (!normalized) return "Mom";
-  if (normalized.includes("@")) return "Mom";
-  return normalized;
+  const emailLocalPart = normalized.includes("@")
+    ? normalized.split("@")[0]
+    : normalized;
+
+  const cleaned = emailLocalPart
+    .replace(/[._-]+/g, " ")
+    .replace(/[0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return "Mom";
+
+  const withWordBreaks = cleaned.replace(/([a-z])([A-Z])/g, "$1 $2");
+  const words = withWordBreaks.split(" ").filter(Boolean);
+
+  if (words.length === 1 && words[0].length > 12) {
+    const midpoint = Math.floor(words[0].length / 2);
+    words.splice(0, 1, words[0].slice(0, midpoint), words[0].slice(midpoint));
+  }
+
+  const pretty = words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ")
+    .trim();
+
+  return pretty || "Mom";
 }
 
 export default function FindMomsPage() {
