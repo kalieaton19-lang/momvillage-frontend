@@ -82,21 +82,26 @@ export default function FindMomsPage() {
         // Fetch all public profiles (with photos) for the moms list
         let json;
         try {
-          const primaryRes = await supabase
-            .from('user_public_profiles')
-            .select('id,full_name,name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
-
-          if (primaryRes.error) {
-            const fallbackRes = await supabase
-              .from('user_public_profiles')
-              .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url');
-
-            if (fallbackRes.error) {
-              throw fallbackRes.error;
-            }
-            json = { users: fallbackRes.data };
+          const apiRes = await fetch('/api/find-moms', { method: 'GET' });
+          if (apiRes.ok) {
+            json = await apiRes.json();
           } else {
-            json = { users: primaryRes.data };
+            const primaryRes = await supabase
+              .from('user_public_profiles')
+              .select('id,full_name,name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
+
+            if (primaryRes.error) {
+              const fallbackRes = await supabase
+                .from('user_public_profiles')
+                .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url');
+
+              if (fallbackRes.error) {
+                throw fallbackRes.error;
+              }
+              json = { users: fallbackRes.data };
+            } else {
+              json = { users: primaryRes.data };
+            }
           }
         } catch (fetchErr) {
           if (typeof window !== 'undefined') {
