@@ -142,9 +142,11 @@ export default function PostShareSheet({
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       await navigator.clipboard.writeText(shareUrl);
       alert("Post link copied to clipboard.");
+      onClose();
       return;
     }
     alert("Could not access clipboard on this device.");
+    onClose();
   }
 
   async function handleTextMessage() {
@@ -154,6 +156,7 @@ export default function PostShareSheet({
     if (typeof window !== "undefined") {
       window.location.href = `sms:?&body=${encodeURIComponent(smsText)}`;
     }
+    onClose();
   }
 
   async function handleOtherShare() {
@@ -165,6 +168,7 @@ export default function PostShareSheet({
         text: post.content,
         url: shareUrl,
       });
+      onClose();
       return;
     }
     await handleCopyLink();
