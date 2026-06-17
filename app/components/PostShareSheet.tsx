@@ -250,8 +250,7 @@ export default function PostShareSheet({
           >
             ×
           </button>
-          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50 pr-8">Share Post</div>
-          <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 truncate pr-8">{post.title}</div>
+          <div className="text-base font-bold text-zinc-900 dark:text-zinc-50 pr-8 truncate">{post.title}</div>
         </div>
 
         <div className="p-4 space-y-3">
