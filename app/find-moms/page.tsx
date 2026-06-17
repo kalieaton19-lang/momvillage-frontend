@@ -173,7 +173,7 @@ export default function FindMomsPage() {
 
       <div className="w-full mb-5 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 px-4 py-3">
         <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-zinc-50 text-center">
-          Find Moms Nearby
+          Find Moms
         </h1>
       </div>
 
