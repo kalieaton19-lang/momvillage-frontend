@@ -296,7 +296,7 @@ export default function PostShareSheet({
                         <img
                           src={villager.profile_photo_url}
                           alt={villager.full_name || "Mom"}
-                          className={`w-16 h-16 rounded-full object-cover border-2 transition ${
+                          className={`w-20 h-20 rounded-full object-cover border-2 transition ${
                             selectedVillagerId === villager.id
                               ? "border-pink-500 ring-2 ring-pink-300"
                               : "border-zinc-200 dark:border-zinc-700"
@@ -304,7 +304,7 @@ export default function PostShareSheet({
                         />
                       ) : (
                         <div
-                          className={`w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center text-lg font-semibold border-2 transition ${
+                          className={`w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center text-xl font-semibold border-2 transition ${
                             selectedVillagerId === villager.id
                               ? "border-pink-500 ring-2 ring-pink-300"
                               : "border-pink-300"
@@ -313,7 +313,7 @@ export default function PostShareSheet({
                           {(villager.full_name || "M").charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 leading-tight px-1 w-full max-w-[84px] truncate">
+                      <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 leading-tight px-1 w-full max-w-[96px] truncate">
                         {villager.full_name || "Mom"}
                       </div>
                     </button>
