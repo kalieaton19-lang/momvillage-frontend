@@ -708,7 +708,38 @@ export default function HomePage() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setGroupPosts((data || []) as Post[]);
+      const loadedGroupPosts = (data || []) as Post[];
+      setGroupPosts(loadedGroupPosts);
+
+      const authorIds = [...new Set(loadedGroupPosts.map((post) => post.author_user_id).filter(Boolean))];
+      if (authorIds.length > 0) {
+        const { data: authorProfiles } = await supabase
+          .from("user_public_profiles")
+          .select("id, profile_photo_url, full_name")
+          .in("id", authorIds);
+
+        if (authorProfiles) {
+          setAuthorPhotoById((prev) => {
+            const updated = { ...prev };
+            authorProfiles.forEach((profile: any) => {
+              if (profile?.id && profile?.profile_photo_url) {
+                updated[profile.id] = profile.profile_photo_url;
+              }
+            });
+            return updated;
+          });
+
+          setAuthorNameById((prev) => {
+            const updated = { ...prev };
+            authorProfiles.forEach((profile: any) => {
+              if (profile?.id && profile?.full_name) {
+                updated[profile.id] = profile.full_name;
+              }
+            });
+            return updated;
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to load group posts", error);
       setGroupPosts([]);

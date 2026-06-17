@@ -9,7 +9,8 @@ export async function fetchPostById(id: string): Promise<Post | null> {
     if (error.code === "PGRST116") return null; // Not found
     throw error;
   }
-  return data as Post;
+  const [normalized] = await applyProfileAuthorNames([data as Post]);
+  return normalized || null;
 }
 
 // Edit a post
@@ -35,6 +36,29 @@ export async function deletePost(id: string): Promise<void> {
 import { supabase } from "../lib/supabase";
 import { Post, PostType, PostScope, PostVisibility } from "../types/post";
 
+async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {
+  if (!posts.length) return posts;
+  const authorIds = [...new Set(posts.map((post) => post.author_user_id).filter(Boolean))];
+  if (!authorIds.length) return posts;
+
+  const { data: profiles } = await supabase
+    .from("user_public_profiles")
+    .select("id,full_name")
+    .in("id", authorIds);
+
+  const fullNameById: Record<string, string> = {};
+  (profiles || []).forEach((profile: any) => {
+    if (profile?.id && profile?.full_name) {
+      fullNameById[profile.id] = profile.full_name;
+    }
+  });
+
+  return posts.map((post) => ({
+    ...post,
+    author_name: fullNameById[post.author_user_id] || post.author_name || "Mom",
+  }));
+}
+
 // Fetch posts with optional filters
 type FetchPostsOptions = {
   type?: PostType;
@@ -52,7 +76,7 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<Post[
   query = query.order("created_at", { ascending: false });
   const { data, error } = await query;
   if (error) throw error;
-  return data as Post[];
+  return applyProfileAuthorNames((data || []) as Post[]);
 }
 // Create a new post
 export async function createPost(post: Omit<Post, "id" | "created_at" | "updated_at"> & { village_member_id?: string }): Promise<{ data: Post | null, error: any }> {
@@ -122,22 +146,6 @@ export async function fetchPostInteractions(postIds: string[], currentUserId?: s
       sharesCountByPost: {} as Record<string, number>,
       commentsByPost: {} as Record<string, PostCommentRow[]>,
     };
-  }
-
-  if (typeof window !== "undefined") {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const tokenPresent = Boolean(session?.access_token);
-      const sessionUserId = session?.user?.id || null;
-      console.log("[fetchPostInteractions] auth debug", {
-        tokenPresent,
-        sessionUserId,
-        currentUserId: currentUserId || null,
-        postIdsCount: postIds.length,
-      });
-    } catch (sessionDebugError) {
-      console.log("[fetchPostInteractions] auth debug failed", sessionDebugError);
-    }
   }
 
   const [{ data: likes, error: likesError }, { data: comments, error: commentsError }, { data: shares, error: sharesError }] = await Promise.all([
