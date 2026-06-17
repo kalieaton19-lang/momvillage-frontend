@@ -147,9 +147,11 @@ export default function EditProfilePage() {
     setError("");
 
     try {
+      const trimmedFullName = (profile.full_name || "").trim();
+
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
-          full_name: profile.full_name,
+          full_name: trimmedFullName,
           phone: profile.phone,
           address: profile.address,
           city: profile.city,
@@ -168,6 +170,41 @@ export default function EditProfilePage() {
         console.error("Save error:", updateError);
         setError(`Failed to update profile: ${updateError.message}`);
       } else {
+        const publicProfilePayload: Record<string, any> = {
+          id: user.id,
+          email: user.email || null,
+          full_name: trimmedFullName || null,
+          name: trimmedFullName || null,
+          profile_photo_url: profile.profile_photo_url || null,
+          city: profile.city || null,
+          state: profile.state || null,
+          zip_code: profile.zip_code || null,
+          number_of_kids:
+            profile.number_of_kids === undefined || profile.number_of_kids === null
+              ? null
+              : profile.number_of_kids,
+          kids_age_groups: Array.isArray(profile.kids_age_groups)
+            ? profile.kids_age_groups
+            : null,
+          preferred_language: profile.preferred_language || null,
+          parenting_style: profile.parenting_style || null,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: profileSyncError } = await supabase
+          .from("user_public_profiles")
+          .upsert(publicProfilePayload, { onConflict: "id" });
+
+        if (profileSyncError) {
+          console.error("Public profile sync error:", profileSyncError);
+          setError(`Profile saved, but public profile sync failed: ${profileSyncError.message}`);
+          return;
+        }
+
+        setProfile((prev) => ({
+          ...prev,
+          full_name: trimmedFullName,
+        }));
         setMessage("Profile updated successfully!");
         setTimeout(() => {
           router.push("/profile");
