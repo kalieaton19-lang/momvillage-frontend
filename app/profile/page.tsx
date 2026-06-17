@@ -36,6 +36,13 @@ interface UserProfile {
   updated_at?: string;
 }
 
+function getSafeDisplayName(name?: string | null, fallback = "Mom") {
+  const normalized = (name || "").trim();
+  if (!normalized) return fallback;
+  if (normalized.includes("@")) return fallback;
+  return normalized;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -237,7 +244,7 @@ export default function ProfilePage() {
           if (entry?.id && entry?.profile_photo_url)
             photoMap[entry.id] = entry.profile_photo_url;
           if (entry?.id && entry?.full_name)
-            nameMap[entry.id] = entry.full_name;
+            nameMap[entry.id] = getSafeDisplayName(entry.full_name);
         });
         setAuthorPhotoById(photoMap);
         setAuthorNameById(nameMap);
@@ -288,7 +295,7 @@ export default function ProfilePage() {
             const updated = { ...prev };
             commentProfiles.forEach((entry: any) => {
               if (entry?.id && entry?.full_name)
-                updated[entry.id] = entry.full_name;
+                updated[entry.id] = getSafeDisplayName(entry.full_name);
             });
             return updated;
           });
@@ -637,13 +644,13 @@ export default function ProfilePage() {
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow flex-shrink-0">
               <img
                 src={profile.profile_photo_url}
-                alt={profile.full_name || "Profile"}
+                alt={getSafeDisplayName(profile.full_name, "Profile")}
                 className="w-full h-full object-cover"
               />
             </div>
           ) : (
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold border-2 border-pink-400 shadow flex-shrink-0">
-              {profile.full_name?.[0]?.toUpperCase() ||
+              {getSafeDisplayName(profile.full_name)?.[0]?.toUpperCase() ||
                 user?.email?.[0]?.toUpperCase() ||
                 "?"}
             </div>
@@ -651,7 +658,7 @@ export default function ProfilePage() {
 
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate w-full text-left">
-              {profile.full_name || "My Profile"}
+              {getSafeDisplayName(profile.full_name, "My Profile")}
             </span>
             <div className="flex flex-row items-center gap-8 mt-1 mb-2 w-full">
               <div className="flex flex-col items-center">
@@ -923,7 +930,7 @@ export default function ProfilePage() {
                                 const commentName =
                                   authorNameById[comment.author_user_id] ||
                                   (comment.author_user_id === user?.id
-                                    ? profile.full_name || "You"
+                                    ? getSafeDisplayName(profile.full_name, "You")
                                     : "Mom");
                                 const commentProfileHref = getProfileHref(comment.author_user_id);
                                 return (

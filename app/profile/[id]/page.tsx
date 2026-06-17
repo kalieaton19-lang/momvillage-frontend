@@ -12,6 +12,13 @@ import PostShareSheet from "../../components/PostShareSheet";
 import ReportModal, { ReportType, ReportReason } from "../../components/ReportModal";
 import type { Post } from "../../../types/post";
 
+function getSafeDisplayName(name?: string | null, fallback = "Mom") {
+  const normalized = (name || "").trim();
+  if (!normalized) return fallback;
+  if (normalized.includes("@")) return fallback;
+  return normalized;
+}
+
 export default function ProfilePage() {
   const { id } = useParams();
   const router = useRouter();
@@ -128,7 +135,7 @@ export default function ProfilePage() {
           const nameMap: Record<string, string> = {};
           (profiles || []).forEach((entry: any) => {
             if (entry?.id && entry?.profile_photo_url) photoMap[entry.id] = entry.profile_photo_url;
-            if (entry?.id && entry?.full_name) nameMap[entry.id] = entry.full_name;
+            if (entry?.id && entry?.full_name) nameMap[entry.id] = getSafeDisplayName(entry.full_name);
           });
           setAuthorPhotoById(photoMap);
           setAuthorNameById(nameMap);
@@ -168,7 +175,7 @@ export default function ProfilePage() {
               setAuthorNameById((prev) => {
                 const updated = { ...prev };
                 commentProfiles.forEach((entry: any) => {
-                  if (entry?.id && entry?.full_name) updated[entry.id] = entry.full_name;
+                  if (entry?.id && entry?.full_name) updated[entry.id] = getSafeDisplayName(entry.full_name);
                 });
                 return updated;
               });
@@ -574,17 +581,17 @@ export default function ProfilePage() {
           {/* Profile Photo */}
           {profile.profile_photo_url ? (
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow flex-shrink-0">
-              <img src={profile.profile_photo_url} alt={profile.full_name || 'Profile'} className="w-full h-full object-cover" />
+              <img src={profile.profile_photo_url} alt={getSafeDisplayName(profile.full_name, 'Profile')} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold border-2 border-pink-400 shadow flex-shrink-0">
-              {profile.full_name?.[0]?.toUpperCase() || '?'}
+              {getSafeDisplayName(profile.full_name)?.[0]?.toUpperCase() || '?'}
             </div>
           )}
           {/* Profile Info */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-1 w-full">
-              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate w-full text-left">{profile.full_name || 'Mom'}</span>
+              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate w-full text-left">{getSafeDisplayName(profile.full_name)}</span>
             </div>
             <div className="flex flex-row items-center gap-8 mt-1 mb-2 w-full">
               <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillageModal(true)} title="Show Village">
@@ -711,7 +718,7 @@ export default function ProfilePage() {
                       user1_id: currentUser.id,
                       user2_id: profileUserId,
                       user1_name: currentUser.user_metadata?.full_name || "",
-                      user2_name: profile.full_name || "",
+                      user2_name: getSafeDisplayName(profile.full_name, ""),
                       user1_photo: currentUser.user_metadata?.profile_photo_url || "",
                       user2_photo: profile.profile_photo_url || "",
                     })

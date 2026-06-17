@@ -20,6 +20,13 @@ type GroupRow = {
   created_at: string;
 };
 
+function getSafeDisplayName(name?: string | null, fallback = "Mom") {
+  const normalized = (name || "").trim();
+  if (!normalized) return fallback;
+  if (normalized.includes("@")) return fallback;
+  return normalized;
+}
+
 // LocationField component for post modal (must be outside HomePage)
 function LocationField({ profileLocation, formLocation, setForm }: { profileLocation: string, formLocation: string, setForm: any }) {
   const [custom, setCustom] = React.useState(false);
@@ -383,7 +390,7 @@ export default function HomePage() {
               authorPhotoMap[profile.id] = profile.profile_photo_url;
             }
             if (profile?.id && profile?.full_name) {
-              authorNameMap[profile.id] = profile.full_name;
+              authorNameMap[profile.id] = getSafeDisplayName(profile.full_name);
             }
           });
           setAuthorPhotoById(authorPhotoMap);
@@ -414,7 +421,7 @@ export default function HomePage() {
             setAuthorNameById((prev) => {
               const updated = { ...prev };
               commentAuthorProfiles.forEach((p: any) => {
-                if (p?.id && p?.full_name) updated[p.id] = p.full_name;
+                if (p?.id && p?.full_name) updated[p.id] = getSafeDisplayName(p.full_name);
               });
               return updated;
             });
@@ -733,7 +740,7 @@ export default function HomePage() {
             const updated = { ...prev };
             authorProfiles.forEach((profile: any) => {
               if (profile?.id && profile?.full_name) {
-                updated[profile.id] = profile.full_name;
+                updated[profile.id] = getSafeDisplayName(profile.full_name);
               }
             });
             return updated;
@@ -767,7 +774,7 @@ export default function HomePage() {
     try {
       const { error } = await supabase.from("posts").insert({
         author_user_id: user.id,
-        author_name: profile?.full_name || "Mom",
+        author_name: getSafeDisplayName(profile?.full_name, "Mom"),
         type: "general",
         scope: "public",
         visibility: "public",
@@ -1139,7 +1146,7 @@ export default function HomePage() {
       const { data, error } = await createPost({
         ...form,
         author_user_id: user.id,
-        author_name: profile?.full_name || "Anonymous",
+        author_name: getSafeDisplayName(profile?.full_name, "Anonymous"),
         scope: normalizedScope as PostScope,
         village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
         photo_url,
@@ -1203,19 +1210,19 @@ export default function HomePage() {
               <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
                 <img
                   src={profile.profile_photo_url}
-                  alt={profile?.full_name || "Profile"}
+                    alt={getSafeDisplayName(profile?.full_name, "Profile")}
                   className="w-full h-full object-cover rounded-full"
                 />
               </div>
             ) : (
               <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-3xl font-semibold border-2 border-pink-400 shadow">
-                {profile?.full_name?.[0]?.toUpperCase() || "?"}
+                {getSafeDisplayName(profile?.full_name).charAt(0).toUpperCase() || "?"}
               </div>
             )}
             <div>
               <Link href="/profile">
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 hover:underline cursor-pointer">
-                  {profile?.full_name || 'Mom'}
+                  {getSafeDisplayName(profile?.full_name)}
                 </h1>
               </Link>
             </div>
@@ -1842,7 +1849,7 @@ export default function HomePage() {
                             <>
                               {visibleComments.map((comment) => {
                                 const isEditing = editingCommentId === comment.id;
-                                const displayName = authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? (profile?.full_name || 'You') : 'Mom');
+                                const displayName = authorNameById[comment.author_user_id] || (comment.author_user_id === user?.id ? getSafeDisplayName(profile?.full_name, 'You') : 'Mom');
                                 const commentProfileHref = getProfileHref(comment.author_user_id);
 
                                 return (
