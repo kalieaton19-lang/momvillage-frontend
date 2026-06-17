@@ -314,7 +314,7 @@ export default function PostShareSheet({
                           {(villager.full_name || "M").charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <div className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 leading-tight line-clamp-2 px-1">
+                      <div className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 leading-tight px-1 w-full max-w-[72px] truncate">
                         {villager.full_name || "Mom"}
                       </div>
                     </button>
@@ -357,7 +357,7 @@ export default function PostShareSheet({
               className="flex flex-col items-center gap-1 rounded-xl border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 px-2 py-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v1.125A2.625 2.625 0 0 1 13.125 21H6.375A2.625 2.625 0 0 1 3.75 18.375V9.75A2.625 2.625 0 0 1 6.375 7.125H7.5m8.25 10.125h1.875A2.625 2.625 0 0 0 20.25 14.625V6.375A2.625 2.625 0 0 0 17.625 3.75H9.375A2.625 2.625 0 0 0 6.75 6.375V8.25" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H17a4 4 0 0 1 0 8h-3m-4 0H7a4 4 0 0 1 0-8h3m-1.5 8h7" />
               </svg>
               <span className="text-xs font-semibold">Copy Link</span>
             </button>
