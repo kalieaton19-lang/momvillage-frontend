@@ -3,6 +3,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+
+function getSafeDisplayName(name?: string | null, fallback = "Mom") {
+  const normalized = (name || "").trim();
+  if (!normalized) return fallback;
+  if (normalized.includes("@")) return fallback;
+  return normalized;
+}
 // InviteByNameForm component (top-level)
 function InviteByNameForm({ onBack, onInvite }: { onBack?: () => void; onInvite: (user: any) => void }) {
   const [search, setSearch] = useState("");
@@ -74,14 +81,14 @@ function InviteByNameForm({ onBack, onInvite }: { onBack?: () => void; onInvite:
               }}
             >
               {user.profile_photo_url ? (
-                <img src={user.profile_photo_url} alt={user.full_name} className="w-10 h-10 rounded-full object-cover" />
+                <img src={user.profile_photo_url} alt={getSafeDisplayName(user.full_name)} className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg">
-                  {user.full_name?.[0]?.toUpperCase() || '?'}
+                  {getSafeDisplayName(user.full_name).charAt(0).toUpperCase() || '?'}
                 </div>
               )}
               <div className="flex-1 text-left">
-                <div className="font-semibold text-zinc-900 dark:text-zinc-50">{user.full_name}</div>
+                <div className="font-semibold text-zinc-900 dark:text-zinc-50">{getSafeDisplayName(user.full_name)}</div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">{user.city}{user.city && user.state ? ', ' : ''}{user.state}</div>
               </div>
             </button>

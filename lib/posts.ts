@@ -36,6 +36,13 @@ export async function deletePost(id: string): Promise<void> {
 import { supabase } from "../lib/supabase";
 import { Post, PostType, PostScope, PostVisibility } from "../types/post";
 
+function getSafeDisplayName(name?: string | null, fallback = "Mom"): string {
+  const normalized = (name || "").trim();
+  if (!normalized) return fallback;
+  if (normalized.includes("@")) return fallback;
+  return normalized;
+}
+
 async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {
   if (!posts.length) return posts;
   const authorIds = [...new Set(posts.map((post) => post.author_user_id).filter(Boolean))];
@@ -55,7 +62,10 @@ async function applyProfileAuthorNames(posts: Post[]): Promise<Post[]> {
 
   return posts.map((post) => ({
     ...post,
-    author_name: fullNameById[post.author_user_id] || post.author_name || "Mom",
+    author_name: getSafeDisplayName(
+      fullNameById[post.author_user_id] || post.author_name,
+      "Mom"
+    ),
   }));
 }
 
