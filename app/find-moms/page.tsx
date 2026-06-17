@@ -80,18 +80,30 @@ export default function FindMomsPage() {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
         // Fetch all public profiles (with photos) for the moms list
-        let res, json;
+        let json;
         try {
-          res = await supabase
+          const primaryRes = await supabase
             .from('user_public_profiles')
             .select('id,full_name,name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
-          json = { users: res.data };
+
+          if (primaryRes.error) {
+            const fallbackRes = await supabase
+              .from('user_public_profiles')
+              .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url');
+
+            if (fallbackRes.error) {
+              throw fallbackRes.error;
+            }
+            json = { users: fallbackRes.data };
+          } else {
+            json = { users: primaryRes.data };
+          }
         } catch (fetchErr) {
           if (typeof window !== 'undefined') {
             console.error('Error fetching user_public_profiles:', fetchErr);
           }
           setMoms([]);
-          setLoadError('Failed to fetch users');
+          setLoadError('Failed to load users');
           setLoading(false);
           return;
         }
