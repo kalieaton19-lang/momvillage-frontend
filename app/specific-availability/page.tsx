@@ -79,11 +79,7 @@ export default function SpecificAvailabilityPage() {
       } else {
         setMessage("Availability saved successfully!");
         setOriginalAvailability(availability);
-        // Redirect back to calendar after successful save
-        setTimeout(() => {
-          setMessage("");
-          router.push('/calendar');
-        }, 800);
+        setTimeout(() => setMessage(""), 3000);
       }
     } catch (error) {
       console.error('Error saving:', error);

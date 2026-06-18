@@ -1,54 +1,67 @@
 "use client";
-import React, { useState } from "react";
+
+import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
-import { Input } from "@/app/components/ui/Input";
-import { Button } from "@/app/components/ui/Button";
-import { Alert } from "@/app/components/ui/Alert";
-
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
 
-  const mapError = (message?: string) => {
-    if (!message) return "Login failed";
-    const m = message.toLowerCase();
-    if (m.includes("invalid login")) return "Invalid email or password.";
-    if (m.includes("email not confirmed")) return "Please confirm your email before logging in.";
-    return message;
-  };
+  function validate() {
+    if (!email) return "Email is required";
+    // simple email pattern
+    if (!/^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}$/.test(email)) return "Enter a valid email";
+    if (!password) return "Password is required";
+    if (password.length < 6) return "Password must be at least 6 characters";
+    return "";
+  }
+
+  function fieldError(field: "email" | "password") {
+    if (!error) return false;
+    const e = error.toLowerCase();
+    return e.includes(field);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErrorMsg(null);
+    setError("");
+    setSuccess("");
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setErrorMsg(mapError(error.message));
-      } else if (data?.session) {
-        // If Remember Me is unchecked, move session from localStorage to sessionStorage
-        if (!rememberMe && typeof window !== 'undefined') {
-          // Find the Supabase session key (sb-<project-ref>-auth-token)
-          const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-          if (key && localStorage.getItem(key)) {
-            const value = localStorage.getItem(key);
-            sessionStorage.setItem(key, value!);
-            localStorage.removeItem(key);
-          }
+        console.log('Attempting login...', { email });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        console.log('Login response:', { data, error });
+        if (error) {
+          console.error('Login error:', error);
+          setError(error.message || "Invalid credentials");
+          return;
         }
-        const { data: userData } = await supabase.auth.getUser();
-        const hasProfile = userData?.user?.user_metadata?.full_name;
-        window.location.href = hasProfile ? "/home" : "/profile";
-      } else {
-        setErrorMsg("Check your email for a confirmation link (if enabled).");
-      }
-    } catch (err: any) {
-      setErrorMsg(mapError(err?.message));
+        if (data?.session) {
+          setSuccess("Logged in successfully. Redirecting...");
+          // Check if user has profile set up
+          const { data: { user } } = await supabase.auth.getUser();
+          const hasProfile = user?.user_metadata?.full_name;
+          
+          // Redirect to profile if first time, otherwise to home
+          setTimeout(() => {
+            window.location.href = hasProfile ? '/home' : '/profile';
+          }, 1000);
+        } else {
+          setSuccess("Check your email for a confirmation link (if enabled).");
+        }
+    } catch (err) {
+      console.error('Network/fetch error:', err);
+      setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}. Check console and verify Supabase URL in .env.local`);
     } finally {
       setLoading(false);
     }
@@ -62,42 +75,60 @@ export default function LoginPage() {
           <Link href="/" className="text-sm text-zinc-600 dark:text-zinc-400">Home</Link>
         </header>
 
-        {errorMsg ? <Alert variant="error" className="mb-4" title="Login error">{errorMsg}</Alert> : null}
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            id="login-email"
-            name="email"
-            type="email"
-            label="Email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            id="login-password"
-            name="password"
-            type="password"
-            label="Password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex flex-col text-sm">
+            <span className="mb-1 text-zinc-700 dark:text-zinc-300">Email</span>
             <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={e => setRememberMe(e.target.checked)}
-              className="accent-pink-600"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="rounded-md border border-zinc-200 px-3 py-2 bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300"
+              placeholder="you@example.com"
+              required
+              aria-invalid={fieldError("email")}
             />
-            Remember Me
           </label>
-          <Button type="submit" fullWidth disabled={loading}>
+
+          <label className="flex flex-col text-sm">
+            <span className="mb-1 text-zinc-700 dark:text-zinc-300">Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="rounded-md border border-zinc-200 px-3 py-2 bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-pink-300"
+              placeholder="Your password"
+              required
+              aria-invalid={fieldError("password")}
+            />
+          </label>
+
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+              <input type="checkbox" className="w-4 h-4" /> Remember me
+            </label>
+            <a href="#" className="text-pink-600 dark:text-pink-400">Forgot?</a>
+          </div>
+
+          {error && <div className="text-sm text-red-600">{error}</div>}
+          {success && <div className="text-sm text-green-600">{success}</div>}
+
+          <button
+            type="submit"
+            className="mt-2 rounded-full bg-pink-600 text-white px-4 py-2 font-medium hover:bg-pink-700 disabled:opacity-60"
+            disabled={loading}
+          >
             {loading ? "Signing in…" : "Sign in"}
-          </Button>
+          </button>
         </form>
+
+        <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
+          Or continue with
+        </div>
+
+        <div className="mt-3 flex gap-3">
+          <button className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800">Continue with Google</button>
+          <button className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800">Continue with Apple</button>
+        </div>
 
         <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
           Don't have an account? <Link href="/signup" className="text-pink-600 dark:text-pink-400">Sign up</Link>

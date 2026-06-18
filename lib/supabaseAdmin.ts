@@ -1,47 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-// Ensure envs are loaded in dev even if Next.js didn’t pick them up yet
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    // Lazy-load dotenv to avoid affecting production bundles
-    // Prefer .env.local which is standard for Next.js dev
-    // This is safe in server context only
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('dotenv').config({ path: '.env.local' });
-  } catch {}
-}
 
-let cachedAdmin: any | null = null;
+const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-export function getSupabaseAdmin() {
-  if (cachedAdmin) return cachedAdmin;
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  // One-time debug log to help diagnose env loading in dev
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[supabaseAdmin] url present:', Boolean(url), 'service role present:', Boolean(serviceRoleKey));
-  }
-
-  if (!url || !serviceRoleKey) {
-    // Provide a minimal stub to avoid build-time crashes when envs are missing.
-    // At runtime, calls will surface a clear error.
-    cachedAdmin = {
-      auth: {
-        admin: {
-          listUsers: async () => ({ data: null, error: new Error('SUPABASE_SERVICE_ROLE_KEY not set') }),
-          createUser: async () => ({ data: null, error: new Error('SUPABASE_SERVICE_ROLE_KEY not set') }),
-        },
-        getUser: async () => ({ data: null, error: new Error('SUPABASE_SERVICE_ROLE_KEY not set') }),
-        signInWithPassword: async () => ({ data: null, error: new Error('SUPABASE_SERVICE_ROLE_KEY not set') }),
-      },
-    } as const;
-    return cachedAdmin;
-  }
-
-  cachedAdmin = createClient(url, serviceRoleKey);
-  return cachedAdmin;
-}
-
-export const supabaseAdmin = getSupabaseAdmin();
+export const supabaseAdmin = createClient(url, serviceRoleKey);
 
 /**
  * Verify an access token and return user data (or null).
@@ -49,8 +11,7 @@ export const supabaseAdmin = getSupabaseAdmin();
 export async function getUserByAccessToken(accessToken: string | null) {
   if (!accessToken) return null;
   try {
-    const admin = getSupabaseAdmin();
-    const { data, error } = await (admin as any).auth.getUser(accessToken as string);
+    const { data, error } = await supabaseAdmin.auth.getUser(accessToken as string);
     if (error) return null;
     return data?.user || null;
   } catch (err) {

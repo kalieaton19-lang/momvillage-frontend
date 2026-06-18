@@ -20,7 +20,6 @@ export default function WeeklyAvailabilityPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability>({});
-  const [originalWeeklyAvailability, setOriginalWeeklyAvailability] = useState<WeeklyAvailability>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -59,7 +58,6 @@ export default function WeeklyAvailabilityPage() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser?.user_metadata?.weeklyAvailability) {
         setWeeklyAvailability(currentUser.user_metadata.weeklyAvailability);
-        setOriginalWeeklyAvailability(currentUser.user_metadata.weeklyAvailability);
       }
     } catch (error) {
       console.error('Error loading availability:', error);
@@ -82,11 +80,7 @@ export default function WeeklyAvailabilityPage() {
         setMessage(`Error: ${error.message}`);
       } else {
         setMessage("Weekly availability saved successfully!");
-        // Redirect back to calendar after successful save
-        setTimeout(() => {
-          setMessage("");
-          router.push('/calendar');
-        }, 800);
+        setTimeout(() => setMessage(""), 3000);
       }
     } catch (error) {
       console.error('Error saving:', error);
@@ -124,27 +118,6 @@ export default function WeeklyAvailabilityPage() {
     }));
   }
 
-  function isEqualAvailability(a: WeeklyAvailability, b: WeeklyAvailability) {
-    try {
-      const normalize = (obj: WeeklyAvailability) => {
-        const keys = Object.keys(obj).sort();
-        const norm: WeeklyAvailability = {};
-        keys.forEach(k => {
-          const arr = obj[k] || [];
-          norm[k] = arr
-            .map(s => ({ start: s.start, end: s.end }))
-            .sort((x, y) => (x.start + x.end).localeCompare(y.start + y.end)) as any;
-        });
-        return norm;
-      };
-      return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
-    } catch {
-      return false;
-    }
-  }
-
-  const isDirty = !isEqualAvailability(weeklyAvailability, originalWeeklyAvailability);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -169,11 +142,6 @@ export default function WeeklyAvailabilityPage() {
               Back to Calendar
             </Link>
           </div>
-          {isDirty && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs font-medium">
-              <span>⚠️ Unsaved changes</span>
-            </div>
-          )}
         </header>
 
         {message && (
@@ -264,10 +232,10 @@ export default function WeeklyAvailabilityPage() {
         {/* Save Button */}
         <button
           onClick={handleSave}
-          disabled={saving || !isDirty}
+          disabled={saving}
           className="w-full mt-8 px-6 py-4 bg-pink-600 text-white rounded-full font-semibold hover:bg-pink-700 disabled:opacity-50 transition-colors text-lg"
         >
-          {saving ? 'Saving...' : isDirty ? '💾 Save Weekly Availability' : 'No changes to save'}
+          {saving ? 'Saving...' : '💾 Save Weekly Availability'}
         </button>
       </div>
     </div>
