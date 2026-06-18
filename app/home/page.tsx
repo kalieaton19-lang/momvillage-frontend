@@ -537,14 +537,15 @@ export default function HomePage() {
 
   async function refreshUnreadMessages(userId: string) {
     try {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("messages")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("receiver_id", userId)
-        .is("read_at", null);
+        .is("read_at", null)
+        .limit(1);
 
       if (error) throw error;
-      setHasUnreadMessages((count ?? 0) > 0);
+      setHasUnreadMessages((data?.length ?? 0) > 0);
     } catch {
       setHasUnreadMessages(false);
     }
