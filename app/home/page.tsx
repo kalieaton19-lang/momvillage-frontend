@@ -9,6 +9,7 @@ import ReportModal, { ReportType, ReportReason } from "../components/ReportModal
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, fetchPostById, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
+import { formatTimeAgo } from "../../utils";
 import type { JSX } from "react";
 
 type GroupRow = {
@@ -1674,7 +1675,7 @@ export default function HomePage() {
                           >
                             <div className="font-semibold text-zinc-900 dark:text-zinc-50">{post.title}</div>
                             <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                              {authorNameById[post.author_user_id] || post.author_name || "Mom"} • {new Date(post.created_at).toLocaleString()}
+                              {authorNameById[post.author_user_id] || post.author_name || "Mom"} • Posted {formatTimeAgo(post.created_at)}
                             </div>
                             <PostContentWithPreview
                               text={post.content}
@@ -1888,7 +1889,7 @@ export default function HomePage() {
                               </>
                             )}
                           </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </div>
                     ) : (
@@ -1916,7 +1917,7 @@ export default function HomePage() {
                               </>
                             )}
                           </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </div>
                     )}

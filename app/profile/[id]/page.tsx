@@ -12,6 +12,7 @@ import PostContentWithPreview from "../../components/PostContentWithPreview";
 import PostShareSheet from "../../components/PostShareSheet";
 import ReportModal, { ReportType, ReportReason } from "../../components/ReportModal";
 import type { Post } from "../../../types/post";
+import { formatTimeAgo } from "../../../utils";
 
 function getSafeDisplayName(name?: string | null, fallback = "Mom") {
   const normalized = (name || "").trim();
@@ -962,7 +963,7 @@ export default function ProfilePage() {
                         )}
                         <div className="min-w-0">
                           <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </Link>
                     ) : (
@@ -980,7 +981,7 @@ export default function ProfilePage() {
                         )}
                         <div className="min-w-0">
                           <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </div>
                     )}

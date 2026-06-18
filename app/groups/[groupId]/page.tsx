@@ -8,6 +8,7 @@ import PostShareSheet from "../../components/PostShareSheet";
 import { supabase } from "../../../lib/supabase";
 import { addPostComment, fetchPostInteractions, PostCommentRow, sharePost, togglePostLike } from "../../../lib/posts";
 import { Post } from "../../../types/post";
+import { formatTimeAgo } from "../../../utils";
 
 type GroupRow = {
   id: string;
@@ -707,7 +708,7 @@ export default function GroupDetailPage() {
                     )}
                     <div className="min-w-0">
                       <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                     </div>
                   </Link>
                 ) : (
@@ -725,7 +726,7 @@ export default function GroupDetailPage() {
                     )}
                     <div className="min-w-0">
                       <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(post.created_at).toLocaleString()}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                     </div>
                   </div>
                 )}

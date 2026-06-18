@@ -16,6 +16,7 @@ import {
   PostCommentRow,
 } from "../../lib/posts";
 import type { Post } from "../../types/post";
+import { formatTimeAgo } from "../../utils";
 
 interface UserProfile {
   id?: string;
@@ -820,7 +821,7 @@ export default function ProfilePage() {
                             {authorNameById[post.author_user_id] || post.author_name || "Mom"}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {new Date(post.created_at).toLocaleString()}
+                            Posted {formatTimeAgo(post.created_at)}
                           </div>
                         </div>
                       </Link>
@@ -842,7 +843,7 @@ export default function ProfilePage() {
                             {authorNameById[post.author_user_id] || post.author_name || "Mom"}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {new Date(post.created_at).toLocaleString()}
+                            Posted {formatTimeAgo(post.created_at)}
                           </div>
                         </div>
                       </div>
