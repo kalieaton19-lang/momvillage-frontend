@@ -603,15 +603,8 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
           </div>
         )}
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
-              {getSafeDisplayName(mom.user_metadata?.full_name)}
-            </div>
-            {relationshipStatus === "invited_you" && (
-              <span className="shrink-0 rounded-full border border-pink-300 bg-pink-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-700 dark:border-pink-700 dark:bg-pink-900/40 dark:text-pink-200">
-                Invited You
-              </span>
-            )}
+          <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
+            {getSafeDisplayName(mom.user_metadata?.full_name)}
           </div>
           {(mom.user_metadata?.city || mom.user_metadata?.state) && (
             <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -755,26 +748,28 @@ function ProfilePreviewModal({
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={onViewProfile}
-            className="flex-1 rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            View Profile
-          </button>
-          <button
-            type="button"
-            onClick={onMessage}
-            className="flex-1 rounded-full border border-pink-500 bg-pink-100 px-4 py-2 text-sm font-medium text-pink-700 transition hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
-          >
-            {hasMessaged ? "Go to Messages" : "Message"}
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onViewProfile}
+              className="w-full rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              View Profile
+            </button>
+            <button
+              type="button"
+              onClick={onMessage}
+              className="w-full rounded-full border border-pink-500 bg-pink-100 px-4 py-2 text-sm font-medium text-pink-700 transition hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
+            >
+              {hasMessaged ? "Go to Messages" : "Message"}
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => void handleStatusClick()}
             disabled={statusLoading || relationshipStatus === "in_village"}
-            className={`flex-1 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            className={`w-full rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
               relationshipStatus === "in_village"
                 ? "border-green-500 bg-green-100 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200"
                 : relationshipStatus === "invited"
@@ -783,7 +778,7 @@ function ProfilePreviewModal({
                 ? "border-pink-800 bg-pink-700 !text-white hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 dark:ring-pink-500/40"
                 : "border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
             } ${statusLoading ? "cursor-not-allowed opacity-60" : ""}`}
-              style={relationshipStatus === "invited_you" ? { color: "#ffffff" } : undefined}
+            style={relationshipStatus === "invited_you" ? { color: "#ffffff" } : undefined}
           >
             {relationshipStatus === "in_village"
               ? "In Your Village"
