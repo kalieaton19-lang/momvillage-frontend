@@ -202,6 +202,27 @@ export default function ConversationPageInner({ conversationId }: { conversation
   }, []);
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+    const previousBodyTouchAction = document.body.style.touchAction;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.body.style.touchAction = "manipulation";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+      document.body.style.touchAction = previousBodyTouchAction;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     if (user) {
       loadConversation(user.id);
     }
@@ -592,7 +613,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const lastOutgoingMessageId = [...messages].reverse().find((message) => message.sender_id === user?.id)?.id;
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+    <div className="fixed inset-0 h-[100dvh] overflow-hidden overscroll-none bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
       <div className="max-w-2xl mx-auto h-full flex flex-col overflow-hidden">
         <div className="sticky top-0 z-20 bg-white dark:bg-zinc-900">
           <header className="shrink-0 flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
@@ -730,7 +751,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             }}
           />
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4" style={{ WebkitOverflowScrolling: "touch" }}>
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
