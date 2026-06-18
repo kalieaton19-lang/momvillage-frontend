@@ -531,7 +531,7 @@ export default function FindMomsPage() {
           user1_id: user.id,
           user2_id: mom.id,
           user1_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
-          user2_name: getSafeDisplayName(mom.user_metadata?.full_name, ""),
+          user2_name: getSafeDisplayName(mom.user_metadata?.full_name),
           user1_photo: user.user_metadata?.profile_photo_url || "",
           user2_photo: mom.user_metadata?.profile_photo_url || "",
         })
