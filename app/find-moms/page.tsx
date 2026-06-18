@@ -642,11 +642,6 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite,
             {metadata?.city}, {metadata?.state}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {metadata?.number_of_kids && (
-              <span className="text-xs px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full">
-                {metadata.number_of_kids} kid{metadata.number_of_kids !== 1 ? 's' : ''}
-              </span>
-            )}
             {Array.isArray(metadata?.kids_age_groups) && metadata.kids_age_groups.map(age => (
               <span key={age} className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
                 {age}
@@ -773,39 +768,9 @@ function ProfilePreviewModal({
             {getSafeDisplayName(metadata?.full_name)}
           </h3>
 
-          <div className="w-full space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
-            <p>
-              <span className="font-medium text-zinc-700 dark:text-zinc-200">Location:</span>{" "}
-              {[metadata?.city, metadata?.state].filter(Boolean).join(", ") || "Not provided"}
-            </p>
-            <p>
-              <span className="font-medium text-zinc-700 dark:text-zinc-200">Number of children:</span>{" "}
-              {metadata?.number_of_kids ?? "Not provided"}
-            </p>
-            <p>
-              <span className="font-medium text-zinc-700 dark:text-zinc-200">Preferred language:</span>{" "}
-              {metadata?.preferred_language || "Not provided"}
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-5 flex flex-wrap gap-2">
-          {metadata?.number_of_kids && (
-            <span className="rounded-full bg-pink-100 px-2 py-1 text-xs text-pink-700 dark:bg-pink-900/30 dark:text-pink-300">
-              {metadata.number_of_kids} kid{metadata.number_of_kids !== 1 ? "s" : ""}
-            </span>
-          )}
-          {Array.isArray(metadata?.kids_age_groups) &&
-            metadata.kids_age_groups.map((age) => (
-              <span key={age} className="rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                {age}
-              </span>
-            ))}
-          {metadata?.parenting_style && (
-            <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              {metadata.parenting_style}
-            </span>
-          )}
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            {[metadata?.city, metadata?.state].filter(Boolean).join(", ") || "Not provided"}
+          </p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
