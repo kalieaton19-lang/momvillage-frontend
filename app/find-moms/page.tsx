@@ -270,6 +270,14 @@ export default function FindMomsPage() {
 
     setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: true }));
     try {
+      const { error: deleteStaleError } = await supabase
+        .from("village_invitations")
+        .delete()
+        .eq("from_user_id", user.id)
+        .eq("to_user_id", momId);
+
+      if (deleteStaleError) throw deleteStaleError;
+
       const { error } = await supabase
         .from("village_invitations")
         .insert({ from_user_id: user.id, to_user_id: momId, status: "pending" });
@@ -301,8 +309,7 @@ export default function FindMomsPage() {
         .from("village_invitations")
         .delete()
         .eq("from_user_id", user.id)
-        .eq("to_user_id", momId)
-        .eq("status", "pending");
+        .eq("to_user_id", momId);
 
       if (error) throw error;
 
@@ -359,10 +366,9 @@ export default function FindMomsPage() {
     try {
       const { error } = await supabase
         .from("village_invitations")
-        .update({ status: "declined" })
+        .delete()
         .eq("from_user_id", momId)
-        .eq("to_user_id", user.id)
-        .in("status", ["pending", "resent"]);
+        .eq("to_user_id", user.id);
 
       if (error) throw error;
 
@@ -390,8 +396,7 @@ export default function FindMomsPage() {
       const { error } = await supabase
         .from("village_invitations")
         .delete()
-        .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${momId}),and(from_user_id.eq.${momId},to_user_id.eq.${user.id})`)
-        .eq("status", "accepted");
+        .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${momId}),and(from_user_id.eq.${momId},to_user_id.eq.${user.id})`);
 
       if (error) throw error;
 
@@ -644,8 +649,13 @@ export default function FindMomsPage() {
           mom={uninviteConfirmMom}
           statusLoading={!!statusLoadingByMomId[uninviteConfirmMom.id]}
           onCancel={() => setUninviteConfirmMomId(null)}
-          onConfirm={async () => {
+          onUninvite={async () => {
             const result = await handleUninvite(uninviteConfirmMom.id);
+            showNotification(result.message, result.ok ? "success" : "error");
+            setUninviteConfirmMomId(null);
+          }}
+          onResend={async () => {
+            const result = await handleInviteToVillage(uninviteConfirmMom.id);
             showNotification(result.message, result.ok ? "success" : "error");
             setUninviteConfirmMomId(null);
           }}
@@ -1098,16 +1108,30 @@ interface UninviteConfirmationModalProps {
   mom: MomProfile;
   statusLoading: boolean;
   onCancel: () => void;
-  onConfirm: () => void | Promise<void>;
+  onUninvite: () => void | Promise<void>;
+  onResend: () => void | Promise<void>;
 }
 
-function UninviteConfirmationModal({ mom, statusLoading, onCancel, onConfirm }: UninviteConfirmationModalProps) {
+function UninviteConfirmationModal({ mom, statusLoading, onCancel, onUninvite, onResend }: UninviteConfirmationModalProps) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onCancel}>
       <div
-        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-4 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close invited popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
         <div className="mb-4 flex flex-col items-center text-center">
           <div className="mb-3">
             {mom.user_metadata?.profile_photo_url ? (
@@ -1136,20 +1160,20 @@ function UninviteConfirmationModal({ mom, statusLoading, onCancel, onConfirm }: 
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => void onUninvite()}
             disabled={statusLoading}
             className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
           >
-            Cancel
+            {statusLoading ? "Updating..." : "Uninvite"}
           </button>
           <button
             type="button"
-            onClick={() => void onConfirm()}
+            onClick={() => void onResend()}
             disabled={statusLoading}
             className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
             style={{ color: "#ffffff" }}
           >
-            {statusLoading ? "Updating..." : "Uninvite"}
+            {statusLoading ? "Updating..." : "Resend Invitation"}
           </button>
         </div>
       </div>
