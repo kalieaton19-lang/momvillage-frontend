@@ -938,6 +938,10 @@ interface VillageMemberModalProps {
 function VillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }: VillageMemberModalProps) {
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const profilePhotoUrl = (mom.user_metadata?.profile_photo_url || "").trim();
+  const hasValidPhotoUrl =
+    Boolean(profilePhotoUrl) &&
+    profilePhotoUrl.toLowerCase() !== "null" &&
+    profilePhotoUrl.toLowerCase() !== "undefined";
 
   useEffect(() => {
     setPhotoLoadFailed(false);
@@ -964,13 +968,15 @@ function VillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }
 
         <div className="mb-5 flex flex-col items-center text-center">
           <div className="mb-3">
-            {profilePhotoUrl && !photoLoadFailed ? (
-              <img
-                src={profilePhotoUrl}
-                alt={getSafeDisplayName(mom.user_metadata?.full_name)}
-                className="h-24 w-24 rounded-full border-4 border-pink-300 object-cover"
-                onError={() => setPhotoLoadFailed(true)}
-              />
+            {hasValidPhotoUrl && !photoLoadFailed ? (
+              <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-pink-300 bg-pink-100">
+                <img
+                  src={profilePhotoUrl}
+                  alt={getSafeDisplayName(mom.user_metadata?.full_name)}
+                  className="h-full w-full object-cover"
+                  onError={() => setPhotoLoadFailed(true)}
+                />
+              </div>
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
                 {getSafeDisplayName(mom.user_metadata?.full_name).charAt(0).toUpperCase() || "?"}
