@@ -252,6 +252,18 @@ export default function ConversationPageInner({ conversationId }: { conversation
     };
   }, [conversation?.id, user?.id]);
 
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+
+    const intervalId = window.setInterval(() => {
+      void loadMessages(conversation.id);
+    }, 4000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [conversation?.id, user?.id]);
+
   async function refreshVillageStatus(currentUserId: string, otherUserId: string) {
     const { data: relationshipRows } = await supabase
       .from('village_invitations')
@@ -723,7 +735,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 return (
                   <div
                     key={msg.id}
-                    className={`flex w-full ${isOutgoing ? 'justify-end' : 'justify-start'}`}
+                    className={`flex w-full flex-col ${isOutgoing ? 'items-end' : 'items-start'}`}
                     style={{ marginBottom: 1 }}
                   >
                     <div
@@ -735,21 +747,19 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
                       <p className="break-words text-base leading-snug">{msg.message_text}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <p className={`text-xs ${
-                          isOutgoing
-                            ? 'text-pink-400'
-                            : 'text-zinc-500 dark:text-zinc-400'
-                        }`}>
-                          {formatTime(msg.created_at)}
-                        </p>
-                        {showOutgoingStatus && (
-                          <p className={`text-xs font-semibold ${msg.read_at ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
-                            {statusText}
-                          </p>
-                        )}
-                      </div>
+                      <p className={`text-xs mt-1 ${
+                        isOutgoing
+                          ? 'text-pink-400'
+                          : 'text-zinc-500 dark:text-zinc-400'
+                      }`}>
+                        {formatTime(msg.created_at)}
+                      </p>
                     </div>
+                    {showOutgoingStatus && (
+                      <p className={`mt-1 px-2 sm:px-3 text-xs font-semibold ${msg.read_at ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                        {statusText}
+                      </p>
+                    )}
                   </div>
                 );
               })}
