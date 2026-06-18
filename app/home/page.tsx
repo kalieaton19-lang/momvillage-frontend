@@ -1376,34 +1376,41 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900 flex flex-col">
       <div className="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col pt-8 sm:pt-4">
-        <header className="mb-4 flex items-center gap-4 justify-between">
-          <div className="flex items-center gap-4">
-            {profile?.profile_photo_url ? (
-              <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
-                <img
-                  src={profile.profile_photo_url}
-                    alt={getSafeDisplayName(profile?.full_name, "Profile")}
-                  className="w-full h-full object-cover rounded-full"
-                />
+        <div className="sticky top-0 z-30 -mx-4 px-4 pb-3 pt-1 bg-white/95 dark:bg-black/95 backdrop-blur border-b border-pink-100 dark:border-zinc-800">
+          <header className="mb-3 flex items-center gap-4 justify-between">
+            <div className="flex items-center gap-4">
+              {profile?.profile_photo_url ? (
+                <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full overflow-hidden border-2 border-pink-400 shadow flex items-center justify-center">
+                  <img
+                    src={profile.profile_photo_url}
+                      alt={getSafeDisplayName(profile?.full_name, "Profile")}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-3xl font-semibold border-2 border-pink-400 shadow">
+                  {getSafeDisplayName(profile?.full_name).charAt(0).toUpperCase() || "?"}
+                </div>
+              )}
+              <div>
+                <Link href="/profile">
+                  <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 hover:underline cursor-pointer">
+                    {getSafeDisplayName(profile?.full_name)}
+                  </h1>
+                </Link>
               </div>
-            ) : (
-              <div className="w-20 h-20 min-w-[5rem] min-h-[5rem] aspect-square rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-3xl font-semibold border-2 border-pink-400 shadow">
-                {getSafeDisplayName(profile?.full_name).charAt(0).toUpperCase() || "?"}
-              </div>
-            )}
-            <div>
-              <Link href="/profile">
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 hover:underline cursor-pointer">
-                  {getSafeDisplayName(profile?.full_name)}
-                </h1>
-              </Link>
             </div>
+            <div className="flex items-center mt-2 sm:mt-0">
+              <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" unreadCount={unreadMessageCount} />
+            </div>
+          </header>
+
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`shrink-0 px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'local' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Local</button>
+            <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`shrink-0 px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'village' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>My Village</button>
+            <button onClick={() => { setFeedType('groups'); setSelectedGroupId(null); setGroupMode('actions'); }} className={`shrink-0 px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'groups' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Groups</button>
           </div>
-          {/* Messages button beside profile image */}
-          <div className="flex items-center mt-2 sm:mt-0">
-            <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" unreadCount={unreadMessageCount} />
-          </div>
-        </header>
+        </div>
         {/* Post creation modal */}
         {showCreateModal && (
           <>
@@ -1557,12 +1564,7 @@ export default function HomePage() {
                   <NavButton href="/notifications" icon="alarm" label="" className="w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl flex items-center justify-center" />
                 </div>
               </div>
-        {/* Feed type toggle */}
-        <div className="flex gap-3 mb-4">
-          <button onClick={() => { setFeedType('local'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'local' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Local</button>
-          <button onClick={() => { setFeedType('village'); setSelectedGroupId(null); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'village' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>My Village</button>
-          <button onClick={() => { setFeedType('groups'); setSelectedGroupId(null); setGroupMode('actions'); }} className={`px-5 py-2 rounded-full text-base font-semibold border ${feedType === 'groups' ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-zinc-200 dark:bg-zinc-800 text-pink-600 dark:text-pink-300 border-transparent'}`}>Groups</button>
-        </div>
+        {/* Feed type toggle is included in sticky top controls */}
         {/* Feed logic: Local, Village, Groups */}
         <main className="flex-1 overflow-y-auto">
           {feedType === 'groups' ? (
