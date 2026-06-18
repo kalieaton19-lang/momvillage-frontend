@@ -24,19 +24,50 @@ export async function POST(request: Request) {
       return new NextResponse(JSON.stringify({ error: "Missing conversationId" }), { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data: conversationMessages, error: fetchMessagesError } = await supabaseAdmin
       .from("messages")
-      .update({ read_at: new Date().toISOString() })
+      .select("*")
       .eq("conversation_id", conversationId)
       .eq("receiver_id", user.id)
-      .is("read_at", null)
-      .select("id");
+      .order("created_at", { ascending: true });
 
-    if (error) {
-      return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });
+    if (fetchMessagesError) {
+      return new NextResponse(JSON.stringify({ error: fetchMessagesError.message }), { status: 500 });
     }
 
-    const { error: notificationError } = await supabaseAdmin
+    const nowIso = new Date().toISOString();
+    let updatedCount = 0;
+
+    for (const row of conversationMessages || []) {
+      const metadata = (row as any)?.metadata && typeof (row as any).metadata === "object" ? (row as any).metadata : {};
+      const metadataReadAt = metadata?.read_by_receiver_at || metadata?.read_at || null;
+      const columnReadAt = (row as any)?.read_at ?? null;
+      if (metadataReadAt || columnReadAt) continue;
+
+      const updatePayload: Record<string, any> = {
+        metadata: {
+          ...metadata,
+          read_by_receiver_at: nowIso,
+        },
+      };
+
+      if (Object.prototype.hasOwnProperty.call(row, "read_at")) {
+        updatePayload.read_at = nowIso;
+      }
+
+      const { error: updateError } = await supabaseAdmin
+        .from("messages")
+        .update(updatePayload)
+        .eq("id", (row as any).id);
+
+      if (updateError) {
+        return new NextResponse(JSON.stringify({ error: updateError.message }), { status: 500 });
+      }
+
+      updatedCount += 1;
+    }
+
+    const { error: clearNotificationsError } = await supabaseAdmin
       .from("notifications")
       .update({ read: true })
       .eq("user_id", user.id)
@@ -44,11 +75,11 @@ export async function POST(request: Request) {
       .eq("read", false)
       .filter("data->>conversation_id", "eq", conversationId);
 
-    if (notificationError) {
-      return new NextResponse(JSON.stringify({ error: notificationError.message }), { status: 500 });
+    if (clearNotificationsError) {
+      return new NextResponse(JSON.stringify({ error: clearNotificationsError.message }), { status: 500 });
     }
 
-    return NextResponse.json({ updatedCount: data?.length || 0 });
+    return NextResponse.json({ updatedCount });
   } catch {
     return new NextResponse(JSON.stringify({ error: "Bad request" }), { status: 400 });
   }

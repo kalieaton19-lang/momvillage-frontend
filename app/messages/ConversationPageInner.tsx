@@ -170,6 +170,7 @@ interface ChatMessage {
   message_text: string;
   created_at: string;
   read_at?: string | null;
+  metadata?: Record<string, any> | null;
 }
 
 export default function ConversationPageInner({ conversationId }: { conversationId: string }) {
@@ -741,7 +742,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
             <>
               {messages.map((msg) => {
                 const isOutgoing = msg.sender_id === user?.id;
-                const statusText = msg.read_at ? 'Read' : 'Delivered';
+                const isRead = Boolean(
+                  msg.read_at || msg.metadata?.read_by_receiver_at || msg.metadata?.read_at,
+                );
+                const statusText = isRead ? 'Read' : 'Delivered';
                 const showOutgoingStatus = isOutgoing && msg.id === lastOutgoingMessageId;
                 return (
                   <div
@@ -767,7 +771,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       </p>
                     </div>
                     {showOutgoingStatus && (
-                      <p className={`mt-1 px-2 sm:px-3 text-xs font-semibold ${msg.read_at ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                      <p className={`mt-1 px-2 sm:px-3 text-xs font-semibold ${isRead ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
                         {statusText}
                       </p>
                     )}
