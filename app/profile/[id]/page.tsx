@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { useNotification } from "../../components/useNotification";
 import { fetchPosts, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../../lib/posts";
 import PostContentWithPreview from "../../components/PostContentWithPreview";
 import PostShareSheet from "../../components/PostShareSheet";
@@ -75,12 +76,14 @@ export default function ProfilePage() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
   const [showVillageModal, setShowVillageModal] = useState(false);
-  const [showRemoveModal, setShowRemoveModal] = useState(false);
-  const [removeLoading, setRemoveLoading] = useState(false);
+  const [showInvitationDecisionModal, setShowInvitationDecisionModal] = useState(false);
+  const [showInvitedActionsModal, setShowInvitedActionsModal] = useState(false);
+  const [showVillageMemberModal, setShowVillageMemberModal] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportModalType, setReportModalType] = useState<ReportType>("post");
   const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
+  const { showNotification, NotificationComponent } = useNotification();
 
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
@@ -230,6 +233,50 @@ export default function ProfilePage() {
     if (profileUserId) fetchProfile();
   }, [profileUserId, currentUser?.id]);
 
+  async function refreshInviteStatus(userOverride?: any) {
+    const activeUser = userOverride || currentUser;
+    if (!activeUser || !profileUserId) {
+      setInviteStatus("none");
+      return;
+    }
+
+    const { data: relationshipRows } = await supabase
+      .from("village_invitations")
+      .select("from_user_id,to_user_id,status")
+      .or(`and(from_user_id.eq.${activeUser.id},to_user_id.eq.${profileUserId}),and(from_user_id.eq.${profileUserId},to_user_id.eq.${activeUser.id})`);
+
+    const rows = relationshipRows || [];
+    const inVillage = rows.some((row: any) => row.status === "accepted");
+    if (inVillage) {
+      setInviteStatus("in-village");
+      return;
+    }
+
+    const invitedByMe = rows.some(
+      (row: any) =>
+        row.from_user_id === activeUser.id &&
+        row.to_user_id === profileUserId &&
+        (row.status === "pending" || row.status === "resent"),
+    );
+    if (invitedByMe) {
+      setInviteStatus("invited-by-me");
+      return;
+    }
+
+    const invitedMe = rows.some(
+      (row: any) =>
+        row.from_user_id === profileUserId &&
+        row.to_user_id === activeUser.id &&
+        (row.status === "pending" || row.status === "resent"),
+    );
+    if (invitedMe) {
+      setInviteStatus("invited-me");
+      return;
+    }
+
+    setInviteStatus("none");
+  }
+
   // Fetch current user and invitation/village status
   useEffect(() => {
     async function fetchStatus() {
@@ -240,42 +287,9 @@ export default function ProfilePage() {
         router.replace("/profile");
         return;
       }
-      // Check if in village
-      const { data: members } = await supabase
-        .from("village_invitations")
-        .select("id, from_user_id, to_user_id, status")
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
-        .eq("status", "accepted");
-      const inVillage = (members ?? []).some((m: any) => (m.from_user_id === profileUserId || m.to_user_id === profileUserId));
-      if (inVillage) {
-        setInviteStatus("in-village");
-        return;
-      }
-      // Check if invitation sent by me
-      const { data: sentInvites } = await supabase
-        .from("village_invitations")
-        .select("id, status")
-        .eq("from_user_id", user.id)
-        .eq("to_user_id", profileUserId)
-        .order("created_at", { ascending: false });
-      if ((sentInvites ?? []).some((i: any) => i.status === "pending" || i.status === "resent")) {
-        setInviteStatus("invited-by-me");
-        return;
-      }
-      // Check if invitation sent to me
-      const { data: receivedInvites } = await supabase
-        .from("village_invitations")
-        .select("id, status")
-        .eq("from_user_id", profileUserId)
-        .eq("to_user_id", user.id)
-        .order("created_at", { ascending: false });
-      if ((receivedInvites ?? []).some((i: any) => i.status === "pending" || i.status === "resent")) {
-        setInviteStatus("invited-me");
-        return;
-      }
-      setInviteStatus("none");
+      await refreshInviteStatus(user);
     }
-    fetchStatus();
+    void fetchStatus();
   }, [profileUserId, router]);
 
   // Fetch this user's village members
@@ -305,20 +319,169 @@ export default function ProfilePage() {
   }, [profileUserId]);
 
   async function handleInvite() {
-    if (!currentUser || !profileUserId) return;
+    if (!currentUser || !profileUserId) {
+      return { ok: false, message: "Please sign in to invite moms." };
+    }
     const targetUserId = profileUserId;
     setInviteLoading(true);
     try {
+      const { error: deleteStaleError } = await supabase
+        .from("village_invitations")
+        .delete()
+        .eq("from_user_id", currentUser.id)
+        .eq("to_user_id", targetUserId);
+
+      if (deleteStaleError) throw deleteStaleError;
+
       const { error } = await supabase
         .from("village_invitations")
         .insert({ from_user_id: currentUser.id, to_user_id: targetUserId, status: "pending" });
       if (error) throw error;
-      setInviteStatus("invited-by-me");
+      await refreshInviteStatus(currentUser);
+      return { ok: true, message: "Invitation sent!" };
     } catch (e) {
-      alert("Failed to send invitation.");
+      const errMsg = e && typeof e === "object" && "message" in e ? (e as Error).message : "Failed to send invitation.";
+      return { ok: false, message: errMsg };
     } finally {
       setInviteLoading(false);
     }
+  }
+
+  async function handleUninvite() {
+    if (!currentUser || !profileUserId) {
+      return { ok: false, message: "Please sign in to manage invitations." };
+    }
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .delete()
+        .eq("from_user_id", currentUser.id)
+        .eq("to_user_id", profileUserId);
+      if (error) throw error;
+
+      await refreshInviteStatus(currentUser);
+      return { ok: true, message: "Invitation removed." };
+    } catch (e) {
+      const errMsg = e && typeof e === "object" && "message" in e ? (e as Error).message : "Failed to remove invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleAcceptInvitation() {
+    if (!currentUser || !profileUserId) {
+      return { ok: false, message: "Please sign in to accept invitations." };
+    }
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .update({ status: "accepted" })
+        .eq("from_user_id", profileUserId)
+        .eq("to_user_id", currentUser.id)
+        .in("status", ["pending", "resent"]);
+      if (error) throw error;
+
+      await refreshInviteStatus(currentUser);
+      return { ok: true, message: "Invitation accepted! You're now in each other's village." };
+    } catch (e) {
+      const errMsg = e && typeof e === "object" && "message" in e ? (e as Error).message : "Failed to accept invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleDeclineInvitation() {
+    if (!currentUser || !profileUserId) {
+      return { ok: false, message: "Please sign in to manage invitations." };
+    }
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .delete()
+        .eq("from_user_id", profileUserId)
+        .eq("to_user_id", currentUser.id);
+      if (error) throw error;
+
+      await refreshInviteStatus(currentUser);
+      return { ok: true, message: "Invitation declined." };
+    } catch (e) {
+      const errMsg = e && typeof e === "object" && "message" in e ? (e as Error).message : "Failed to decline invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleRemoveFromVillage() {
+    if (!currentUser || !profileUserId) {
+      return { ok: false, message: "Please sign in to manage your village." };
+    }
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .delete()
+        .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${profileUserId}),and(from_user_id.eq.${profileUserId},to_user_id.eq.${currentUser.id})`);
+      if (error) throw error;
+
+      await refreshInviteStatus(currentUser);
+      return { ok: true, message: "Removed from your village." };
+    } catch (e) {
+      const errMsg = e && typeof e === "object" && "message" in e ? (e as Error).message : "Failed to remove from village.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleInviteWithFeedback() {
+    const result = await handleInvite();
+    showNotification(result.message, result.ok ? "success" : "error");
+  }
+
+  async function handleMessageClick() {
+    if (!currentUser || !profileUserId) return;
+    let conversationId = null;
+    const { data: existingConvos, error: convoError } = await supabase
+      .from("conversations")
+      .select("id,user1_id,user2_id")
+      .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${profileUserId}),and(user1_id.eq.${profileUserId},user2_id.eq.${currentUser.id})`)
+      .limit(1);
+    if (convoError) {
+      showNotification("Failed to check conversations", "error");
+      return;
+    }
+    if (existingConvos && existingConvos.length > 0) {
+      conversationId = existingConvos[0].id;
+    } else {
+      const { data: newConvo, error: createError } = await supabase
+        .from("conversations")
+        .insert({
+          user1_id: currentUser.id,
+          user2_id: profileUserId,
+          user1_name: currentUser.user_metadata?.full_name || "",
+          user2_name: getSafeDisplayName(profile.full_name, ""),
+          user1_photo: currentUser.user_metadata?.profile_photo_url || "",
+          user2_photo: profile.profile_photo_url || "",
+        })
+        .select()
+        .single();
+      if (createError || !newConvo) {
+        showNotification("Failed to create conversation", "error");
+        return;
+      }
+      conversationId = newConvo.id;
+    }
+    router.push(`/messages/${conversationId}`);
   }
 
   async function handleToggleLike(postId: string) {
@@ -662,117 +825,103 @@ export default function ProfilePage() {
         {/* Status banner or invite button below banner */}
         {currentUser && currentUser.id !== profileUserId && (
           <div className="flex flex-row justify-center items-center gap-3 mt-3 mb-2">
-            {/* Status/invite button */}
-            {inviteStatus === "in-village" && (
-              <button
-                className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-semibold text-base transition-colors whitespace-nowrap border border-green-300 shadow"
-                onClick={() => setShowRemoveModal(true)}
-                type="button"
-              >
-                In Your Village
-              </button>
-            )}
-                    {/* Remove from Village Modal */}
-                    {showRemoveModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 shadow-xl w-full max-w-md relative">
-                          <button
-                            onClick={() => setShowRemoveModal(false)}
-                            className="absolute top-3 right-3 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-300 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-                            aria-label="Close Remove Modal"
-                          >
-                            &times;
-                          </button>
-                          <div className="text-center mb-4">
-                            <div className="text-lg font-bold text-pink-700 mb-2">Remove from Your Village?</div>
-                            <div className="text-zinc-700 dark:text-zinc-200 mb-6">Are you sure you want to remove this mom from your village? This action cannot be undone.</div>
-                            <div className="flex gap-4 justify-center">
-                              <button
-                                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-lg font-semibold text-base transition-colors"
-                                onClick={() => setShowRemoveModal(false)}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-base transition-colors"
-                                onClick={async () => {
-                                  setRemoveLoading(true);
-                                  // Remove both directions of invitation
-                                  await supabase
-                                    .from('village_invitations')
-                                    .delete()
-                                    .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${profileUserId}),and(from_user_id.eq.${profileUserId},to_user_id.eq.${currentUser.id})`);
-                                  setRemoveLoading(false);
-                                  setInviteStatus('none');
-                                  setShowRemoveModal(false);
-                                }}
-                                disabled={removeLoading}
-                              >
-                                {removeLoading ? 'Removing...' : 'Remove'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-            {inviteStatus === "invited-by-me" && (
-              <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-base font-semibold whitespace-nowrap">Invitation Sent</div>
-            )}
-            {inviteStatus === "invited-me" && (
-              <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-base font-semibold whitespace-nowrap">Invited You</div>
-            )}
-            {inviteStatus === "none" && (
-              <button
-                className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg text-base font-semibold whitespace-nowrap transition-colors"
-                onClick={handleInvite}
-                disabled={inviteLoading}
-              >
-                {inviteLoading ? 'Sending...' : 'Invite to Village'}
-              </button>
-            )}
+            <button
+              onClick={
+                inviteStatus === "in-village"
+                  ? () => setShowVillageMemberModal(true)
+                  : inviteStatus === "invited-by-me"
+                  ? () => setShowInvitedActionsModal(true)
+                  : inviteStatus === "invited-me"
+                  ? () => setShowInvitationDecisionModal(true)
+                  : () => void handleInviteWithFeedback()
+              }
+              disabled={inviteLoading}
+              className={`shrink-0 px-3 py-1.5 border rounded-full text-xs font-semibold transition-colors ${
+                inviteStatus === "in-village"
+                  ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
+                  : inviteStatus === "invited-by-me"
+                  ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
+                  : inviteStatus === "invited-me"
+                  ? "bg-pink-700 !text-white border-transparent hover:bg-pink-800 shadow-sm dark:bg-pink-700 dark:!text-white dark:border-transparent dark:hover:bg-pink-800"
+                  : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+              } ${inviteLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+              style={inviteStatus === "invited-me" ? { color: "#ffffff" } : undefined}
+              type="button"
+            >
+              {inviteStatus === "in-village"
+                ? "In Your Village"
+                : inviteStatus === "invited-by-me"
+                ? inviteLoading
+                  ? "Updating..."
+                  : "Invited"
+                : inviteStatus === "invited-me"
+                ? inviteLoading
+                  ? "Updating..."
+                  : "View Invitation"
+                : inviteLoading
+                ? "Sending..."
+                : "Invite"}
+            </button>
             {/* Message button */}
             <button
               className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-semibold text-base transition-colors whitespace-nowrap dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
-              onClick={async () => {
-                // Find or create conversation between currentUser and profile user
-                if (!currentUser || !profileUserId) return;
-                let conversationId = null;
-                const { data: existingConvos, error: convoError } = await supabase
-                  .from("conversations")
-                  .select("id,user1_id,user2_id")
-                  .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${profileUserId}),and(user1_id.eq.${profileUserId},user2_id.eq.${currentUser.id})`)
-                  .limit(1);
-                if (convoError) {
-                  alert("Failed to check conversations");
-                  return;
-                }
-                if (existingConvos && existingConvos.length > 0) {
-                  conversationId = existingConvos[0].id;
-                } else {
-                  const { data: newConvo, error: createError } = await supabase
-                    .from("conversations")
-                    .insert({
-                      user1_id: currentUser.id,
-                      user2_id: profileUserId,
-                      user1_name: currentUser.user_metadata?.full_name || "",
-                      user2_name: getSafeDisplayName(profile.full_name, ""),
-                      user1_photo: currentUser.user_metadata?.profile_photo_url || "",
-                      user2_photo: profile.profile_photo_url || "",
-                    })
-                    .select()
-                    .single();
-                  if (createError || !newConvo) {
-                    alert("Failed to create conversation");
-                    return;
-                  }
-                  conversationId = newConvo.id;
-                }
-                   router.push(`/messages/${conversationId}`);
-              }}
+              onClick={() => void handleMessageClick()}
             >
               Message
             </button>
           </div>
+        )}
+        {showInvitationDecisionModal && (
+          <ProfileInvitationDecisionModal
+            mom={profile}
+            statusLoading={inviteLoading}
+            onClose={() => setShowInvitationDecisionModal(false)}
+            onAccept={async () => {
+              const result = await handleAcceptInvitation();
+              showNotification(result.message, result.ok ? "success" : "error");
+              setShowInvitationDecisionModal(false);
+            }}
+            onDecline={async () => {
+              const result = await handleDeclineInvitation();
+              showNotification(result.message, result.ok ? "success" : "error");
+              setShowInvitationDecisionModal(false);
+            }}
+          />
+        )}
+        {showInvitedActionsModal && (
+          <ProfileInvitedActionsModal
+            mom={profile}
+            statusLoading={inviteLoading}
+            onCancel={() => setShowInvitedActionsModal(false)}
+            onUninvite={async () => {
+              const result = await handleUninvite();
+              showNotification(result.message, result.ok ? "success" : "error");
+              setShowInvitedActionsModal(false);
+            }}
+            onResend={async () => {
+              const result = await handleInvite();
+              showNotification(result.message, result.ok ? "success" : "error");
+              setShowInvitedActionsModal(false);
+            }}
+          />
+        )}
+        {showVillageMemberModal && (
+          <ProfileVillageMemberModal
+            mom={profile}
+            statusLoading={inviteLoading}
+            onClose={() => setShowVillageMemberModal(false)}
+            onMessage={() => {
+              void handleMessageClick();
+              setShowVillageMemberModal(false);
+            }}
+            onRemove={async () => {
+              const result = await handleRemoveFromVillage();
+              showNotification(result.message, result.ok ? "success" : "error");
+              if (result.ok) {
+                setShowVillageMemberModal(false);
+              }
+            }}
+          />
         )}
         {/* Bio Section (below profile info, above posts) */}
         {/* Profile posts or other content can go here */}
@@ -1181,6 +1330,257 @@ export default function ProfilePage() {
         onClose={() => setShareSheetPost(null)}
         onShareTracked={handleTrackShare}
       />
+      {NotificationComponent}
+    </div>
+  );
+}
+
+interface ProfileInviteModalMom {
+  id: string;
+  full_name?: string | null;
+  profile_photo_url?: string | null;
+}
+
+interface ProfileInvitationDecisionModalProps {
+  mom: ProfileInviteModalMom;
+  statusLoading: boolean;
+  onClose: () => void;
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+function ProfileInvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecline }: ProfileInvitationDecisionModalProps) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close invitation popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={getSafeDisplayName(mom.full_name)}
+                role="img"
+                style={{ backgroundImage: `url(${mom.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {getSafeDisplayName(mom.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(mom.full_name)}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            has invited you to join her village!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onDecline}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Decline"}
+          </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
+          >
+            {statusLoading ? "Updating..." : "Accept"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ProfileInvitedActionsModalProps {
+  mom: ProfileInviteModalMom;
+  statusLoading: boolean;
+  onCancel: () => void;
+  onUninvite: () => void | Promise<void>;
+  onResend: () => void | Promise<void>;
+}
+
+function ProfileInvitedActionsModal({ mom, statusLoading, onCancel, onUninvite, onResend }: ProfileInvitedActionsModalProps) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onCancel}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close invited popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-4 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={getSafeDisplayName(mom.full_name)}
+                role="img"
+                style={{ backgroundImage: `url(${mom.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {getSafeDisplayName(mom.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(mom.full_name)}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            you&apos;ve already invited this mom to your village.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => void onUninvite()}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Uninvite"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void onResend()}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
+          >
+            {statusLoading ? "Updating..." : "Resend Invitation"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ProfileVillageMemberModalProps {
+  mom: ProfileInviteModalMom;
+  statusLoading: boolean;
+  onClose: () => void;
+  onMessage: () => void;
+  onRemove: () => void | Promise<void>;
+}
+
+function ProfileVillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }: ProfileVillageMemberModalProps) {
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  const profilePhotoUrl = (mom.profile_photo_url || "").trim();
+  const hasValidPhotoUrl =
+    Boolean(profilePhotoUrl) &&
+    profilePhotoUrl.toLowerCase() !== "null" &&
+    profilePhotoUrl.toLowerCase() !== "undefined";
+
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [mom.id, profilePhotoUrl]);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close village member popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {hasValidPhotoUrl && !photoLoadFailed ? (
+              <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-pink-300 bg-pink-100">
+                <img
+                  src={profilePhotoUrl}
+                  alt={getSafeDisplayName(mom.full_name)}
+                  className="h-full w-full object-cover"
+                  onError={() => setPhotoLoadFailed(true)}
+                />
+              </div>
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {getSafeDisplayName(mom.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(mom.full_name)}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            is a part of your village!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onMessage}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => void onRemove()}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
+          >
+            {statusLoading ? "Updating..." : "Remove from Village"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
