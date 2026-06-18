@@ -164,7 +164,7 @@ export default function HomePage() {
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
   const [sharedPostId, setSharedPostId] = useState<string | null>(null);
   const [didFocusSharedPost, setDidFocusSharedPost] = useState(false);
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -201,7 +201,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!user?.id) {
-      setHasUnreadMessages(false);
+      setUnreadMessageCount(0);
       return;
     }
 
@@ -563,26 +563,22 @@ export default function HomePage() {
 
   async function refreshMessageNotifications(userId: string) {
     try {
-      const { data: unreadNotificationRows, error: unreadNotificationsError } = await supabase
+      const { count: unreadNotificationsCount, error: unreadNotificationsError } = await supabase
         .from("notifications")
-        .select("id")
+        .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("type", "message_received")
-        .eq("read", false)
-        .limit(1);
+        .eq("read", false);
 
-      const hasUnreadMessageNotifications =
-        !unreadNotificationsError && (unreadNotificationRows?.length ?? 0) > 0;
+      const unreadNotifications = !unreadNotificationsError ? (unreadNotificationsCount ?? 0) : 0;
 
-      const { data: unreadMessageRows, error: unreadMessagesError } = await supabase
+      const { count: unreadMessagesCount, error: unreadMessagesError } = await supabase
         .from("messages")
-        .select("id")
+        .select("id", { count: "exact", head: true })
         .eq("receiver_id", userId)
-        .is("read_at", null)
-        .limit(1);
+        .is("read_at", null);
 
-      const hasUnreadMessagesByReadAt =
-        !unreadMessagesError && (unreadMessageRows?.length ?? 0) > 0;
+      const unreadMessagesByReadAt = !unreadMessagesError ? (unreadMessagesCount ?? 0) : 0;
 
       const { data: recentIncomingRows, error: recentIncomingError } = await supabase
         .from("messages")
@@ -591,7 +587,7 @@ export default function HomePage() {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      let hasUnreadBySeenMap = false;
+      let unreadBySeenMapCount = 0;
       if (!recentIncomingError && typeof window !== "undefined") {
         const seenStorageKey = `messages_seen_at:${userId}`;
         let seenConversationAt: Record<string, string> = {};
@@ -610,17 +606,21 @@ export default function HomePage() {
 
           const seenAt = seenConversationAt[conversationId];
           if (!seenAt || new Date(createdAt).getTime() > new Date(seenAt).getTime()) {
-            hasUnreadBySeenMap = true;
-            break;
+            unreadBySeenMapCount += 1;
           }
         }
       }
 
-      setHasUnreadMessages(
-        hasUnreadMessageNotifications || hasUnreadMessagesByReadAt || hasUnreadBySeenMap,
-      );
+      const nextUnreadCount =
+        unreadMessagesByReadAt > 0
+          ? unreadMessagesByReadAt
+          : unreadNotifications > 0
+          ? unreadNotifications
+          : unreadBySeenMapCount;
+
+      setUnreadMessageCount(nextUnreadCount);
     } catch {
-      setHasUnreadMessages(false);
+      setUnreadMessageCount(0);
     }
   }
 
@@ -1401,7 +1401,7 @@ export default function HomePage() {
           </div>
           {/* Messages button beside profile image */}
           <div className="flex items-center mt-2 sm:mt-0">
-            <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" showDot={hasUnreadMessages} />
+            <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" unreadCount={unreadMessageCount} />
           </div>
         </header>
         {/* Post creation modal */}
@@ -2252,13 +2252,15 @@ export default function HomePage() {
 // ...existing code...
 }
 
-function NavButton({ href, icon, label, className = "", showDot = false }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus' | 'alarm'; label?: string; className?: string; showDot?: boolean }) {
+function NavButton({ href, icon, label, className = "", unreadCount = 0 }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus' | 'alarm'; label?: string; className?: string; unreadCount?: number }) {
   const isIconOnly = !label;
   // Highlight if the button's href matches the current path (for main nav pages)
   const pathname = usePathname ? usePathname() : undefined;
   const isActive = pathname && (pathname === href || (href === "/find-moms" && pathname.startsWith("/find-moms")) || (href === "/messages" && pathname.startsWith("/messages")) || (href === "/notifications" && pathname.startsWith("/notifications")));
   // Add pink highlight if active
   const activeClass = isActive ? "bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700" : "";
+  const hasUnread = unreadCount > 0;
+  const badgeText = unreadCount > 9 ? "9+" : String(unreadCount);
   const iconMap: Record<string, JSX.Element> = {
     user: (
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7"><circle cx="12" cy="8" r="4" strokeWidth="1.5"/><path strokeWidth="1.5" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/></svg>
@@ -2287,8 +2289,10 @@ function NavButton({ href, icon, label, className = "", showDot = false }: { hre
       aria-label={label || icon}
     >
       {iconMap[icon]}
-      {showDot && (
-        <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-pink-500" aria-hidden="true" />
+      {hasUnread && (
+        <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-pink-600 text-white text-[10px] font-bold leading-none flex items-center justify-center ring-2 ring-white dark:ring-zinc-900" aria-label={`${badgeText} unread messages`}>
+          {badgeText}
+        </span>
       )}
       {!isIconOnly && label}
     </Link>
