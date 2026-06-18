@@ -401,7 +401,7 @@ export default function FindMomsPage() {
   }
 
   async function handleAcceptWithFeedback(momId: string) {
-    const shouldAccept = window.confirm("Accept this village invitation?");
+    const shouldAccept = window.confirm("Do you want to join this user's village?");
     if (!shouldAccept) return;
 
     const result = await handleAcceptInvitation(momId);
@@ -631,7 +631,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
             : relationshipStatus === "invited"
             ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
             : relationshipStatus === "invited_you"
-            ? "bg-blue-100 text-blue-700 border-blue-500 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700 dark:hover:bg-blue-900/45"
+            ? "bg-pink-700 text-white border-pink-800 hover:bg-pink-800 dark:bg-pink-700 dark:text-white dark:border-pink-900 dark:hover:bg-pink-800"
             : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
         } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
       >
@@ -739,7 +739,7 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite,
                   : relationshipStatus === "invited"
                   ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
                   : relationshipStatus === "invited_you"
-                  ? "bg-blue-100 text-blue-700 border-blue-500 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700 dark:hover:bg-blue-900/45"
+                    ? "bg-pink-700 text-white border-pink-800 hover:bg-pink-800 dark:bg-pink-700 dark:text-white dark:border-pink-900 dark:hover:bg-pink-800"
                   : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
               } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
             >
@@ -876,7 +876,7 @@ function ProfilePreviewModal({
                 : relationshipStatus === "invited"
                 ? "border-zinc-400 bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
                 : relationshipStatus === "invited_you"
-                ? "border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/45"
+                ? "border-pink-800 bg-pink-700 text-white hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:text-white dark:hover:bg-pink-800"
                 : "border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
             } ${statusLoading ? "cursor-not-allowed opacity-60" : ""}`}
           >
