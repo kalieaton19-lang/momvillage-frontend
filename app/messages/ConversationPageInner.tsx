@@ -163,6 +163,15 @@ interface Conversation {
   last_message_time: string;
 }
 
+interface ChatMessage {
+  id: string;
+  sender_id: string;
+  receiver_id?: string | null;
+  message_text: string;
+  created_at: string;
+  read_at?: string | null;
+}
+
 export default function ConversationPageInner({ conversationId }: { conversationId: string }) {
   // Debug log for conversationId
   console.log('[ConversationPageInner] conversationId:', conversationId);
@@ -174,7 +183,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const { showNotification, NotificationComponent } = useNotification();
   const [user, setUser] = useState<any>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [villageStatus, setVillageStatus] = useState<
@@ -205,6 +214,43 @@ export default function ConversationPageInner({ conversationId }: { conversation
       setVillageStatus(null);
     }
   }, [conversation, user]);
+
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+
+    const channel = supabase
+      .channel(`conversation-messages-${conversation.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversation.id}`,
+        },
+        () => {
+          void loadMessages(conversation.id);
+          void markConversationMessagesAsRead(user.id, conversation.id);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversation.id}`,
+        },
+        () => {
+          void loadMessages(conversation.id);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [conversation?.id, user?.id]);
 
   async function refreshVillageStatus(currentUserId: string, otherUserId: string) {
     const { data: relationshipRows } = await supabase
@@ -412,9 +458,27 @@ export default function ConversationPageInner({ conversationId }: { conversation
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data || []) as ChatMessage[]);
+      if (user?.id) {
+        await markConversationMessagesAsRead(user.id, conversationId);
+      }
     } catch (error) {
       showNotification("Failed to load messages");
+    }
+  }
+
+  async function markConversationMessagesAsRead(currentUserId: string, currentConversationId: string) {
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("conversation_id", currentConversationId)
+        .eq("receiver_id", currentUserId)
+        .is("read_at", null);
+
+      if (error) throw error;
+    } catch {
+      // Silent fail to avoid interrupting chat UX.
     }
   }
 
@@ -651,29 +715,38 @@ export default function ConversationPageInner({ conversationId }: { conversation
             </div>
           ) : (
             <>
-              {messages.map(msg => {
+              {messages.map((msg) => {
+                const isOutgoing = msg.sender_id === user?.id;
+                const statusText = msg.read_at ? 'Read' : 'Delivered';
                 return (
                   <div
                     key={msg.id}
-                    className={`flex w-full ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex w-full ${isOutgoing ? 'justify-end' : 'justify-start'}`}
                     style={{ marginBottom: 1 }}
                   >
                     <div
                       className={`px-2 py-1 rounded-2xl sm:px-3 sm:py-2 ${
-                        msg.sender_id === user?.id
+                        isOutgoing
                           ? 'bg-pink-100 text-pink-900 rounded-br-none ml-2 sm:ml-32 max-w-[96vw] sm:max-w-xs'
                           : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-2 sm:mr-32 max-w-[96vw] sm:max-w-xs'
                       }`}
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
                       <p className="break-words text-base leading-snug">{msg.message_text}</p>
-                      <p className={`text-xs mt-1 ${
-                        msg.sender_id === user?.id
-                          ? 'text-pink-400'
-                          : 'text-zinc-500 dark:text-zinc-400'
-                      }`}>
-                        {formatTime(msg.created_at)}
-                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className={`text-xs ${
+                          isOutgoing
+                            ? 'text-pink-400'
+                            : 'text-zinc-500 dark:text-zinc-400'
+                        }`}>
+                          {formatTime(msg.created_at)}
+                        </p>
+                        {isOutgoing && (
+                          <p className={`text-xs font-semibold ${msg.read_at ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                            {statusText}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
