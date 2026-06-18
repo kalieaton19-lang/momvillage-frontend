@@ -66,6 +66,7 @@ export default function ProfilePage() {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
+  const [groupNameById, setGroupNameById] = useState<Record<string, string>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
   const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
   const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
@@ -106,6 +107,7 @@ export default function ProfilePage() {
       if (error) {
         setError("Profile not found.");
         setProfile(null);
+        setGroupNameById({});
       } else {
         const metadataName =
           profileUserId === currentUser?.id
@@ -119,11 +121,12 @@ export default function ProfilePage() {
 
         const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((entry): entry is string => !!entry))];
         let visiblePosts = nextPosts;
+        let resolvedGroupNames: Record<string, string> = {};
         if (groupIds.length > 0) {
           const viewerUserId = currentUser?.id || "";
           const groupResult = await supabase
             .from("groups")
-            .select("id,visibility,creator_user_id")
+            .select("id,name,visibility,creator_user_id")
             .in("id", groupIds);
 
           const membershipResult = viewerUserId
@@ -134,10 +137,11 @@ export default function ProfilePage() {
                 .in("group_id", groupIds)
             : { data: [] as any[] };
 
-          const groupById: Record<string, { visibility: "open" | "by_permission"; creator_user_id: string }> = {};
+          const groupById: Record<string, { name: string; visibility: "open" | "by_permission"; creator_user_id: string }> = {};
           (groupResult.data || []).forEach((group: any) => {
             if (group?.id) {
               groupById[group.id] = {
+                name: group.name || "Group",
                 visibility: (group.visibility as "open" | "by_permission") || "by_permission",
                 creator_user_id: group.creator_user_id || "",
               };
@@ -158,10 +162,18 @@ export default function ProfilePage() {
             if (groupMeta.creator_user_id === viewerUserId) return true;
             return approvedMemberships.has(post.group_id);
           });
+
+          visiblePosts.forEach((post) => {
+            if (!post.group_id) return;
+            const groupMeta = groupById[post.group_id];
+            if (!groupMeta?.name) return;
+            resolvedGroupNames[post.group_id] = groupMeta.name;
+          });
         }
 
         setPosts(visiblePosts);
         setPostsCount(visiblePosts.length);
+        setGroupNameById(resolvedGroupNames);
 
         const authorIds = [...new Set(visiblePosts.map((post) => post.author_user_id).filter(Boolean))];
         if (authorIds.length > 0) {
@@ -223,6 +235,7 @@ export default function ProfilePage() {
             }
           }
         } else {
+          setGroupNameById({});
           setLikesCountByPost({});
           setLikedByMeByPost({});
           setSharesCountByPost({});
@@ -962,7 +975,15 @@ export default function ProfilePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
+                          <div className="flex items-center gap-1 min-w-0 text-sm">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
+                            {post.group_id && (
+                              <>
+                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
+                                <span className="text-pink-600 dark:text-pink-300 font-bold truncate">{groupNameById[post.group_id] || "Group"}</span>
+                              </>
+                            )}
+                          </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </Link>
@@ -980,7 +1001,15 @@ export default function ProfilePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
+                          <div className="flex items-center gap-1 min-w-0 text-sm">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
+                            {post.group_id && (
+                              <>
+                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
+                                <span className="text-pink-600 dark:text-pink-300 font-bold truncate">{groupNameById[post.group_id] || "Group"}</span>
+                              </>
+                            )}
+                          </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </div>
