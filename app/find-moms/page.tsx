@@ -82,6 +82,7 @@ function pickCanonicalProfileName(profile: any): string {
 
 export default function FindMomsPage() {
   const router = useRouter();
+  const { showNotification, NotificationComponent } = useNotification();
   const [moms, setMoms] = useState<MomProfile[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -91,6 +92,7 @@ export default function FindMomsPage() {
   const [messagedUserIds, setMessagedUserIds] = useState<Set<string>>(new Set());
   const [relationshipStatusByMomId, setRelationshipStatusByMomId] = useState<Record<string, MomRelationshipStatus>>({});
   const [statusLoadingByMomId, setStatusLoadingByMomId] = useState<Record<string, boolean>>({});
+  const [selectedMomId, setSelectedMomId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMoms() {
@@ -324,6 +326,20 @@ export default function FindMomsPage() {
         .includes(normalizedQuery);
     });
 
+  const selectedMom = selectedMomId
+    ? moms.find((mom) => mom.id === selectedMomId) || null
+    : null;
+
+  async function handleInviteWithFeedback(momId: string) {
+    const result = await handleInviteToVillage(momId);
+    showNotification(result.message);
+  }
+
+  async function handleUninviteWithFeedback(momId: string) {
+    const result = await handleUninvite(momId);
+    showNotification(result.message);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -403,6 +419,7 @@ export default function FindMomsPage() {
                       statusLoading={!!statusLoadingByMomId[mom.id]}
                       onInvite={handleInviteToVillage}
                       onUninvite={handleUninvite}
+                      onOpenPreview={setSelectedMomId}
                     />
                   ))}
                 </div>
@@ -427,12 +444,29 @@ export default function FindMomsPage() {
                   statusLoading={!!statusLoadingByMomId[mom.id]}
                   onInvite={handleInviteToVillage}
                   onUninvite={handleUninvite}
+                  onOpenPreview={setSelectedMomId}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {selectedMom && (
+        <ProfilePreviewModal
+          mom={selectedMom}
+          relationshipStatus={relationshipStatusByMomId[selectedMom.id] || "none"}
+          statusLoading={!!statusLoadingByMomId[selectedMom.id]}
+          onClose={() => setSelectedMomId(null)}
+          onViewProfile={() => {
+            setSelectedMomId(null);
+            router.push(`/profile/${selectedMom.id}`);
+          }}
+          onInvite={() => void handleInviteWithFeedback(selectedMom.id)}
+          onUninvite={() => void handleUninviteWithFeedback(selectedMom.id)}
+        />
+      )}
+      {NotificationComponent}
     </div>
   );
 }
@@ -443,6 +477,7 @@ interface MomCardProps {
   statusLoading: boolean;
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
   onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onOpenPreview: (momId: string) => void;
 }
 
 interface NameSuggestionRowProps {
@@ -451,9 +486,10 @@ interface NameSuggestionRowProps {
   statusLoading: boolean;
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
   onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onOpenPreview: (momId: string) => void;
 }
 
-function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite }: NameSuggestionRowProps) {
+function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onOpenPreview }: NameSuggestionRowProps) {
   const { showNotification, NotificationComponent } = useNotification();
 
   async function handleInviteClick() {
@@ -475,7 +511,11 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
   return (
     <div className="px-4 py-3 flex items-center justify-between gap-3 bg-white dark:bg-zinc-900">
-      <div className="flex items-center gap-3 min-w-0">
+      <button
+        type="button"
+        onClick={() => onOpenPreview(mom.id)}
+        className="flex items-center gap-3 min-w-0 text-left hover:opacity-90 transition"
+      >
         {mom.user_metadata?.profile_photo_url ? (
           <img
             src={mom.user_metadata.profile_photo_url}
@@ -497,7 +537,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
             </div>
           )}
         </div>
-      </div>
+      </button>
       <button
         onClick={
           relationshipStatus === "invited"
@@ -530,7 +570,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
 
 
-function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite }: MomCardProps) {
+function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onOpenPreview }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
   const { showNotification, NotificationComponent } = useNotification();
@@ -555,21 +595,29 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-start gap-4">
-        {metadata?.profile_photo_url ? (
-          <img
-            src={metadata.profile_photo_url}
-            alt={getSafeDisplayName(metadata?.full_name)}
-            className="w-16 h-16 rounded-full object-cover border-2 border-pink-300"
-          />
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xl font-semibold">
-            {getSafeDisplayName(metadata?.full_name).charAt(0).toUpperCase() || '?'}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => onOpenPreview(mom.id)}
+          className="shrink-0 text-left hover:opacity-90 transition"
+        >
+          {metadata?.profile_photo_url ? (
+            <img
+              src={metadata.profile_photo_url}
+              alt={getSafeDisplayName(metadata?.full_name)}
+              className="w-16 h-16 rounded-full object-cover border-2 border-pink-300"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xl font-semibold">
+              {getSafeDisplayName(metadata?.full_name).charAt(0).toUpperCase() || '?'}
+            </div>
+          )}
+        </button>
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            {getSafeDisplayName(metadata?.full_name)}
-          </h3>
+          <button type="button" onClick={() => onOpenPreview(mom.id)} className="text-left">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 hover:underline">
+              {getSafeDisplayName(metadata?.full_name)}
+            </h3>
+          </button>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {metadata?.city}, {metadata?.state}
           </p>
@@ -624,6 +672,140 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite 
             </button>
           </div>
           {NotificationComponent}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ProfilePreviewModalProps {
+  mom: MomProfile;
+  relationshipStatus: MomRelationshipStatus;
+  statusLoading: boolean;
+  onClose: () => void;
+  onViewProfile: () => void;
+  onInvite: () => void;
+  onUninvite: () => void;
+}
+
+function ProfilePreviewModal({
+  mom,
+  relationshipStatus,
+  statusLoading,
+  onClose,
+  onViewProfile,
+  onInvite,
+  onUninvite,
+}: ProfilePreviewModalProps) {
+  const metadata = mom.user_metadata;
+
+  async function handleStatusClick() {
+    if (relationshipStatus === "in_village") {
+      return;
+    }
+
+    if (relationshipStatus === "invited") {
+      const shouldUninvite = window.confirm(
+        `Uninvite ${getSafeDisplayName(metadata?.full_name)}?`,
+      );
+      if (!shouldUninvite) return;
+      onUninvite();
+      return;
+    }
+
+    onInvite();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {metadata?.profile_photo_url ? (
+              <div
+                className="h-16 w-16 rounded-full border-2 border-pink-300 bg-cover bg-center"
+                aria-label={getSafeDisplayName(metadata?.full_name)}
+                role="img"
+                style={{ backgroundImage: `url(${metadata.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-xl font-semibold text-white">
+                {getSafeDisplayName(metadata?.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                {getSafeDisplayName(metadata?.full_name)}
+              </h3>
+              {(metadata?.city || metadata?.state) && (
+                <p className="truncate text-sm text-zinc-600 dark:text-zinc-400">
+                  {[metadata?.city, metadata?.state].filter(Boolean).join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            aria-label="Close profile preview"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-wrap gap-2">
+          {metadata?.number_of_kids && (
+            <span className="rounded-full bg-pink-100 px-2 py-1 text-xs text-pink-700 dark:bg-pink-900/30 dark:text-pink-300">
+              {metadata.number_of_kids} kid{metadata.number_of_kids !== 1 ? "s" : ""}
+            </span>
+          )}
+          {Array.isArray(metadata?.kids_age_groups) &&
+            metadata.kids_age_groups.map((age) => (
+              <span key={age} className="rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                {age}
+              </span>
+            ))}
+          {metadata?.parenting_style && (
+            <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              {metadata.parenting_style}
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={onViewProfile}
+            className="flex-1 rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            View Profile
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleStatusClick()}
+            disabled={statusLoading || relationshipStatus === "in_village"}
+            className={`flex-1 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+              relationshipStatus === "in_village"
+                ? "border-green-500 bg-green-100 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200"
+                : relationshipStatus === "invited"
+                ? "border-zinc-400 bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
+                : "border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
+            } ${statusLoading ? "cursor-not-allowed opacity-60" : ""}`}
+          >
+            {relationshipStatus === "in_village"
+              ? "In Your Village"
+              : relationshipStatus === "invited"
+              ? statusLoading
+                ? "Updating..."
+                : "Invited"
+              : statusLoading
+              ? "Sending..."
+              : "Invite"}
+          </button>
         </div>
       </div>
     </div>
