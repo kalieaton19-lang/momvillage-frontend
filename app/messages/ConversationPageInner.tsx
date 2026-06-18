@@ -208,7 +208,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
 
   useEffect(() => {
     if (conversation && user) {
-      loadMessages(conversation.id);
+      void loadMessages(conversation.id);
       void refreshVillageStatus(user.id, conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id);
     } else {
       setVillageStatus(null);
@@ -230,7 +230,6 @@ export default function ConversationPageInner({ conversationId }: { conversation
         },
         () => {
           void loadMessages(conversation.id);
-          void markConversationMessagesAsRead(user.id, conversation.id);
         },
       )
       .on(
@@ -464,6 +463,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
 
   async function loadMessages(conversationId: string) {
     try {
+      if (user?.id) {
+        await markConversationMessagesAsRead(conversationId);
+      }
+
       const { data, error } = await supabase
         .from("messages")
         .select("*")
@@ -471,24 +474,27 @@ export default function ConversationPageInner({ conversationId }: { conversation
         .order("created_at", { ascending: true });
       if (error) throw error;
       setMessages((data || []) as ChatMessage[]);
-      if (user?.id) {
-        await markConversationMessagesAsRead(user.id, conversationId);
-      }
     } catch (error) {
       showNotification("Failed to load messages");
     }
   }
 
-  async function markConversationMessagesAsRead(currentUserId: string, currentConversationId: string) {
+  async function markConversationMessagesAsRead(currentConversationId: string) {
     try {
-      const { error } = await supabase
-        .from("messages")
-        .update({ read_at: new Date().toISOString() })
-        .eq("conversation_id", currentConversationId)
-        .eq("receiver_id", currentUserId)
-        .is("read_at", null);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
 
-      if (error) throw error;
+      await fetch("/api/messages/mark-read", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ conversationId: currentConversationId }),
+      });
     } catch {
       // Silent fail to avoid interrupting chat UX.
     }
