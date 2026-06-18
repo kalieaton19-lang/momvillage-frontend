@@ -232,8 +232,27 @@ export default function HomePage() {
       )
       .subscribe();
 
+    const unreadMessagesChannel = supabase
+      .channel(`home-unread-messages-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => {
+          void refreshMessageNotifications(user.id);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => {
+          void refreshMessageNotifications(user.id);
+        },
+      )
+      .subscribe();
+
     return () => {
       void supabase.removeChannel(unreadChannel);
+      void supabase.removeChannel(unreadMessagesChannel);
     };
   }, [user?.id]);
 
@@ -544,7 +563,7 @@ export default function HomePage() {
 
   async function refreshMessageNotifications(userId: string) {
     try {
-      const { data, error } = await supabase
+      const { data: unreadNotificationRows, error: unreadNotificationsError } = await supabase
         .from("notifications")
         .select("id")
         .eq("user_id", userId)
@@ -552,8 +571,22 @@ export default function HomePage() {
         .eq("read", false)
         .limit(1);
 
-      if (error) throw error;
-      setHasUnreadMessages((data?.length ?? 0) > 0);
+      if (unreadNotificationsError) throw unreadNotificationsError;
+
+      const hasUnreadMessageNotifications = (unreadNotificationRows?.length ?? 0) > 0;
+
+      const { data: unreadMessageRows, error: unreadMessagesError } = await supabase
+        .from("messages")
+        .select("id")
+        .eq("receiver_id", userId)
+        .is("read_at", null)
+        .limit(1);
+
+      if (unreadMessagesError) throw unreadMessagesError;
+
+      const hasUnreadMessagesFallback = (unreadMessageRows?.length ?? 0) > 0;
+
+      setHasUnreadMessages(hasUnreadMessageNotifications || hasUnreadMessagesFallback);
     } catch {
       setHasUnreadMessages(false);
     }
