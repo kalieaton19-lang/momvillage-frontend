@@ -45,6 +45,7 @@ interface Conversation {
 interface LatestMessageInfo {
   senderId: string;
   createdAt: string;
+  messageText?: string;
 }
 
 
@@ -61,11 +62,6 @@ function MessagesPageInner() {
   const { showNotification, NotificationComponent } = useNotification();
 
   const seenStorageKey = user?.id ? `messages_seen_at:${user.id}` : null;
-
-  function getProfileHref(otherUserId?: string | null) {
-    if (!otherUserId) return null;
-    return otherUserId === user?.id ? "/profile" : `/profile/${otherUserId}`;
-  }
 
   useEffect(() => {
     checkUser();
@@ -303,7 +299,7 @@ function MessagesPageInner() {
 
       const { data: messageRows } = await supabase
         .from("messages")
-        .select("conversation_id,sender_id,created_at")
+        .select("conversation_id,sender_id,created_at,message_text")
         .in("conversation_id", conversationIds)
         .order("created_at", { ascending: false });
 
@@ -314,6 +310,7 @@ function MessagesPageInner() {
         latestByConversation[row.conversation_id] = {
           senderId: row.sender_id,
           createdAt: row.created_at,
+          messageText: row.message_text || "",
         };
       });
 
@@ -423,10 +420,9 @@ function MessagesPageInner() {
             <div className="flex flex-col gap-3">
               {conversations.map(conv => {
                 const otherUser = getOtherUserInfo(conv);
-                const otherUserId = getOtherUserId(conv);
-                const profileHref = getProfileHref(otherUserId);
                 const latestInfo = latestMessageByConversation[conv.id];
                 const seenAt = seenConversationAt[conv.id] || "";
+                const previewText = latestInfo?.messageText || conv.last_message || "Start chatting";
                 const hasUnreadIncoming =
                   Boolean(user?.id) &&
                   Boolean(latestInfo?.senderId) &&
@@ -468,75 +464,33 @@ function MessagesPageInner() {
                         aria-label={`Select conversation with ${otherUser.name || "mom"}`}
                       />
                     )}
-                    {profileHref ? (
-                      <button
-                        type="button"
-                        className="flex items-center gap-3 min-w-0"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (isEditMode) {
-                            toggleConversationSelection(conv.id);
-                            return;
-                          }
-                          router.push(profileHref);
-                        }}
-                      >
-                        {otherUser.photo ? (
-                          <div className="relative">
-                            <img
-                              src={otherUser.photo}
-                              alt={otherUser.name}
-                              className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                            />
-                            {hasUnreadIncoming && (
-                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                              {otherUser.name?.[0]?.toUpperCase() || '?'}
-                            </div>
-                            {hasUnreadIncoming && (
-                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
-                            )}
-                          </div>
-                        )}
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left hover:underline">{otherUser.name}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{conv.last_message}</div>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {otherUser.photo ? (
+                        <div className="relative">
+                          <img
+                            src={otherUser.photo}
+                            alt={otherUser.name}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                          {hasUnreadIncoming && (
+                            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
+                          )}
                         </div>
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {otherUser.photo ? (
-                          <div className="relative">
-                            <img
-                              src={otherUser.photo}
-                              alt={otherUser.name}
-                              className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                            />
-                            {hasUnreadIncoming && (
-                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
-                            )}
+                      ) : (
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                            {otherUser.name?.[0]?.toUpperCase() || '?'}
                           </div>
-                        ) : (
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                              {otherUser.name?.[0]?.toUpperCase() || '?'}
-                            </div>
-                            {hasUnreadIncoming && (
-                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
-                            )}
-                          </div>
-                        )}
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left">{otherUser.name}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{conv.last_message}</div>
+                          {hasUnreadIncoming && (
+                            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
+                          )}
                         </div>
+                      )}
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left">{otherUser.name}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{previewText}</div>
                       </div>
-                    )}
-                    {profileHref && <div className="flex-1" />}
+                    </div>
                     {!isEditMode && (
                       <div className="flex items-center ml-2">
                         <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-400">
