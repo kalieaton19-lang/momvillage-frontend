@@ -592,21 +592,22 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const lastOutgoingMessageId = [...messages].reverse().find((message) => message.sender_id === user?.id)?.id;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
-      <div className="max-w-2xl mx-auto h-screen flex flex-col">
-        <header className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
-          <button
-            className="text-pink-600 dark:text-pink-400 hover:opacity-80 flex items-center"
-            onClick={() => { window.location.href = '/messages'; }}
-            aria-label="Back to Conversations"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-        </header>
-        {/* Profile header above messages, with invite button/indicator */}
-        <div className="flex items-center gap-4 p-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <div className="h-[100dvh] overflow-hidden bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+      <div className="max-w-2xl mx-auto h-full flex flex-col overflow-hidden">
+        <div className="sticky top-0 z-20 bg-white dark:bg-zinc-900">
+          <header className="shrink-0 flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
+            <button
+              className="text-pink-600 dark:text-pink-400 hover:opacity-80 flex items-center"
+              onClick={() => { window.location.href = '/messages'; }}
+              aria-label="Back to Conversations"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+          </header>
+          {/* Profile header above messages, with invite button/indicator */}
+          <div className="shrink-0 flex items-center gap-4 p-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <button
             type="button"
             className="flex items-center gap-4 no-underline hover:opacity-80 bg-transparent border-none p-0"
@@ -634,50 +635,51 @@ export default function ConversationPageInner({ conversationId }: { conversation
           {otherUserId ? (
             <ProfileModal userId={otherUserId} open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
           ) : null}
-          {villageStatus && (
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                onClick={
-                  villageStatus.status === 'in-village'
-                    ? () => setShowVillageMemberModal(true)
+            {villageStatus && (
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={
+                    villageStatus.status === 'in-village'
+                      ? () => setShowVillageMemberModal(true)
+                      : villageStatus.status === 'invited-by-me'
+                      ? () => setShowInvitedActionsModal(true)
+                      : villageStatus.status === 'invited-me'
+                      ? () => setShowInvitationDecisionModal(true)
+                      : async () => {
+                          const result = await handleSendVillageInvitation();
+                          showNotification(result.message, result.ok ? 'success' : 'error');
+                        }
+                  }
+                  disabled={inviteLoading}
+                  className={`shrink-0 px-3 py-1.5 border rounded-full text-xs font-semibold transition-colors ${
+                    villageStatus.status === 'in-village'
+                      ? 'bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700'
+                      : villageStatus.status === 'invited-by-me'
+                      ? 'bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600'
+                      : villageStatus.status === 'invited-me'
+                      ? 'bg-pink-700 !text-white border-transparent hover:bg-pink-800 shadow-sm dark:bg-pink-700 dark:!text-white dark:border-transparent dark:hover:bg-pink-800'
+                      : 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45'
+                  } ${inviteLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  style={villageStatus.status === 'invited-me' ? { color: '#ffffff' } : undefined}
+                  type="button"
+                >
+                  {villageStatus.status === 'in-village'
+                    ? 'In Your Village'
                     : villageStatus.status === 'invited-by-me'
-                    ? () => setShowInvitedActionsModal(true)
+                    ? inviteLoading
+                      ? 'Updating...'
+                      : 'Invited'
                     : villageStatus.status === 'invited-me'
-                    ? () => setShowInvitationDecisionModal(true)
-                    : async () => {
-                        const result = await handleSendVillageInvitation();
-                        showNotification(result.message, result.ok ? 'success' : 'error');
-                      }
-                }
-                disabled={inviteLoading}
-                className={`shrink-0 px-3 py-1.5 border rounded-full text-xs font-semibold transition-colors ${
-                  villageStatus.status === 'in-village'
-                    ? 'bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700'
-                    : villageStatus.status === 'invited-by-me'
-                    ? 'bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600'
-                    : villageStatus.status === 'invited-me'
-                    ? 'bg-pink-700 !text-white border-transparent hover:bg-pink-800 shadow-sm dark:bg-pink-700 dark:!text-white dark:border-transparent dark:hover:bg-pink-800'
-                    : 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45'
-                } ${inviteLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
-                style={villageStatus.status === 'invited-me' ? { color: '#ffffff' } : undefined}
-                type="button"
-              >
-                {villageStatus.status === 'in-village'
-                  ? 'In Your Village'
-                  : villageStatus.status === 'invited-by-me'
-                  ? inviteLoading
-                    ? 'Updating...'
-                    : 'Invited'
-                  : villageStatus.status === 'invited-me'
-                  ? inviteLoading
-                    ? 'Updating...'
-                    : 'View Invitation'
-                  : inviteLoading
-                  ? 'Sending...'
-                  : 'Invite'}
-              </button>
-            </div>
-          )}
+                    ? inviteLoading
+                      ? 'Updating...'
+                      : 'View Invitation'
+                    : inviteLoading
+                    ? 'Sending...'
+                    : 'Invite'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         {showInvitationDecisionModal && (
           <ChatInvitationDecisionModal
@@ -728,7 +730,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             }}
           />
         )}
-        <div className="flex-1 overflow-y-auto px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -783,7 +785,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
             </>
           )}
         </div>
-        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 sm:p-2">
+        <div
+          className="shrink-0 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 sm:p-2"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.25rem)" }}
+        >
           <div className="flex gap-1 sm:gap-3">
             <input
               type="text"
