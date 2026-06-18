@@ -481,22 +481,22 @@ export default function FindMomsPage() {
 
   async function handleInviteWithFeedback(momId: string) {
     const result = await handleInviteToVillage(momId);
-    showNotification(result.message);
+    showNotification(result.message, result.ok ? "success" : "error");
   }
 
   async function handleUninviteWithFeedback(momId: string) {
     const result = await handleUninvite(momId);
-    showNotification(result.message);
+    showNotification(result.message, result.ok ? "success" : "error");
   }
 
   async function handleAcceptWithFeedback(momId: string) {
     const result = await handleAcceptInvitation(momId);
-    showNotification(result.message);
+    showNotification(result.message, result.ok ? "success" : "error");
   }
 
   async function handleDeclineWithFeedback(momId: string) {
     const result = await handleDeclineInvitation(momId);
-    showNotification(result.message);
+    showNotification(result.message, result.ok ? "success" : "error");
   }
 
   if (loading) {
@@ -646,7 +646,7 @@ export default function FindMomsPage() {
           onCancel={() => setUninviteConfirmMomId(null)}
           onConfirm={async () => {
             const result = await handleUninvite(uninviteConfirmMom.id);
-            showNotification(result.message);
+            showNotification(result.message, result.ok ? "success" : "error");
             setUninviteConfirmMomId(null);
           }}
         />
@@ -662,7 +662,7 @@ export default function FindMomsPage() {
           }}
           onRemove={async () => {
             const result = await handleRemoveFromVillage(villageMemberModalMom.id);
-            showNotification(result.message);
+            showNotification(result.message, result.ok ? "success" : "error");
             if (result.ok) {
               setVillageMemberModalMomId(null);
             }
@@ -705,7 +705,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
   async function handleInviteClick() {
     const result = await onInvite(mom.id);
-    showNotification(result.message);
+    showNotification(result.message, result.ok ? "success" : "error");
   }
 
   return (
@@ -936,6 +936,13 @@ interface VillageMemberModalProps {
 }
 
 function VillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }: VillageMemberModalProps) {
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  const profilePhotoUrl = (mom.user_metadata?.profile_photo_url || "").trim();
+
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [mom.id, profilePhotoUrl]);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
       <div
@@ -957,12 +964,12 @@ function VillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }
 
         <div className="mb-5 flex flex-col items-center text-center">
           <div className="mb-3">
-            {mom.user_metadata?.profile_photo_url ? (
-              <div
-                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
-                aria-label={getSafeDisplayName(mom.user_metadata?.full_name)}
-                role="img"
-                style={{ backgroundImage: `url(${mom.user_metadata.profile_photo_url})` }}
+            {profilePhotoUrl && !photoLoadFailed ? (
+              <img
+                src={profilePhotoUrl}
+                alt={getSafeDisplayName(mom.user_metadata?.full_name)}
+                className="h-24 w-24 rounded-full border-4 border-pink-300 object-cover"
+                onError={() => setPhotoLoadFailed(true)}
               />
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
