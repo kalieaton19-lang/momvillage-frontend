@@ -304,6 +304,18 @@ export default function ProfilePage() {
     };
   }, [currentUser?.id, profileUserId]);
 
+  useEffect(() => {
+    if (!currentUser?.id || !profileUserId) return;
+
+    const profileIntervalId = window.setInterval(() => {
+      setRealtimeRefreshKey((prev) => prev + 1);
+    }, 8000);
+
+    return () => {
+      window.clearInterval(profileIntervalId);
+    };
+  }, [currentUser?.id, profileUserId]);
+
   async function refreshInviteStatus(userOverride?: any) {
     const activeUser = userOverride || currentUser;
     if (!activeUser || !profileUserId) {

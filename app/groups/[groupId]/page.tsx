@@ -129,6 +129,18 @@ export default function GroupDetailPage() {
     };
   }, [user?.id, groupId]);
 
+  useEffect(() => {
+    if (!user?.id || !groupId) return;
+
+    const groupIntervalId = window.setInterval(() => {
+      void loadGroupPosts(groupId);
+    }, 8000);
+
+    return () => {
+      window.clearInterval(groupIntervalId);
+    };
+  }, [user?.id, groupId]);
+
   const isPrivateGroup = group?.visibility === "by_permission";
   const isGroupCreator = group?.creator_user_id === user?.id;
   const canCreateGroupPosts = !isPrivateGroup || membershipStatus === "approved" || isGroupCreator;

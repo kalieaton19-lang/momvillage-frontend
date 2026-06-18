@@ -202,6 +202,18 @@ export default function ProfilePage() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const profileIntervalId = window.setInterval(() => {
+      void loadMyPosts(user.id);
+    }, 8000);
+
+    return () => {
+      window.clearInterval(profileIntervalId);
+    };
+  }, [user?.id]);
+
   async function loadVillageCount(userId: string) {
     try {
       const { data } = await supabase
