@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNotification } from "../components/useNotification";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { sendMessageToMatch } from "./sendMessageToMatch";
 
@@ -653,16 +652,6 @@ export default function ConversationPageInner({ conversationId }: { conversation
           ) : (
             <>
               {messages.map(msg => {
-                let senderName = "You";
-                if (msg.sender_id !== user?.id) {
-                  if (msg.sender_id === conversation.user1_id) {
-                    senderName = conversation.user1_name || "";
-                  } else if (msg.sender_id === conversation.user2_id) {
-                    senderName = conversation.user2_name || "";
-                  } else {
-                    senderName = "Other";
-                  }
-                }
                 return (
                   <div
                     key={msg.id}
@@ -677,17 +666,6 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       }`}
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
-                      {msg.sender_id !== user?.id && (
-                        <div className="text-xs font-semibold mb-1 text-zinc-700 dark:text-zinc-200">
-                          {msg.sender_id === otherUserId && otherUserProfileHref ? (
-                            <Link href={otherUserProfileHref} className="hover:underline">
-                              {senderName}
-                            </Link>
-                          ) : (
-                            senderName
-                          )}
-                        </div>
-                      )}
                       <p className="break-words text-base leading-snug">{msg.message_text}</p>
                       <p className={`text-xs mt-1 ${
                         msg.sender_id === user?.id
