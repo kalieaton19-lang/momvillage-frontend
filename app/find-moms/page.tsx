@@ -51,13 +51,33 @@ function getSafeDisplayName(fullName?: string | null): string {
   return pretty || "Mom";
 }
 
+function scoreProfileName(value?: string | null): number {
+  const candidate = (value || "").trim();
+  if (!candidate) return -100;
+
+  let score = 0;
+
+  if (candidate.includes("@")) score -= 6;
+  if (/\d/.test(candidate)) score -= 2;
+  if (/[_./-]/.test(candidate)) score -= 1;
+  if (/\s/.test(candidate)) score += 4;
+  if (/^[a-z]+$/.test(candidate) && candidate.length >= 12) score -= 4;
+  if (/^[A-Za-z]+$/.test(candidate)) score += 1;
+
+  return score;
+}
+
 function pickCanonicalProfileName(profile: any): string {
   const fullName = (profile?.full_name || "").trim();
   const name = (profile?.name || "").trim();
-  const fullNameLooksLikeEmail = fullName.includes("@");
-  if (fullName && !fullNameLooksLikeEmail) return fullName;
-  if (name) return name;
-  return fullName;
+
+  const fullNameScore = scoreProfileName(fullName);
+  const nameScore = scoreProfileName(name);
+
+  if (nameScore > fullNameScore) return name;
+  if (fullNameScore > -100) return fullName;
+  if (nameScore > -100) return name;
+  return "";
 }
 
 export default function FindMomsPage() {
@@ -96,12 +116,12 @@ export default function FindMomsPage() {
 
             const primaryRes = await supabase
               .from('user_public_profiles')
-              .select('id,full_name,name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed');
+              .select('id,full_name,name,city,state,number_of_kids,kids_age_groups,parenting_style,profile_photo_url,services_offered,services_needed');
 
             if (primaryRes.error) {
               const fallbackRes = await supabase
                 .from('user_public_profiles')
-                .select('id,full_name,city,state,zip_code,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url');
+                .select('id,full_name,name,city,state,number_of_kids,kids_age_groups,parenting_style,profile_photo_url');
 
               if (fallbackRes.error) {
                 throw new Error(`${apiErrMessage}; fallback failed: ${fallbackRes.error.message}`);
