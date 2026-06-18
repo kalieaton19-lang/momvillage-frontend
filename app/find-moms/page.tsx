@@ -93,6 +93,7 @@ export default function FindMomsPage() {
   const [relationshipStatusByMomId, setRelationshipStatusByMomId] = useState<Record<string, MomRelationshipStatus>>({});
   const [statusLoadingByMomId, setStatusLoadingByMomId] = useState<Record<string, boolean>>({});
   const [selectedMomId, setSelectedMomId] = useState<string | null>(null);
+  const [invitationReviewMomId, setInvitationReviewMomId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMoms() {
@@ -347,6 +348,36 @@ export default function FindMomsPage() {
     }
   }
 
+  async function handleDeclineInvitation(momId: string) {
+    if (!user?.id) {
+      return { ok: false, message: "Please sign in to manage invitations." };
+    }
+
+    setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: true }));
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .update({ status: "declined" })
+        .eq("from_user_id", momId)
+        .eq("to_user_id", user.id)
+        .in("status", ["pending", "resent"]);
+
+      if (error) throw error;
+
+      setRelationshipStatusByMomId((prev) => ({ ...prev, [momId]: "none" }));
+      return { ok: true, message: "Invitation declined." };
+    } catch (error) {
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to decline invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      await refreshRelationshipStatuses();
+      setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
+    }
+  }
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const normalizedUserCity = (user?.user_metadata?.city || "").trim().toLowerCase();
   const normalizedUserState = (user?.user_metadata?.state || "").trim().toLowerCase();
@@ -389,6 +420,14 @@ export default function FindMomsPage() {
   const selectedMom = selectedMomId
     ? moms.find((mom) => mom.id === selectedMomId) || null
     : null;
+  const invitationReviewMom = invitationReviewMomId
+    ? moms.find((mom) => mom.id === invitationReviewMomId) || null
+    : null;
+
+  function openInvitationReview(momId: string) {
+    setSelectedMomId(null);
+    setInvitationReviewMomId(momId);
+  }
 
   async function handleInviteWithFeedback(momId: string) {
     const result = await handleInviteToVillage(momId);
@@ -401,10 +440,12 @@ export default function FindMomsPage() {
   }
 
   async function handleAcceptWithFeedback(momId: string) {
-    const shouldAccept = window.confirm("Do you want to join this user's village?");
-    if (!shouldAccept) return;
-
     const result = await handleAcceptInvitation(momId);
+    showNotification(result.message);
+  }
+
+  async function handleDeclineWithFeedback(momId: string) {
+    const result = await handleDeclineInvitation(momId);
     showNotification(result.message);
   }
 
@@ -488,7 +529,7 @@ export default function FindMomsPage() {
                       statusLoading={!!statusLoadingByMomId[mom.id]}
                       onInvite={handleInviteToVillage}
                       onUninvite={handleUninvite}
-                      onAccept={handleAcceptWithFeedback}
+                      onViewInvitation={openInvitationReview}
                       onOpenPreview={setSelectedMomId}
                     />
                   ))}
@@ -515,7 +556,7 @@ export default function FindMomsPage() {
                     statusLoading={!!statusLoadingByMomId[mom.id]}
                     onInvite={handleInviteToVillage}
                     onUninvite={handleUninvite}
-                    onAccept={handleAcceptWithFeedback}
+                    onViewInvitation={openInvitationReview}
                     onOpenPreview={setSelectedMomId}
                   />
                 ))}
@@ -537,12 +578,27 @@ export default function FindMomsPage() {
           }}
           onInvite={() => void handleInviteWithFeedback(selectedMom.id)}
           onUninvite={() => void handleUninviteWithFeedback(selectedMom.id)}
-          onAccept={() => void handleAcceptWithFeedback(selectedMom.id)}
+          onViewInvitation={() => openInvitationReview(selectedMom.id)}
           onMessage={() => {
             setSelectedMomId(null);
             router.push("/messages");
           }}
           hasMessaged={messagedUserIds.has(selectedMom.id)}
+        />
+      )}
+      {invitationReviewMom && (
+        <InvitationDecisionModal
+          mom={invitationReviewMom}
+          statusLoading={!!statusLoadingByMomId[invitationReviewMom.id]}
+          onClose={() => setInvitationReviewMomId(null)}
+          onAccept={() => {
+            void handleAcceptWithFeedback(invitationReviewMom.id);
+            setInvitationReviewMomId(null);
+          }}
+          onDecline={() => {
+            void handleDeclineWithFeedback(invitationReviewMom.id);
+            setInvitationReviewMomId(null);
+          }}
         />
       )}
       {NotificationComponent}
@@ -556,11 +612,11 @@ interface NameSuggestionRowProps {
   statusLoading: boolean;
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
   onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
-  onAccept: (momId: string) => Promise<void>;
+  onViewInvitation: (momId: string) => void;
   onOpenPreview: (momId: string) => void;
 }
 
-function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onAccept, onOpenPreview }: NameSuggestionRowProps) {
+function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onViewInvitation, onOpenPreview }: NameSuggestionRowProps) {
   const { showNotification, NotificationComponent } = useNotification();
 
   async function handleInviteClick() {
@@ -578,10 +634,6 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
     const result = await onUninvite(mom.id);
     showNotification(result.message);
-  }
-
-  async function handleAcceptClick() {
-    await onAccept(mom.id);
   }
 
   return (
@@ -618,7 +670,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
           relationshipStatus === "invited"
             ? () => void handleInvitedClick()
             : relationshipStatus === "invited_you"
-            ? () => void handleAcceptClick()
+            ? () => onViewInvitation(mom.id)
             : () => void handleInviteClick()
         }
         disabled={statusLoading || relationshipStatus === "in_village"}
@@ -641,8 +693,8 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
             : "Invited"
           : relationshipStatus === "invited_you"
           ? statusLoading
-            ? "Accepting..."
-            : "Accept Invitation"
+            ? "Updating..."
+            : "View Invitation"
           : statusLoading
           ? "Sending..."
           : "Invite"}
@@ -661,7 +713,7 @@ interface ProfilePreviewModalProps {
   hasMessaged: boolean;
   onInvite: () => void;
   onUninvite: () => void;
-  onAccept: () => void;
+  onViewInvitation: () => void;
 }
 
 function ProfilePreviewModal({
@@ -674,7 +726,7 @@ function ProfilePreviewModal({
   hasMessaged,
   onInvite,
   onUninvite,
-  onAccept,
+  onViewInvitation,
 }: ProfilePreviewModalProps) {
   const metadata = mom.user_metadata;
 
@@ -693,7 +745,7 @@ function ProfilePreviewModal({
     }
 
     if (relationshipStatus === "invited_you") {
-      onAccept();
+      onViewInvitation();
       return;
     }
 
@@ -788,11 +840,56 @@ function ProfilePreviewModal({
                 : "Invited"
               : relationshipStatus === "invited_you"
               ? statusLoading
-                ? "Accepting..."
-                : "Accept Invitation"
+                ? "Updating..."
+                : "View Invitation"
               : statusLoading
               ? "Sending..."
               : "Invite"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface InvitationDecisionModalProps {
+  mom: MomProfile;
+  statusLoading: boolean;
+  onClose: () => void;
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecline }: InvitationDecisionModalProps) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          Village Invitation
+        </h3>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+          {getSafeDisplayName(mom.user_metadata?.full_name)} invited you to join her village.
+        </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onDecline}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Decline"}
+          </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Accept"}
           </button>
         </div>
       </div>
