@@ -87,6 +87,7 @@ export default function ProfilePage() {
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
   const [realtimeRefreshKey, setRealtimeRefreshKey] = useState(0);
   const profileRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasLoadedProfileRef = useRef(false);
   const { showNotification, NotificationComponent } = useNotification();
 
   function getProfileHref(authorUserId?: string | null) {
@@ -99,7 +100,9 @@ export default function ProfilePage() {
   // Fetch profile info and posts count
   useEffect(() => {
     async function fetchProfile() {
-      setLoading(true);
+      if (!hasLoadedProfileRef.current) {
+        setLoading(true);
+      }
       setError("");
       const { data, error } = await supabase
         .from("user_public_profiles")
@@ -244,6 +247,7 @@ export default function ProfilePage() {
           setCommentsByPost({});
         }
       }
+      hasLoadedProfileRef.current = true;
       setLoading(false);
     }
     if (profileUserId) fetchProfile();

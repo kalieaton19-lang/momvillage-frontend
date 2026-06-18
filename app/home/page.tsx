@@ -279,9 +279,9 @@ export default function HomePage() {
       }
       feedRefreshTimeoutRef.current = setTimeout(() => {
         if (feedType === "groups" && selectedGroupId) {
-          void loadGroupPosts(selectedGroupId);
+          void loadGroupPosts(selectedGroupId, { preserveLoading: true });
         } else {
-          void loadPosts();
+          void loadPosts({ preserveLoading: true });
         }
       }, 250);
     };
@@ -334,9 +334,9 @@ export default function HomePage() {
 
     const feedIntervalId = window.setInterval(() => {
       if (feedType === "groups" && selectedGroupId) {
-        void loadGroupPosts(selectedGroupId);
+        void loadGroupPosts(selectedGroupId, { preserveLoading: true });
       } else {
-        void loadPosts();
+        void loadPosts({ preserveLoading: true });
       }
     }, 8000);
 
@@ -455,8 +455,11 @@ export default function HomePage() {
     }
   }
 
-  async function loadPosts() {
-    setLoading(true);
+  async function loadPosts(options?: { preserveLoading?: boolean }) {
+    const preserveLoading = options?.preserveLoading ?? false;
+    if (!preserveLoading) {
+      setLoading(true);
+    }
     try {
       let nextPosts: Post[] = [];
       if (feedType === 'village' && user) {
@@ -646,7 +649,9 @@ export default function HomePage() {
       setSharesCountByPost({});
       setCommentsByPost({});
     } finally {
-      setLoading(false);
+      if (!preserveLoading) {
+        setLoading(false);
+      }
     }
   }
 
@@ -964,8 +969,11 @@ export default function HomePage() {
     );
   }
 
-  async function loadGroupPosts(groupId: string) {
-    setGroupPostsLoading(true);
+  async function loadGroupPosts(groupId: string, options?: { preserveLoading?: boolean }) {
+    const preserveLoading = options?.preserveLoading ?? false;
+    if (!preserveLoading) {
+      setGroupPostsLoading(true);
+    }
     setGroupPostMessage("");
     try {
       const { data, error } = await supabase
@@ -1017,7 +1025,9 @@ export default function HomePage() {
         setGroupPostMessage("Could not load posts for this group.");
       }
     } finally {
-      setGroupPostsLoading(false);
+      if (!preserveLoading) {
+        setGroupPostsLoading(false);
+      }
     }
   }
 

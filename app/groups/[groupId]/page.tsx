@@ -82,7 +82,7 @@ export default function GroupDetailPage() {
         clearTimeout(groupRefreshTimeoutRef.current);
       }
       groupRefreshTimeoutRef.current = setTimeout(() => {
-        void loadGroupPosts(groupId);
+        void loadGroupPosts(groupId, undefined, undefined, { preserveLoading: true });
       }, 250);
     };
 
@@ -133,7 +133,7 @@ export default function GroupDetailPage() {
     if (!user?.id || !groupId) return;
 
     const groupIntervalId = window.setInterval(() => {
-      void loadGroupPosts(groupId);
+      void loadGroupPosts(groupId, undefined, undefined, { preserveLoading: true });
     }, 8000);
 
     return () => {
@@ -243,8 +243,12 @@ export default function GroupDetailPage() {
     id: string,
     groupOverride?: GroupRow | null,
     membershipOverride?: "pending" | "approved" | null,
+    options?: { preserveLoading?: boolean },
   ) {
-    setGroupPostsLoading(true);
+    const preserveLoading = options?.preserveLoading ?? false;
+    if (!preserveLoading) {
+      setGroupPostsLoading(true);
+    }
     setGroupPostMessage("");
     try {
       const effectiveGroup = groupOverride !== undefined ? groupOverride : group;
@@ -352,7 +356,9 @@ export default function GroupDetailPage() {
         setGroupPostMessage("Could not load posts for this group.");
       }
     } finally {
-      setGroupPostsLoading(false);
+      if (!preserveLoading) {
+        setGroupPostsLoading(false);
+      }
     }
   }
 
