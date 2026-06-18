@@ -164,6 +164,7 @@ export default function HomePage() {
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
   const [sharedPostId, setSharedPostId] = useState<string | null>(null);
   const [didFocusSharedPost, setDidFocusSharedPost] = useState(false);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -197,6 +198,37 @@ export default function HomePage() {
   useEffect(() => {
     if (user) loadPosts();
   }, [user, feedType, sharedPostId]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setHasUnreadMessages(false);
+      return;
+    }
+
+    void refreshUnreadMessages(user.id);
+
+    const unreadChannel = supabase
+      .channel(`home-unread-messages-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => {
+          void refreshUnreadMessages(user.id);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => {
+          void refreshUnreadMessages(user.id);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(unreadChannel);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id || !sharedPostId) return;
@@ -500,6 +532,21 @@ export default function HomePage() {
       setCommentsByPost({});
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshUnreadMessages(userId: string) {
+    try {
+      const { count, error } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", userId)
+        .is("read_at", null);
+
+      if (error) throw error;
+      setHasUnreadMessages((count ?? 0) > 0);
+    } catch {
+      setHasUnreadMessages(false);
     }
   }
 
@@ -1280,7 +1327,7 @@ export default function HomePage() {
           </div>
           {/* Messages button beside profile image */}
           <div className="flex items-center mt-2 sm:mt-0">
-            <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" />
+            <NavButton href="/messages" icon="chat" label="" className="w-12 h-12 ml-2" showDot={hasUnreadMessages} />
           </div>
         </header>
         {/* Post creation modal */}
@@ -2131,7 +2178,7 @@ export default function HomePage() {
 // ...existing code...
 }
 
-function NavButton({ href, icon, label, className = "" }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus' | 'alarm'; label?: string; className?: string }) {
+function NavButton({ href, icon, label, className = "", showDot = false }: { href: string; icon: 'user' | 'chat' | 'search' | 'plus' | 'alarm'; label?: string; className?: string; showDot?: boolean }) {
   const isIconOnly = !label;
   // Highlight if the button's href matches the current path (for main nav pages)
   const pathname = usePathname ? usePathname() : undefined;
@@ -2162,10 +2209,13 @@ function NavButton({ href, icon, label, className = "" }: { href: string; icon: 
   return (
     <Link
       href={href}
-      className={`flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 active:scale-95 active:ring-4 active:ring-pink-300 ${activeClass} ${className}`}
+      className={`relative flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl w-12 h-12 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 active:scale-95 active:ring-4 active:ring-pink-300 ${activeClass} ${className}`}
       aria-label={label || icon}
     >
       {iconMap[icon]}
+      {showDot && (
+        <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-pink-500" aria-hidden="true" />
+      )}
       {!isIconOnly && label}
     </Link>
   );
