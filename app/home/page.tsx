@@ -9,7 +9,7 @@ import ReportModal, { ReportType, ReportReason } from "../components/ReportModal
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, fetchPostById, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
-import { formatTimeAgo } from "../../utils";
+import { formatFirstNameLastInitial, formatTimeAgo } from "../../utils";
 import type { JSX } from "react";
 
 type GroupRow = {
@@ -1876,19 +1876,22 @@ export default function HomePage() {
                           )}
                         </Link>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1 min-w-0 text-sm">
-                            <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-base text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
-                              {authorNameById[post.author_user_id] || post.author_name || 'Mom'}
-                            </Link>
-                            {post.group_id && (
-                              <>
-                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
-                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 font-bold hover:text-pink-700 dark:hover:text-pink-200 truncate">
-                                  {groupNameById[post.group_id] || 'Group'}
-                                </Link>
-                              </>
-                            )}
-                          </div>
+                          {post.group_id ? (
+                            <div className="space-y-0.5 min-w-0">
+                              <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-base text-zinc-900 dark:text-zinc-50 group-hover:underline">
+                                {formatFirstNameLastInitial(authorNameById[post.author_user_id] || post.author_name || "Mom")}
+                              </Link>
+                              <div className="text-xs text-pink-600 dark:text-pink-300 leading-tight">
+                                posted in <Link href={`/groups/${post.group_id}`} className="font-bold hover:text-pink-700 dark:hover:text-pink-200 break-words">{groupNameById[post.group_id] || "Group"}</Link>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 min-w-0 text-sm">
+                              <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-base text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
+                                {authorNameById[post.author_user_id] || post.author_name || "Mom"}
+                              </Link>
+                            </div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </div>
@@ -1906,17 +1909,20 @@ export default function HomePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1 min-w-0 text-sm">
-                            <div className="font-semibold text-base text-zinc-900 dark:text-zinc-50 truncate">{authorNameById[post.author_user_id] || post.author_name || 'Mom'}</div>
-                            {post.group_id && (
-                              <>
-                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
-                                <Link href={`/groups/${post.group_id}`} className="text-pink-600 dark:text-pink-300 font-bold hover:text-pink-700 dark:hover:text-pink-200 truncate">
-                                  {groupNameById[post.group_id] || 'Group'}
-                                </Link>
-                              </>
-                            )}
-                          </div>
+                          {post.group_id ? (
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="font-semibold text-base text-zinc-900 dark:text-zinc-50">
+                                {formatFirstNameLastInitial(authorNameById[post.author_user_id] || post.author_name || "Mom")}
+                              </div>
+                              <div className="text-xs text-pink-600 dark:text-pink-300 leading-tight">
+                                posted in <Link href={`/groups/${post.group_id}`} className="font-bold hover:text-pink-700 dark:hover:text-pink-200 break-words">{groupNameById[post.group_id] || "Group"}</Link>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 min-w-0 text-sm">
+                              <div className="font-semibold text-base text-zinc-900 dark:text-zinc-50 truncate">{authorNameById[post.author_user_id] || post.author_name || "Mom"}</div>
+                            </div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">Posted {formatTimeAgo(post.created_at)}</div>
                         </div>
                       </div>

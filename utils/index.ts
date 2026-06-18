@@ -35,6 +35,30 @@ export const formatTimeAgo = (iso: string) => {
   return `${years} year${years === 1 ? "" : "s"} ago`;
 };
 
+export const formatFirstNameLastInitial = (name?: string | null, fallback = "Mom") => {
+  const normalized = (name || "").trim();
+  if (!normalized) return fallback;
+
+  const emailLocalPart = normalized.includes("@")
+    ? normalized.split("@")[0]
+    : normalized;
+
+  const cleaned = emailLocalPart
+    .replace(/[._-]+/g, " ")
+    .replace(/[0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = cleaned.split(" ").filter(Boolean);
+  if (words.length === 0) return fallback;
+
+  const firstName = words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
+  if (words.length === 1) return firstName;
+
+  const lastInitial = words[words.length - 1].charAt(0).toUpperCase();
+  return `${firstName} ${lastInitial}.`;
+};
+
 export const safeJsonParse = <T>(value: string | null): T | null => {
   if (!value) return null;
   try {

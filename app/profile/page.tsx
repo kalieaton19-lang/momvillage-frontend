@@ -16,7 +16,7 @@ import {
   PostCommentRow,
 } from "../../lib/posts";
 import type { Post } from "../../types/post";
-import { formatTimeAgo } from "../../utils";
+import { formatFirstNameLastInitial, formatTimeAgo } from "../../utils";
 
 interface UserProfile {
   id?: string;
@@ -829,19 +829,22 @@ export default function ProfilePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1 min-w-0 text-sm">
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
-                              {authorNameById[post.author_user_id] || post.author_name || "Mom"}
+                          {post.group_id ? (
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 group-hover:underline">
+                                {formatFirstNameLastInitial(authorNameById[post.author_user_id] || post.author_name || "Mom")}
+                              </div>
+                              <div className="text-xs text-pink-600 dark:text-pink-300 leading-tight break-words">
+                                posted in <span className="font-bold">{groupNameById[post.group_id] || "Group"}</span>
+                              </div>
                             </div>
-                            {post.group_id && (
-                              <>
-                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
-                                <span className="text-pink-600 dark:text-pink-300 font-bold truncate">
-                                  {groupNameById[post.group_id] || "Group"}
-                                </span>
-                              </>
-                            )}
-                          </div>
+                          ) : (
+                            <div className="flex items-center gap-1 min-w-0 text-sm">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
+                                {authorNameById[post.author_user_id] || post.author_name || "Mom"}
+                              </div>
+                            </div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Posted {formatTimeAgo(post.created_at)}
                           </div>
@@ -861,19 +864,22 @@ export default function ProfilePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1 min-w-0 text-sm">
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">
-                              {authorNameById[post.author_user_id] || post.author_name || "Mom"}
+                          {post.group_id ? (
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+                                {formatFirstNameLastInitial(authorNameById[post.author_user_id] || post.author_name || "Mom")}
+                              </div>
+                              <div className="text-xs text-pink-600 dark:text-pink-300 leading-tight break-words">
+                                posted in <span className="font-bold">{groupNameById[post.group_id] || "Group"}</span>
+                              </div>
                             </div>
-                            {post.group_id && (
-                              <>
-                                <span className="text-pink-600 dark:text-pink-300 shrink-0">posted in</span>
-                                <span className="text-pink-600 dark:text-pink-300 font-bold truncate">
-                                  {groupNameById[post.group_id] || "Group"}
-                                </span>
-                              </>
-                            )}
-                          </div>
+                          ) : (
+                            <div className="flex items-center gap-1 min-w-0 text-sm">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+                                {authorNameById[post.author_user_id] || post.author_name || "Mom"}
+                              </div>
+                            </div>
+                          )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Posted {formatTimeAgo(post.created_at)}
                           </div>
