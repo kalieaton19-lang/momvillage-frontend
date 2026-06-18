@@ -505,19 +505,21 @@ export default function FindMomsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-4">
-              {messagesVisibleMoms.map((mom) => (
-                <MomCard
-                  key={mom.id}
-                  mom={mom}
-                  relationshipStatus={relationshipStatusByMomId[mom.id] || "none"}
-                  statusLoading={!!statusLoadingByMomId[mom.id]}
-                  onInvite={handleInviteToVillage}
-                  onUninvite={handleUninvite}
-                  onAccept={handleAcceptWithFeedback}
-                  onOpenPreview={setSelectedMomId}
-                />
-              ))}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4">
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
+                {messagesVisibleMoms.map((mom) => (
+                  <NameSuggestionRow
+                    key={mom.id}
+                    mom={mom}
+                    relationshipStatus={relationshipStatusByMomId[mom.id] || "none"}
+                    statusLoading={!!statusLoadingByMomId[mom.id]}
+                    onInvite={handleInviteToVillage}
+                    onUninvite={handleUninvite}
+                    onAccept={handleAcceptWithFeedback}
+                    onOpenPreview={setSelectedMomId}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -536,21 +538,16 @@ export default function FindMomsPage() {
           onInvite={() => void handleInviteWithFeedback(selectedMom.id)}
           onUninvite={() => void handleUninviteWithFeedback(selectedMom.id)}
           onAccept={() => void handleAcceptWithFeedback(selectedMom.id)}
+          onMessage={() => {
+            setSelectedMomId(null);
+            router.push("/messages");
+          }}
+          hasMessaged={messagedUserIds.has(selectedMom.id)}
         />
       )}
       {NotificationComponent}
     </div>
   );
-}
-
-interface MomCardProps {
-  mom: MomProfile;
-  relationshipStatus: MomRelationshipStatus;
-  statusLoading: boolean;
-  onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
-  onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
-  onAccept: (momId: string) => Promise<void>;
-  onOpenPreview: (momId: string) => void;
 }
 
 interface NameSuggestionRowProps {
@@ -653,130 +650,14 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
     </div>
   );
 }
-
-
-
-function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onAccept, onOpenPreview }: MomCardProps) {
-  const router = useRouter();
-  const metadata = mom.user_metadata;
-  const { showNotification, NotificationComponent } = useNotification();
-
-  async function handleInviteClick() {
-    const result = await onInvite(mom.id);
-    showNotification(result.message);
-  }
-
-  async function handleInvitedClick() {
-    const shouldUninvite = window.confirm(
-      `Uninvite ${getSafeDisplayName(metadata?.full_name)}?`
-    );
-    if (!shouldUninvite) {
-      return;
-    }
-
-    const result = await onUninvite(mom.id);
-    showNotification(result.message);
-  }
-
-  async function handleAcceptClick() {
-    await onAccept(mom.id);
-  }
-
-  return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-lg transition-shadow">
-      <div className="flex items-start gap-4">
-        <button
-          type="button"
-          onClick={() => onOpenPreview(mom.id)}
-          className="shrink-0 text-left hover:opacity-90 transition"
-        >
-          {metadata?.profile_photo_url ? (
-            <img
-              src={metadata.profile_photo_url}
-              alt={getSafeDisplayName(metadata?.full_name)}
-              className="w-16 h-16 rounded-full object-cover border-2 border-pink-300"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xl font-semibold">
-              {getSafeDisplayName(metadata?.full_name).charAt(0).toUpperCase() || '?'}
-            </div>
-          )}
-        </button>
-        <div className="flex-1">
-          <button type="button" onClick={() => onOpenPreview(mom.id)} className="text-left">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 hover:underline">
-              {getSafeDisplayName(metadata?.full_name)}
-            </h3>
-          </button>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            {metadata?.city}, {metadata?.state}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Array.isArray(metadata?.kids_age_groups) && metadata.kids_age_groups.map(age => (
-              <span key={age} className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-                {age}
-              </span>
-            ))}
-            {metadata?.parenting_style && (
-              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
-                {metadata.parenting_style}
-              </span>
-            )}
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={
-                relationshipStatus === "invited"
-                  ? () => void handleInvitedClick()
-                  : relationshipStatus === "invited_you"
-                  ? () => void handleAcceptClick()
-                  : () => void handleInviteClick()
-              }
-              disabled={statusLoading || relationshipStatus === "in_village"}
-              className={`flex-1 px-4 py-2 border rounded-full text-sm font-medium transition-colors ${
-                relationshipStatus === "in_village"
-                  ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
-                  : relationshipStatus === "invited"
-                  ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
-                  : relationshipStatus === "invited_you"
-                    ? "bg-pink-700 text-white border-pink-800 hover:bg-pink-800 dark:bg-pink-700 dark:text-white dark:border-pink-900 dark:hover:bg-pink-800"
-                  : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
-              } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
-            >
-              {relationshipStatus === "in_village"
-                ? "In Your Village"
-                : relationshipStatus === "invited"
-                ? statusLoading
-                  ? "Updating..."
-                  : "Invited"
-                : relationshipStatus === "invited_you"
-                ? statusLoading
-                  ? "Accepting..."
-                  : "Accept Invitation"
-                : statusLoading
-                ? "Sending..."
-                : "Invite to Village"}
-            </button>
-            <button
-              onClick={() => router.push(`/messages`)}
-              className="flex-1 px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-full text-sm font-medium transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
-            >
-              Go to Messages
-            </button>
-          </div>
-          {NotificationComponent}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface ProfilePreviewModalProps {
   mom: MomProfile;
   relationshipStatus: MomRelationshipStatus;
   statusLoading: boolean;
   onClose: () => void;
   onViewProfile: () => void;
+  onMessage: () => void;
+  hasMessaged: boolean;
   onInvite: () => void;
   onUninvite: () => void;
   onAccept: () => void;
@@ -788,6 +669,8 @@ function ProfilePreviewModal({
   statusLoading,
   onClose,
   onViewProfile,
+  onMessage,
+  hasMessaged,
   onInvite,
   onUninvite,
   onAccept,
@@ -865,6 +748,13 @@ function ProfilePreviewModal({
             className="flex-1 rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             View Profile
+          </button>
+          <button
+            type="button"
+            onClick={onMessage}
+            className="flex-1 rounded-full border border-pink-500 bg-pink-100 px-4 py-2 text-sm font-medium text-pink-700 transition hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
+          >
+            {hasMessaged ? "Go to Messages" : "Message"}
           </button>
           <button
             type="button"
