@@ -768,10 +768,12 @@ function ProfilePreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-pink-200 bg-white p-2 text-pink-600 shadow-md transition hover:shadow-lg hover:text-pink-700 dark:border-pink-200 dark:bg-white dark:text-pink-600"
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
             aria-label="Close profile preview"
           >
-            ✕
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
         </div>
 
@@ -877,10 +879,12 @@ function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecl
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-pink-200 bg-white p-2 text-pink-600 shadow-md transition hover:shadow-lg hover:text-pink-700 dark:border-pink-200 dark:bg-white dark:text-pink-600"
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
             aria-label="Close invitation popup"
           >
-            ✕
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
         </div>
 
