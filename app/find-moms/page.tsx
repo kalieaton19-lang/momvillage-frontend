@@ -307,6 +307,23 @@ export default function FindMomsPage() {
   }
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const normalizedUserCity = (user?.user_metadata?.city || "").trim().toLowerCase();
+  const normalizedUserState = (user?.user_metadata?.state || "").trim().toLowerCase();
+  const normalizedUserZip = (user?.user_metadata?.zip_code || "").trim().toLowerCase();
+
+  const momsInArea = moms.filter((mom) => {
+    const momCity = (mom.user_metadata?.city || "").trim().toLowerCase();
+    const momState = (mom.user_metadata?.state || "").trim().toLowerCase();
+    const momZip = (mom.user_metadata?.zip_code || "").trim().toLowerCase();
+
+    const hasUserLocation = Boolean(normalizedUserCity || normalizedUserState || normalizedUserZip);
+    if (!hasUserLocation) return true;
+
+    if (normalizedUserZip && momZip && normalizedUserZip === momZip) return true;
+    if (normalizedUserCity && momCity && normalizedUserCity === momCity) return true;
+    if (normalizedUserState && momState && normalizedUserState === momState) return true;
+    return false;
+  });
 
   const nameSuggestions =
     searchMode === "name" && normalizedQuery
@@ -316,6 +333,8 @@ export default function FindMomsPage() {
             .includes(normalizedQuery),
         )
       : [];
+
+  const nameSectionMoms = normalizedQuery ? nameSuggestions : momsInArea;
 
   const messagesVisibleMoms = moms
     .filter((mom) => messagedUserIds.has(mom.id))
@@ -401,17 +420,18 @@ export default function FindMomsPage() {
             </div>
           ) : searchMode === "name" ? (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4">
-              {!normalizedQuery ? (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Start typing a name to see matching moms.
+              {!normalizedQuery && (
+                <p className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                  Mom&apos;s in your area
                 </p>
-              ) : nameSuggestions.length === 0 ? (
+              )}
+              {nameSectionMoms.length === 0 ? (
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  No matching names found.
+                  {normalizedQuery ? "No matching names found." : "No moms found in your area yet."}
                 </p>
               ) : (
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
-                  {nameSuggestions.map((mom) => (
+                  {nameSectionMoms.map((mom) => (
                     <NameSuggestionRow
                       key={mom.id}
                       mom={mom}
