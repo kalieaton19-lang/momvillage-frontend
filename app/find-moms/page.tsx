@@ -742,39 +742,51 @@ function ProfilePreviewModal({
         className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="mb-4 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-pink-600 transition hover:bg-pink-100 hover:text-pink-700 dark:text-pink-300 dark:hover:bg-pink-900/30 dark:hover:text-pink-200"
+            aria-label="Close profile preview"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3">
             {metadata?.profile_photo_url ? (
               <div
-                className="h-16 w-16 rounded-full border-2 border-pink-300 bg-cover bg-center"
+                className="h-28 w-28 rounded-full border-4 border-pink-300 bg-cover bg-center"
                 aria-label={getSafeDisplayName(metadata?.full_name)}
                 role="img"
                 style={{ backgroundImage: `url(${metadata.profile_photo_url})` }}
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-xl font-semibold text-white">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-4xl font-semibold text-white">
                 {getSafeDisplayName(metadata?.full_name).charAt(0).toUpperCase() || "?"}
               </div>
             )}
-            <div className="min-w-0">
-              <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                {getSafeDisplayName(metadata?.full_name)}
-              </h3>
-              {(metadata?.city || metadata?.state) && (
-                <p className="truncate text-sm text-zinc-600 dark:text-zinc-400">
-                  {[metadata?.city, metadata?.state].filter(Boolean).join(", ")}
-                </p>
-              )}
-            </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-            aria-label="Close profile preview"
-          >
-            ✕
-          </button>
+
+          <h3 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(metadata?.full_name)}
+          </h3>
+
+          <div className="w-full space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
+            <p>
+              <span className="font-medium text-zinc-700 dark:text-zinc-200">Location:</span>{" "}
+              {[metadata?.city, metadata?.state].filter(Boolean).join(", ") || "Not provided"}
+            </p>
+            <p>
+              <span className="font-medium text-zinc-700 dark:text-zinc-200">Number of children:</span>{" "}
+              {metadata?.number_of_kids ?? "Not provided"}
+            </p>
+            <p>
+              <span className="font-medium text-zinc-700 dark:text-zinc-200">Preferred language:</span>{" "}
+              {metadata?.preferred_language || "Not provided"}
+            </p>
+          </div>
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
