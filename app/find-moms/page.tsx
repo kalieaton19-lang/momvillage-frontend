@@ -95,6 +95,7 @@ export default function FindMomsPage() {
   const [selectedMomId, setSelectedMomId] = useState<string | null>(null);
   const [invitationReviewMomId, setInvitationReviewMomId] = useState<string | null>(null);
   const [uninviteConfirmMomId, setUninviteConfirmMomId] = useState<string | null>(null);
+  const [villageMemberModalMomId, setVillageMemberModalMomId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMoms() {
@@ -379,6 +380,35 @@ export default function FindMomsPage() {
     }
   }
 
+  async function handleRemoveFromVillage(momId: string) {
+    if (!user?.id) {
+      return { ok: false, message: "Please sign in to manage your village." };
+    }
+
+    setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: true }));
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .delete()
+        .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${momId}),and(from_user_id.eq.${momId},to_user_id.eq.${user.id})`)
+        .eq("status", "accepted");
+
+      if (error) throw error;
+
+      setRelationshipStatusByMomId((prev) => ({ ...prev, [momId]: "none" }));
+      return { ok: true, message: "Removed from your village." };
+    } catch (error) {
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to remove from village.";
+      return { ok: false, message: errMsg };
+    } finally {
+      await refreshRelationshipStatuses();
+      setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
+    }
+  }
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const normalizedUserCity = (user?.user_metadata?.city || "").trim().toLowerCase();
   const normalizedUserState = (user?.user_metadata?.state || "").trim().toLowerCase();
@@ -427,6 +457,9 @@ export default function FindMomsPage() {
   const uninviteConfirmMom = uninviteConfirmMomId
     ? moms.find((mom) => mom.id === uninviteConfirmMomId) || null
     : null;
+  const villageMemberModalMom = villageMemberModalMomId
+    ? moms.find((mom) => mom.id === villageMemberModalMomId) || null
+    : null;
 
   function openInvitationReview(momId: string) {
     setSelectedMomId(null);
@@ -437,6 +470,13 @@ export default function FindMomsPage() {
     setSelectedMomId(null);
     setInvitationReviewMomId(null);
     setUninviteConfirmMomId(momId);
+  }
+
+  function openVillageMemberModal(momId: string) {
+    setSelectedMomId(null);
+    setInvitationReviewMomId(null);
+    setUninviteConfirmMomId(null);
+    setVillageMemberModalMomId(momId);
   }
 
   async function handleInviteWithFeedback(momId: string) {
@@ -540,6 +580,7 @@ export default function FindMomsPage() {
                       onInvite={handleInviteToVillage}
                       onRequestUninvite={openUninviteConfirm}
                       onViewInvitation={openInvitationReview}
+                      onViewVillageMember={openVillageMemberModal}
                       onOpenPreview={setSelectedMomId}
                     />
                   ))}
@@ -567,6 +608,7 @@ export default function FindMomsPage() {
                     onInvite={handleInviteToVillage}
                     onRequestUninvite={openUninviteConfirm}
                     onViewInvitation={openInvitationReview}
+                    onViewVillageMember={openVillageMemberModal}
                     onOpenPreview={setSelectedMomId}
                   />
                 ))}
@@ -589,6 +631,7 @@ export default function FindMomsPage() {
           onInvite={() => void handleInviteWithFeedback(selectedMom.id)}
           onRequestUninvite={() => openUninviteConfirm(selectedMom.id)}
           onViewInvitation={() => openInvitationReview(selectedMom.id)}
+          onViewVillageMember={() => openVillageMemberModal(selectedMom.id)}
           onMessage={() => {
             setSelectedMomId(null);
             router.push("/messages");
@@ -605,6 +648,24 @@ export default function FindMomsPage() {
             const result = await handleUninvite(uninviteConfirmMom.id);
             showNotification(result.message);
             setUninviteConfirmMomId(null);
+          }}
+        />
+      )}
+      {villageMemberModalMom && (
+        <VillageMemberModal
+          mom={villageMemberModalMom}
+          statusLoading={!!statusLoadingByMomId[villageMemberModalMom.id]}
+          onClose={() => setVillageMemberModalMomId(null)}
+          onMessage={() => {
+            setVillageMemberModalMomId(null);
+            router.push("/messages");
+          }}
+          onRemove={async () => {
+            const result = await handleRemoveFromVillage(villageMemberModalMom.id);
+            showNotification(result.message);
+            if (result.ok) {
+              setVillageMemberModalMomId(null);
+            }
           }}
         />
       )}
@@ -635,10 +696,11 @@ interface NameSuggestionRowProps {
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
   onRequestUninvite: (momId: string) => void;
   onViewInvitation: (momId: string) => void;
+  onViewVillageMember: (momId: string) => void;
   onOpenPreview: (momId: string) => void;
 }
 
-function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onRequestUninvite, onViewInvitation, onOpenPreview }: NameSuggestionRowProps) {
+function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onRequestUninvite, onViewInvitation, onViewVillageMember, onOpenPreview }: NameSuggestionRowProps) {
   const { showNotification, NotificationComponent } = useNotification();
 
   async function handleInviteClick() {
@@ -677,13 +739,15 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
       </button>
       <button
         onClick={
-          relationshipStatus === "invited"
+          relationshipStatus === "in_village"
+            ? () => onViewVillageMember(mom.id)
+            : relationshipStatus === "invited"
             ? () => onRequestUninvite(mom.id)
             : relationshipStatus === "invited_you"
             ? () => onViewInvitation(mom.id)
             : () => void handleInviteClick()
         }
-        disabled={statusLoading || relationshipStatus === "in_village"}
+        disabled={statusLoading}
         className={`shrink-0 px-3 py-1.5 border rounded-full text-xs font-semibold transition-colors ${
           relationshipStatus === "in_village"
             ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
@@ -724,6 +788,7 @@ interface ProfilePreviewModalProps {
   onInvite: () => void;
   onRequestUninvite: () => void;
   onViewInvitation: () => void;
+  onViewVillageMember: () => void;
 }
 
 function ProfilePreviewModal({
@@ -737,11 +802,13 @@ function ProfilePreviewModal({
   onInvite,
   onRequestUninvite,
   onViewInvitation,
+  onViewVillageMember,
 }: ProfilePreviewModalProps) {
   const metadata = mom.user_metadata;
 
   async function handleStatusClick() {
     if (relationshipStatus === "in_village") {
+      onViewVillageMember();
       return;
     }
 
@@ -828,7 +895,7 @@ function ProfilePreviewModal({
           <button
             type="button"
             onClick={() => void handleStatusClick()}
-            disabled={statusLoading || relationshipStatus === "in_village"}
+            disabled={statusLoading}
             className={`w-full rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
               relationshipStatus === "in_village"
                 ? "border-green-500 bg-green-100 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200"
@@ -853,6 +920,83 @@ function ProfilePreviewModal({
               : statusLoading
               ? "Sending..."
               : "Invite"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface VillageMemberModalProps {
+  mom: MomProfile;
+  statusLoading: boolean;
+  onClose: () => void;
+  onMessage: () => void;
+  onRemove: () => void | Promise<void>;
+}
+
+function VillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }: VillageMemberModalProps) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close village member popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.user_metadata?.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={getSafeDisplayName(mom.user_metadata?.full_name)}
+                role="img"
+                style={{ backgroundImage: `url(${mom.user_metadata.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {getSafeDisplayName(mom.user_metadata?.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(mom.user_metadata?.full_name)}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            is a part of your village!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onMessage}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => void onRemove()}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
+          >
+            {statusLoading ? "Updating..." : "Remove from Village"}
           </button>
         </div>
       </div>
