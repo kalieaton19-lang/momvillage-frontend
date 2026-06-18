@@ -504,6 +504,51 @@ export default function FindMomsPage() {
     showNotification(result.message, result.ok ? "success" : "error");
   }
 
+  async function openConversationWithMom(mom: MomProfile) {
+    if (!user?.id) {
+      showNotification("Please sign in to message moms.", "error");
+      return;
+    }
+
+    let conversationId: string | null = null;
+    const { data: existingConvos, error: convoError } = await supabase
+      .from("conversations")
+      .select("id,user1_id,user2_id")
+      .or(`and(user1_id.eq.${user.id},user2_id.eq.${mom.id}),and(user1_id.eq.${mom.id},user2_id.eq.${user.id})`)
+      .limit(1);
+
+    if (convoError) {
+      showNotification("Failed to check conversations", "error");
+      return;
+    }
+
+    if (existingConvos && existingConvos.length > 0) {
+      conversationId = existingConvos[0].id;
+    } else {
+      const { data: newConvo, error: createError } = await supabase
+        .from("conversations")
+        .insert({
+          user1_id: user.id,
+          user2_id: mom.id,
+          user1_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+          user2_name: getSafeDisplayName(mom.user_metadata?.full_name, ""),
+          user1_photo: user.user_metadata?.profile_photo_url || "",
+          user2_photo: mom.user_metadata?.profile_photo_url || "",
+        })
+        .select()
+        .single();
+
+      if (createError || !newConvo) {
+        showNotification("Failed to create conversation", "error");
+        return;
+      }
+
+      conversationId = newConvo.id;
+    }
+
+    router.push(`/messages/${conversationId}`);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -639,7 +684,7 @@ export default function FindMomsPage() {
           onViewVillageMember={() => openVillageMemberModal(selectedMom.id)}
           onMessage={() => {
             setSelectedMomId(null);
-            router.push("/messages");
+            void openConversationWithMom(selectedMom);
           }}
           hasMessaged={messagedUserIds.has(selectedMom.id)}
         />
@@ -668,7 +713,7 @@ export default function FindMomsPage() {
           onClose={() => setVillageMemberModalMomId(null)}
           onMessage={() => {
             setVillageMemberModalMomId(null);
-            router.push("/messages");
+            void openConversationWithMom(villageMemberModalMom);
           }}
           onRemove={async () => {
             const result = await handleRemoveFromVillage(villageMemberModalMom.id);
@@ -1153,7 +1198,7 @@ function UninviteConfirmationModal({ mom, statusLoading, onCancel, onUninvite, o
           </h3>
 
           <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
-            would you like to uninvite this mom?
+            you&apos;ve already invited this mom to your village.
           </p>
         </div>
 
