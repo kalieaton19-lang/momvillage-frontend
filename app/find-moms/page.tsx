@@ -603,8 +603,15 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
           </div>
         )}
         <div className="min-w-0">
-          <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
-            {getSafeDisplayName(mom.user_metadata?.full_name)}
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
+              {getSafeDisplayName(mom.user_metadata?.full_name)}
+            </div>
+            {relationshipStatus === "invited_you" && (
+              <span className="shrink-0 rounded-full border border-pink-300 bg-pink-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-700 dark:border-pink-700 dark:bg-pink-900/40 dark:text-pink-200">
+                Invited You
+              </span>
+            )}
           </div>
           {(mom.user_metadata?.city || mom.user_metadata?.state) && (
             <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -628,7 +635,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
             : relationshipStatus === "invited"
             ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
             : relationshipStatus === "invited_you"
-            ? "bg-pink-700 text-white border-pink-800 hover:bg-pink-800 dark:bg-pink-700 dark:text-white dark:border-pink-900 dark:hover:bg-pink-800"
+            ? "bg-pink-700 text-white border-pink-800 hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:bg-pink-700 dark:text-white dark:border-pink-900 dark:hover:bg-pink-800 dark:ring-pink-500/40"
             : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
         } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
       >
@@ -736,6 +743,12 @@ function ProfilePreviewModal({
             {getSafeDisplayName(metadata?.full_name)}
           </h3>
 
+          {relationshipStatus === "invited_you" && (
+            <span className="mb-2 rounded-full border border-pink-300 bg-pink-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-700 dark:border-pink-700 dark:bg-pink-900/40 dark:text-pink-200">
+              Invited You
+            </span>
+          )}
+
           <p className="text-sm text-zinc-600 dark:text-zinc-300">
             {[metadata?.city, metadata?.state].filter(Boolean).join(", ") || "Not provided"}
           </p>
@@ -766,7 +779,7 @@ function ProfilePreviewModal({
                 : relationshipStatus === "invited"
                 ? "border-zinc-400 bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
                 : relationshipStatus === "invited_you"
-                ? "border-pink-800 bg-pink-700 text-white hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:text-white dark:hover:bg-pink-800"
+                ? "border-pink-800 bg-pink-700 text-white hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:border-pink-900 dark:bg-pink-700 dark:text-white dark:hover:bg-pink-800 dark:ring-pink-500/40"
                 : "border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
             } ${statusLoading ? "cursor-not-allowed opacity-60" : ""}`}
           >
