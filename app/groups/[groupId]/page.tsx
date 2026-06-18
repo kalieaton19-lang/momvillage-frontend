@@ -403,10 +403,14 @@ export default function GroupDetailPage() {
     setInteractionBusyByPost((prev) => ({ ...prev, [postId]: true }));
     try {
       await togglePostLike(postId, user.id, currentlyLiked);
-      setLikedByMeByPost((prev) => ({ ...prev, [postId]: !currentlyLiked }));
+      const interactions = await fetchPostInteractions([postId], user.id);
+      setLikedByMeByPost((prev) => ({
+        ...prev,
+        [postId]: !!interactions.likedByMeByPost[postId],
+      }));
       setLikesCountByPost((prev) => ({
         ...prev,
-        [postId]: Math.max(0, (prev[postId] || 0) + (currentlyLiked ? -1 : 1)),
+        [postId]: interactions.likesCountByPost[postId] || 0,
       }));
     } finally {
       setInteractionBusyByPost((prev) => ({ ...prev, [postId]: false }));
