@@ -40,12 +40,21 @@ interface Conversation {
   last_message_time: string;
 }
 
+interface LatestMessageInfo {
+  senderId: string;
+  createdAt: string;
+}
+
 
 
 function MessagesPageInner() {
   const [user, setUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [latestMessageByConversation, setLatestMessageByConversation] = useState<Record<string, LatestMessageInfo>>({});
+  const [seenConversationAt, setSeenConversationAt] = useState<Record<string, string>>({});
   const router = useRouter();
+
+  const seenStorageKey = user?.id ? `messages_seen_at:${user.id}` : null;
 
   function getProfileHref(otherUserId?: string | null) {
     if (!otherUserId) return null;
@@ -61,6 +70,49 @@ function MessagesPageInner() {
       loadConversations(user.id);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!seenStorageKey) {
+      setSeenConversationAt({});
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(seenStorageKey);
+      if (!raw) {
+        setSeenConversationAt({});
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      setSeenConversationAt(parsed && typeof parsed === "object" ? parsed : {});
+    } catch {
+      setSeenConversationAt({});
+    }
+  }, [seenStorageKey]);
+
+  function persistSeenConversationAt(nextValue: Record<string, string>) {
+    if (!seenStorageKey) return;
+    setSeenConversationAt(nextValue);
+    try {
+      localStorage.setItem(seenStorageKey, JSON.stringify(nextValue));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
+  function markConversationSeen(conversationId: string, seenAt: string) {
+    const nextValue = {
+      ...seenConversationAt,
+      [conversationId]: seenAt,
+    };
+    persistSeenConversationAt(nextValue);
+  }
+
+  function openConversation(conversationId: string) {
+    const nowIso = new Date().toISOString();
+    markConversationSeen(conversationId, nowIso);
+    router.push(`/messages/${conversationId}`);
+  }
 
   async function checkUser() {
     try {
@@ -83,7 +135,33 @@ function MessagesPageInner() {
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
         .order("updated_at", { ascending: false });
       if (convosRes.error) throw convosRes.error;
-      setConversations(convosRes.data || []);
+
+      const loadedConversations = (convosRes.data || []) as Conversation[];
+      setConversations(loadedConversations);
+
+      const conversationIds = loadedConversations.map((conversation) => conversation.id);
+      if (conversationIds.length === 0) {
+        setLatestMessageByConversation({});
+        return;
+      }
+
+      const { data: messageRows } = await supabase
+        .from("messages")
+        .select("conversation_id,sender_id,created_at")
+        .in("conversation_id", conversationIds)
+        .order("created_at", { ascending: false });
+
+      const latestByConversation: Record<string, LatestMessageInfo> = {};
+      (messageRows || []).forEach((row: any) => {
+        if (!row?.conversation_id || !row?.sender_id || !row?.created_at) return;
+        if (latestByConversation[row.conversation_id]) return;
+        latestByConversation[row.conversation_id] = {
+          senderId: row.sender_id,
+          createdAt: row.created_at,
+        };
+      });
+
+      setLatestMessageByConversation(latestByConversation);
     } catch (error) {
       // Optionally show notification
     }
@@ -147,16 +225,24 @@ function MessagesPageInner() {
                 const otherUser = getOtherUserInfo(conv);
                 const otherUserId = getOtherUserId(conv);
                 const profileHref = getProfileHref(otherUserId);
+                const latestInfo = latestMessageByConversation[conv.id];
+                const seenAt = seenConversationAt[conv.id] || "";
+                const hasUnreadIncoming =
+                  Boolean(user?.id) &&
+                  Boolean(latestInfo?.senderId) &&
+                  latestInfo.senderId !== user.id &&
+                  Boolean(latestInfo?.createdAt) &&
+                  (!seenAt || new Date(latestInfo.createdAt).getTime() > new Date(seenAt).getTime());
                 return (
                   <div
                     key={conv.id}
                     className="w-full text-left py-2 px-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm flex items-center gap-3 border border-pink-100 dark:border-pink-900 hover:bg-pink-50 dark:hover:bg-pink-950 transition"
                     style={{ borderBottom: '2px solid #fce4ec' }}
-                    onClick={() => router.push(`/messages/${conv.id}`)}
+                    onClick={() => openConversation(conv.id)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        router.push(`/messages/${conv.id}`);
+                        openConversation(conv.id);
                       }
                     }}
                     role="button"
@@ -172,14 +258,24 @@ function MessagesPageInner() {
                         }}
                       >
                         {otherUser.photo ? (
-                          <img
-                            src={otherUser.photo}
-                            alt={otherUser.name}
-                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                          />
+                          <div className="relative">
+                            <img
+                              src={otherUser.photo}
+                              alt={otherUser.name}
+                              className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                            />
+                            {hasUnreadIncoming && (
+                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
+                            )}
+                          </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {otherUser.name?.[0]?.toUpperCase() || '?'}
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                              {otherUser.name?.[0]?.toUpperCase() || '?'}
+                            </div>
+                            {hasUnreadIncoming && (
+                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
+                            )}
                           </div>
                         )}
                         <div className="flex flex-col flex-1 min-w-0">
@@ -190,14 +286,24 @@ function MessagesPageInner() {
                     ) : (
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {otherUser.photo ? (
-                          <img
-                            src={otherUser.photo}
-                            alt={otherUser.name}
-                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                          />
+                          <div className="relative">
+                            <img
+                              src={otherUser.photo}
+                              alt={otherUser.name}
+                              className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                            />
+                            {hasUnreadIncoming && (
+                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
+                            )}
+                          </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {otherUser.name?.[0]?.toUpperCase() || '?'}
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                              {otherUser.name?.[0]?.toUpperCase() || '?'}
+                            </div>
+                            {hasUnreadIncoming && (
+                              <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-pink-600 ring-2 ring-white dark:ring-zinc-900" />
+                            )}
                           </div>
                         )}
                         <div className="flex flex-col flex-1 min-w-0">
