@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useNotification } from "../components/useNotification";
@@ -204,61 +204,61 @@ export default function FindMomsPage() {
     loadMessagedUsers();
   }, [user?.id]);
 
-  useEffect(() => {
-    async function loadRelationshipStatuses() {
-      if (!user?.id || moms.length === 0) {
-        setRelationshipStatusByMomId({});
-        return;
-      }
-
-      const momIdSet = new Set(moms.map((mom) => mom.id));
-      const defaultStatuses: Record<string, MomRelationshipStatus> = {};
-      moms.forEach((mom) => {
-        defaultStatuses[mom.id] = "none";
-      });
-
-      const { data, error } = await supabase
-        .from("village_invitations")
-        .select("from_user_id,to_user_id,status")
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`);
-
-      if (error) {
-        setRelationshipStatusByMomId(defaultStatuses);
-        return;
-      }
-
-      (data || []).forEach((invite: any) => {
-        const otherUserId = invite.from_user_id === user.id ? invite.to_user_id : invite.from_user_id;
-        if (!otherUserId || !momIdSet.has(otherUserId)) return;
-
-        if (invite.status === "accepted") {
-          defaultStatuses[otherUserId] = "in_village";
-          return;
-        }
-
-        if (
-          invite.status === "pending" &&
-          invite.from_user_id === user.id &&
-          defaultStatuses[otherUserId] !== "in_village"
-        ) {
-          defaultStatuses[otherUserId] = "invited";
-          return;
-        }
-
-        if (
-          invite.status === "pending" &&
-          invite.to_user_id === user.id &&
-          defaultStatuses[otherUserId] !== "in_village"
-        ) {
-          defaultStatuses[otherUserId] = "invited_you";
-        }
-      });
-
-      setRelationshipStatusByMomId(defaultStatuses);
+  const refreshRelationshipStatuses = useCallback(async () => {
+    if (!user?.id || moms.length === 0) {
+      setRelationshipStatusByMomId({});
+      return;
     }
 
-    void loadRelationshipStatuses();
+    const momIdSet = new Set(moms.map((mom) => mom.id));
+    const defaultStatuses: Record<string, MomRelationshipStatus> = {};
+    moms.forEach((mom) => {
+      defaultStatuses[mom.id] = "none";
+    });
+
+    const { data, error } = await supabase
+      .from("village_invitations")
+      .select("from_user_id,to_user_id,status")
+      .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`);
+
+    if (error) {
+      setRelationshipStatusByMomId(defaultStatuses);
+      return;
+    }
+
+    (data || []).forEach((invite: any) => {
+      const otherUserId = invite.from_user_id === user.id ? invite.to_user_id : invite.from_user_id;
+      if (!otherUserId || !momIdSet.has(otherUserId)) return;
+
+      if (invite.status === "accepted") {
+        defaultStatuses[otherUserId] = "in_village";
+        return;
+      }
+
+      if (
+        invite.status === "pending" &&
+        invite.from_user_id === user.id &&
+        defaultStatuses[otherUserId] !== "in_village"
+      ) {
+        defaultStatuses[otherUserId] = "invited";
+        return;
+      }
+
+      if (
+        invite.status === "pending" &&
+        invite.to_user_id === user.id &&
+        defaultStatuses[otherUserId] !== "in_village"
+      ) {
+        defaultStatuses[otherUserId] = "invited_you";
+      }
+    });
+
+    setRelationshipStatusByMomId(defaultStatuses);
   }, [user?.id, moms]);
+
+  useEffect(() => {
+    void refreshRelationshipStatuses();
+  }, [refreshRelationshipStatuses]);
 
   async function handleInviteToVillage(momId: string) {
     if (!user?.id) {
@@ -282,6 +282,7 @@ export default function FindMomsPage() {
           : "Failed to send invitation.";
       return { ok: false, message: errMsg };
     } finally {
+      await refreshRelationshipStatuses();
       setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
     }
   }
@@ -311,6 +312,7 @@ export default function FindMomsPage() {
           : "Failed to remove invitation.";
       return { ok: false, message: errMsg };
     } finally {
+      await refreshRelationshipStatuses();
       setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
     }
   }
@@ -340,6 +342,7 @@ export default function FindMomsPage() {
           : "Failed to accept invitation.";
       return { ok: false, message: errMsg };
     } finally {
+      await refreshRelationshipStatuses();
       setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
     }
   }
