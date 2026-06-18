@@ -39,6 +39,7 @@ interface Conversation {
   user2_name?: string;
   last_message: string;
   last_message_time: string;
+  updated_at?: string;
 }
 
 interface LatestMessageInfo {
@@ -75,6 +76,63 @@ function MessagesPageInner() {
       loadConversations(user.id);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`messages-activity-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload: any) => {
+          const senderId = payload?.new?.sender_id;
+          const receiverId = payload?.new?.receiver_id;
+          if (senderId === user.id || receiverId === user.id) {
+            void loadConversations(user.id);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload: any) => {
+          const senderId = payload?.new?.sender_id;
+          const receiverId = payload?.new?.receiver_id;
+          if (senderId === user.id || receiverId === user.id) {
+            void loadConversations(user.id);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  function getConversationActivityTimestamp(
+    conversation: Conversation,
+    latestByConversation?: Record<string, LatestMessageInfo>,
+  ): number {
+    const latestMessageTime = latestByConversation?.[conversation.id]?.createdAt;
+    if (latestMessageTime) return new Date(latestMessageTime).getTime();
+
+    if (conversation.last_message_time) return new Date(conversation.last_message_time).getTime();
+    if (conversation.updated_at) return new Date(conversation.updated_at).getTime();
+    return 0;
+  }
+
+  function sortConversationsByActivity(
+    conversationList: Conversation[],
+    latestByConversation?: Record<string, LatestMessageInfo>,
+  ): Conversation[] {
+    return [...conversationList].sort(
+      (left, right) =>
+        getConversationActivityTimestamp(right, latestByConversation) -
+        getConversationActivityTimestamp(left, latestByConversation),
+    );
+  }
 
   useEffect(() => {
     if (!seenStorageKey) {
@@ -235,7 +293,7 @@ function MessagesPageInner() {
       if (convosRes.error) throw convosRes.error;
 
       const loadedConversations = (convosRes.data || []) as Conversation[];
-      setConversations(loadedConversations);
+      setConversations(sortConversationsByActivity(loadedConversations));
 
       const conversationIds = loadedConversations.map((conversation) => conversation.id);
       if (conversationIds.length === 0) {
@@ -260,6 +318,7 @@ function MessagesPageInner() {
       });
 
       setLatestMessageByConversation(latestByConversation);
+      setConversations((prev) => sortConversationsByActivity(prev, latestByConversation));
     } catch (error) {
       // Optionally show notification
     }
