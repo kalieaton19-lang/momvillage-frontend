@@ -205,22 +205,29 @@ export default function HomePage() {
       return;
     }
 
-    void refreshUnreadMessages(user.id);
+    void refreshMessageNotifications(user.id);
 
     const unreadChannel = supabase
-      .channel(`home-unread-messages-${user.id}`)
+      .channel(`home-message-notifications-${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => {
-          void refreshUnreadMessages(user.id);
+          void refreshMessageNotifications(user.id);
         },
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => {
-          void refreshUnreadMessages(user.id);
+          void refreshMessageNotifications(user.id);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => {
+          void refreshMessageNotifications(user.id);
         },
       )
       .subscribe();
@@ -535,13 +542,14 @@ export default function HomePage() {
     }
   }
 
-  async function refreshUnreadMessages(userId: string) {
+  async function refreshMessageNotifications(userId: string) {
     try {
       const { data, error } = await supabase
-        .from("messages")
+        .from("notifications")
         .select("id")
-        .eq("receiver_id", userId)
-        .is("read_at", null)
+        .eq("user_id", userId)
+        .eq("type", "message_received")
+        .eq("read", false)
         .limit(1);
 
       if (error) throw error;

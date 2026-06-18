@@ -30,6 +30,18 @@ export async function POST(request: Request) {
       return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
+    const { error: notificationError } = await supabaseAdmin
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", user.id)
+      .eq("type", "message_received")
+      .eq("read", false)
+      .filter("data->>conversation_id", "eq", conversationId);
+
+    if (notificationError) {
+      return new NextResponse(JSON.stringify({ error: notificationError.message }), { status: 500 });
+    }
+
     return NextResponse.json({ updatedCount: data?.length || 0 });
   } catch {
     return new NextResponse(JSON.stringify({ error: "Bad request" }), { status: 400 });
