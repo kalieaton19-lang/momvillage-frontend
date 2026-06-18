@@ -197,7 +197,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const [showVillageMemberModal, setShowVillageMemberModal] = useState(false);
   const [viewportHeightPx, setViewportHeightPx] = useState<number | null>(null);
   const [viewportOffsetTopPx, setViewportOffsetTopPx] = useState(0);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
+  const previousMessagesCountRef = useRef(0);
 
   useEffect(() => {
     checkUser();
@@ -501,8 +504,21 @@ export default function ConversationPageInner({ conversationId }: { conversation
     }
   }
 
+  function updateAutoScrollState() {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom <= 120;
+  }
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const hasNewMessage = messages.length > previousMessagesCountRef.current;
+    if (hasNewMessage && shouldAutoScrollRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    previousMessagesCountRef.current = messages.length;
   }, [messages]);
 
   async function checkUser() {
@@ -805,7 +821,12 @@ export default function ConversationPageInner({ conversationId }: { conversation
             }}
           />
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div
+          ref={messagesContainerRef}
+          onScroll={updateAutoScrollState}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
