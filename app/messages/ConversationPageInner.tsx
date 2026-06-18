@@ -182,8 +182,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
     | { status: 'in-village' | 'invited-by-me' | 'invited-me' | 'none' }
     | null
   >(null);
-  const [inviteBanner, setInviteBanner] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [showInvitationDecisionModal, setShowInvitationDecisionModal] = useState(false);
+  const [showInvitedActionsModal, setShowInvitedActionsModal] = useState(false);
+  const [showVillageMemberModal, setShowVillageMemberModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -199,71 +201,175 @@ export default function ConversationPageInner({ conversationId }: { conversation
   useEffect(() => {
     if (conversation && user) {
       loadMessages(conversation.id);
-      // Enhanced: Check all invitation statuses
-      const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
-      (async () => {
-        // 1. Check if in village (accepted invitation either direction)
-        const { data: accepted } = await supabase
-          .from('village_invitations')
-          .select('id')
-          .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user.id})`)
-          .eq('status', 'accepted');
-        if (accepted && accepted.length > 0) {
-          setVillageStatus({ status: 'in-village' });
-          return;
-        }
-        // 2. Check if invitation sent by me (pending/resent)
-        const { data: sent } = await supabase
-          .from('village_invitations')
-          .select('id,status')
-          .eq('from_user_id', user.id)
-          .eq('to_user_id', otherUserId)
-          .in('status', ['pending', 'resent']);
-        if (sent && sent.length > 0) {
-          setVillageStatus({ status: 'invited-by-me' });
-          return;
-        }
-        // 3. Check if invitation sent to me (pending/resent)
-        const { data: received } = await supabase
-          .from('village_invitations')
-          .select('id,status')
-          .eq('from_user_id', otherUserId)
-          .eq('to_user_id', user.id)
-          .in('status', ['pending', 'resent']);
-        if (received && received.length > 0) {
-          setVillageStatus({ status: 'invited-me' });
-          return;
-        }
-        setVillageStatus({ status: 'none' });
-      })();
+      void refreshVillageStatus(user.id, conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id);
     } else {
       setVillageStatus(null);
     }
   }, [conversation, user]);
 
+  async function refreshVillageStatus(currentUserId: string, otherUserId: string) {
+    const { data: relationshipRows } = await supabase
+      .from('village_invitations')
+      .select('from_user_id,to_user_id,status')
+      .or(`and(from_user_id.eq.${currentUserId},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${currentUserId})`);
+
+    const rows = relationshipRows || [];
+    const inVillage = rows.some((row: any) => row.status === 'accepted');
+    if (inVillage) {
+      setVillageStatus({ status: 'in-village' });
+      return;
+    }
+
+    const invitedByMe = rows.some(
+      (row: any) =>
+        row.from_user_id === currentUserId &&
+        row.to_user_id === otherUserId &&
+        (row.status === 'pending' || row.status === 'resent'),
+    );
+    if (invitedByMe) {
+      setVillageStatus({ status: 'invited-by-me' });
+      return;
+    }
+
+    const invitedMe = rows.some(
+      (row: any) =>
+        row.from_user_id === otherUserId &&
+        row.to_user_id === currentUserId &&
+        (row.status === 'pending' || row.status === 'resent'),
+    );
+    if (invitedMe) {
+      setVillageStatus({ status: 'invited-me' });
+      return;
+    }
+
+    setVillageStatus({ status: 'none' });
+  }
+
   async function handleSendVillageInvitation() {
-    if (!user || !conversation) return;
+    if (!user || !conversation) {
+      return { ok: false, message: 'Please sign in to invite moms.' };
+    }
     const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
     setInviteLoading(true);
-    setInviteBanner("");
     try {
-      const invitation = {
-        id: `vinv_${Date.now()}`,
-        from_user_id: user.id,
-        from_user_name: user.user_metadata?.full_name || 'A Mom',
-        from_user_photo: user.user_metadata?.profile_photo_url || '',
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        to_user_id: otherUserId,
-      };
-      const { error } = await supabase.from('village_invitations').insert([invitation]);
+      const { error: deleteStaleError } = await supabase
+        .from('village_invitations')
+        .delete()
+        .eq('from_user_id', user.id)
+        .eq('to_user_id', otherUserId);
+
+      if (deleteStaleError) throw deleteStaleError;
+
+      const { error } = await supabase
+        .from('village_invitations')
+        .insert({ from_user_id: user.id, to_user_id: otherUserId, status: 'pending' });
+
       if (error) throw error;
-      setInviteBanner('Village invitation sent!');
-      setVillageStatus({ status: 'invited-by-me' });
-      setTimeout(() => setInviteBanner("") , 4000);
+      await refreshVillageStatus(user.id, otherUserId);
+      return { ok: true, message: 'Invitation sent!' };
     } catch (e) {
-      setInviteBanner('Failed to send invitation.');
-      setTimeout(() => setInviteBanner("") , 4000);
+      const errMsg = e && typeof e === 'object' && 'message' in e ? (e as Error).message : 'Failed to send invitation.';
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleUninvite() {
+    if (!user || !conversation) {
+      return { ok: false, message: 'Please sign in to manage invitations.' };
+    }
+    const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from('village_invitations')
+        .delete()
+        .eq('from_user_id', user.id)
+        .eq('to_user_id', otherUserId);
+
+      if (error) throw error;
+      await refreshVillageStatus(user.id, otherUserId);
+      return { ok: true, message: 'Invitation removed.' };
+    } catch (e) {
+      const errMsg = e && typeof e === 'object' && 'message' in e ? (e as Error).message : 'Failed to remove invitation.';
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleAcceptInvitation() {
+    if (!user || !conversation) {
+      return { ok: false, message: 'Please sign in to accept invitations.' };
+    }
+    const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from('village_invitations')
+        .update({ status: 'accepted' })
+        .eq('from_user_id', otherUserId)
+        .eq('to_user_id', user.id)
+        .in('status', ['pending', 'resent']);
+
+      if (error) throw error;
+      await refreshVillageStatus(user.id, otherUserId);
+      return { ok: true, message: "Invitation accepted! You're now in each other's village." };
+    } catch (e) {
+      const errMsg = e && typeof e === 'object' && 'message' in e ? (e as Error).message : 'Failed to accept invitation.';
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleDeclineInvitation() {
+    if (!user || !conversation) {
+      return { ok: false, message: 'Please sign in to manage invitations.' };
+    }
+    const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from('village_invitations')
+        .delete()
+        .eq('from_user_id', otherUserId)
+        .eq('to_user_id', user.id);
+
+      if (error) throw error;
+      await refreshVillageStatus(user.id, otherUserId);
+      return { ok: true, message: 'Invitation declined.' };
+    } catch (e) {
+      const errMsg = e && typeof e === 'object' && 'message' in e ? (e as Error).message : 'Failed to decline invitation.';
+      return { ok: false, message: errMsg };
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleRemoveFromVillage() {
+    if (!user || !conversation) {
+      return { ok: false, message: 'Please sign in to manage your village.' };
+    }
+    const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
+
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase
+        .from('village_invitations')
+        .delete()
+        .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user.id})`);
+
+      if (error) throw error;
+      await refreshVillageStatus(user.id, otherUserId);
+      return { ok: true, message: 'Removed from your village.' };
+    } catch (e) {
+      const errMsg = e && typeof e === 'object' && 'message' in e ? (e as Error).message : 'Failed to remove from village.';
+      return { ok: false, message: errMsg };
     } finally {
       setInviteLoading(false);
     }
@@ -391,6 +497,11 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const otherUser = getOtherUserInfo(conversation);
   const otherUserId = conversation.user1_id === user?.id ? conversation.user2_id : conversation.user1_id;
   const otherUserProfileHref = otherUserId ? (otherUserId === user?.id ? "/profile" : `/profile/${otherUserId}`) : null;
+  const otherUserModalData = {
+    id: otherUserId,
+    full_name: otherUser.name || 'Mom',
+    profile_photo_url: otherUser.photo || '',
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -437,32 +548,97 @@ export default function ConversationPageInner({ conversationId }: { conversation
           ) : null}
           {villageStatus && (
             <div className="ml-auto flex items-center gap-2">
-              {villageStatus.status === 'in-village' && (
-                <span className="px-4 py-2 text-xs rounded-lg bg-green-100 text-green-800 font-semibold flex items-center justify-center min-w-[90px] text-center">In Your Village</span>
-              )}
-              {villageStatus.status === 'invited-by-me' && (
-                <span className="px-4 py-2 text-xs rounded-lg bg-yellow-100 text-yellow-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invitation Pending</span>
-              )}
-              {villageStatus.status === 'invited-me' && (
-                <span className="px-4 py-2 text-xs rounded-lg bg-blue-100 text-blue-800 font-semibold flex items-center justify-center min-w-[90px] text-center">Invited You</span>
-              )}
-              {villageStatus.status === 'none' && (
-                <button
-                  onClick={handleSendVillageInvitation}
-                  disabled={inviteLoading}
-                  className="px-4 py-2 text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
-                >
-                  {inviteLoading ? 'Sending...' : 'Send Village Invitation'}
-                </button>
-              )}
+              <button
+                onClick={
+                  villageStatus.status === 'in-village'
+                    ? () => setShowVillageMemberModal(true)
+                    : villageStatus.status === 'invited-by-me'
+                    ? () => setShowInvitedActionsModal(true)
+                    : villageStatus.status === 'invited-me'
+                    ? () => setShowInvitationDecisionModal(true)
+                    : async () => {
+                        const result = await handleSendVillageInvitation();
+                        showNotification(result.message, result.ok ? 'success' : 'error');
+                      }
+                }
+                disabled={inviteLoading}
+                className={`shrink-0 px-3 py-1.5 border rounded-full text-xs font-semibold transition-colors ${
+                  villageStatus.status === 'in-village'
+                    ? 'bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700'
+                    : villageStatus.status === 'invited-by-me'
+                    ? 'bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600'
+                    : villageStatus.status === 'invited-me'
+                    ? 'bg-pink-700 !text-white border-transparent hover:bg-pink-800 shadow-sm dark:bg-pink-700 dark:!text-white dark:border-transparent dark:hover:bg-pink-800'
+                    : 'bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45'
+                } ${inviteLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                style={villageStatus.status === 'invited-me' ? { color: '#ffffff' } : undefined}
+                type="button"
+              >
+                {villageStatus.status === 'in-village'
+                  ? 'In Your Village'
+                  : villageStatus.status === 'invited-by-me'
+                  ? inviteLoading
+                    ? 'Updating...'
+                    : 'Invited'
+                  : villageStatus.status === 'invited-me'
+                  ? inviteLoading
+                    ? 'Updating...'
+                    : 'View Invitation'
+                  : inviteLoading
+                  ? 'Sending...'
+                  : 'Invite'}
+              </button>
             </div>
           )}
         </div>
-        {/* Feedback banner for invitation sent */}
-        {inviteBanner && (
-          <div className="mx-6 mt-2 mb-[-8px] p-3 rounded bg-green-100 text-green-800 text-center font-medium">
-            {inviteBanner}
-          </div>
+        {showInvitationDecisionModal && (
+          <ChatInvitationDecisionModal
+            mom={otherUserModalData}
+            statusLoading={inviteLoading}
+            onClose={() => setShowInvitationDecisionModal(false)}
+            onAccept={async () => {
+              const result = await handleAcceptInvitation();
+              showNotification(result.message, result.ok ? 'success' : 'error');
+              setShowInvitationDecisionModal(false);
+            }}
+            onDecline={async () => {
+              const result = await handleDeclineInvitation();
+              showNotification(result.message, result.ok ? 'success' : 'error');
+              setShowInvitationDecisionModal(false);
+            }}
+          />
+        )}
+        {showInvitedActionsModal && (
+          <ChatInvitedActionsModal
+            mom={otherUserModalData}
+            statusLoading={inviteLoading}
+            onCancel={() => setShowInvitedActionsModal(false)}
+            onUninvite={async () => {
+              const result = await handleUninvite();
+              showNotification(result.message, result.ok ? 'success' : 'error');
+              setShowInvitedActionsModal(false);
+            }}
+            onResend={async () => {
+              const result = await handleSendVillageInvitation();
+              showNotification(result.message, result.ok ? 'success' : 'error');
+              setShowInvitedActionsModal(false);
+            }}
+          />
+        )}
+        {showVillageMemberModal && (
+          <ChatVillageMemberModal
+            mom={otherUserModalData}
+            statusLoading={inviteLoading}
+            onClose={() => setShowVillageMemberModal(false)}
+            onMessage={() => setShowVillageMemberModal(false)}
+            onRemove={async () => {
+              const result = await handleRemoveFromVillage();
+              showNotification(result.message, result.ok ? 'success' : 'error');
+              if (result.ok) {
+                setShowVillageMemberModal(false);
+              }
+            }}
+          />
         )}
         <div className="flex-1 overflow-y-auto p-0 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4">
           {messages.length === 0 ? (
@@ -553,6 +729,256 @@ export default function ConversationPageInner({ conversationId }: { conversation
               Send
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ChatInviteModalMom {
+  id: string;
+  full_name?: string | null;
+  profile_photo_url?: string | null;
+}
+
+interface ChatInvitationDecisionModalProps {
+  mom: ChatInviteModalMom;
+  statusLoading: boolean;
+  onClose: () => void;
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+function ChatInvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecline }: ChatInvitationDecisionModalProps) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close invitation popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={mom.full_name || "Mom"}
+                role="img"
+                style={{ backgroundImage: `url(${mom.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {(mom.full_name || "Mom").charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {mom.full_name || "Mom"}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            has invited you to join her village!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onDecline}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Decline"}
+          </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
+          >
+            {statusLoading ? "Updating..." : "Accept"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ChatInvitedActionsModalProps {
+  mom: ChatInviteModalMom;
+  statusLoading: boolean;
+  onCancel: () => void;
+  onUninvite: () => void | Promise<void>;
+  onResend: () => void | Promise<void>;
+}
+
+function ChatInvitedActionsModal({ mom, statusLoading, onCancel, onUninvite, onResend }: ChatInvitedActionsModalProps) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onCancel}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close invited popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-4 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={mom.full_name || "Mom"}
+                role="img"
+                style={{ backgroundImage: `url(${mom.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {(mom.full_name || "Mom").charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {mom.full_name || "Mom"}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            you&apos;ve already invited this mom to your village.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => void onUninvite()}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Uninvite"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void onResend()}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
+          >
+            {statusLoading ? "Updating..." : "Resend Invitation"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ChatVillageMemberModalProps {
+  mom: ChatInviteModalMom;
+  statusLoading: boolean;
+  onClose: () => void;
+  onMessage: () => void;
+  onRemove: () => void | Promise<void>;
+}
+
+function ChatVillageMemberModal({ mom, statusLoading, onClose, onMessage, onRemove }: ChatVillageMemberModalProps) {
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  const profilePhotoUrl = (mom.profile_photo_url || '').trim();
+  const hasValidPhotoUrl =
+    Boolean(profilePhotoUrl) &&
+    profilePhotoUrl.toLowerCase() !== 'null' &&
+    profilePhotoUrl.toLowerCase() !== 'undefined';
+
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [mom.id, profilePhotoUrl]);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full p-2 shadow hover:bg-pink-50 dark:hover:bg-pink-800 transition focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Close village member popup"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-600">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {hasValidPhotoUrl && !photoLoadFailed ? (
+              <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-pink-300 bg-pink-100">
+                <img
+                  src={profilePhotoUrl}
+                  alt={mom.full_name || 'Mom'}
+                  className="h-full w-full object-cover"
+                  onError={() => setPhotoLoadFailed(true)}
+                />
+              </div>
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {(mom.full_name || 'Mom').charAt(0).toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {mom.full_name || 'Mom'}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            is a part of your village!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onMessage}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+          >
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => void onRemove()}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+            style={{ color: '#ffffff' }}
+          >
+            {statusLoading ? 'Updating...' : 'Remove from Village'}
+          </button>
         </div>
       </div>
     </div>
