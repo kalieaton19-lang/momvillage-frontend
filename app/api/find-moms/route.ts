@@ -9,14 +9,14 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
       .from("user_public_profiles")
       .select(
-        "id,full_name,name,city,state,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url,services_offered,services_needed",
+        "id,full_name,name,city,state,number_of_kids,kids_age_groups,parenting_style,profile_photo_url,services_offered,services_needed",
       );
 
     if (error) {
       const { data: fallbackData, error: fallbackError } = await supabaseAdmin
         .from("user_public_profiles")
         .select(
-          "id,full_name,name,city,state,number_of_kids,kids_age_groups,preferred_language,parenting_style,profile_photo_url",
+          "id,full_name,name,city,state,number_of_kids,kids_age_groups,parenting_style,profile_photo_url",
         );
 
       if (!fallbackError) {
