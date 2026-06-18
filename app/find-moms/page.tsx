@@ -23,7 +23,7 @@ interface MomProfile {
   };
 }
 
-type MomRelationshipStatus = "none" | "invited" | "in_village";
+type MomRelationshipStatus = "none" | "invited" | "invited_you" | "in_village";
 
 function getSafeDisplayName(fullName?: string | null): string {
   const normalized = (fullName || "").trim();
@@ -242,6 +242,15 @@ export default function FindMomsPage() {
           defaultStatuses[otherUserId] !== "in_village"
         ) {
           defaultStatuses[otherUserId] = "invited";
+          return;
+        }
+
+        if (
+          invite.status === "pending" &&
+          invite.to_user_id === user.id &&
+          defaultStatuses[otherUserId] !== "in_village"
+        ) {
+          defaultStatuses[otherUserId] = "invited_you";
         }
       });
 
@@ -306,6 +315,35 @@ export default function FindMomsPage() {
     }
   }
 
+  async function handleAcceptInvitation(momId: string) {
+    if (!user?.id) {
+      return { ok: false, message: "Please sign in to accept invitations." };
+    }
+
+    setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: true }));
+    try {
+      const { error } = await supabase
+        .from("village_invitations")
+        .update({ status: "accepted" })
+        .eq("from_user_id", momId)
+        .eq("to_user_id", user.id)
+        .in("status", ["pending", "resent"]);
+
+      if (error) throw error;
+
+      setRelationshipStatusByMomId((prev) => ({ ...prev, [momId]: "in_village" }));
+      return { ok: true, message: "Invitation accepted! You're now in each other's village." };
+    } catch (error) {
+      const errMsg =
+        error && typeof error === "object" && "message" in error
+          ? (error as Error).message
+          : "Failed to accept invitation.";
+      return { ok: false, message: errMsg };
+    } finally {
+      setStatusLoadingByMomId((prev) => ({ ...prev, [momId]: false }));
+    }
+  }
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const normalizedUserCity = (user?.user_metadata?.city || "").trim().toLowerCase();
   const normalizedUserState = (user?.user_metadata?.state || "").trim().toLowerCase();
@@ -356,6 +394,14 @@ export default function FindMomsPage() {
 
   async function handleUninviteWithFeedback(momId: string) {
     const result = await handleUninvite(momId);
+    showNotification(result.message);
+  }
+
+  async function handleAcceptWithFeedback(momId: string) {
+    const shouldAccept = window.confirm("Accept this village invitation?");
+    if (!shouldAccept) return;
+
+    const result = await handleAcceptInvitation(momId);
     showNotification(result.message);
   }
 
@@ -439,6 +485,7 @@ export default function FindMomsPage() {
                       statusLoading={!!statusLoadingByMomId[mom.id]}
                       onInvite={handleInviteToVillage}
                       onUninvite={handleUninvite}
+                      onAccept={handleAcceptWithFeedback}
                       onOpenPreview={setSelectedMomId}
                     />
                   ))}
@@ -464,6 +511,7 @@ export default function FindMomsPage() {
                   statusLoading={!!statusLoadingByMomId[mom.id]}
                   onInvite={handleInviteToVillage}
                   onUninvite={handleUninvite}
+                  onAccept={handleAcceptWithFeedback}
                   onOpenPreview={setSelectedMomId}
                 />
               ))}
@@ -484,6 +532,7 @@ export default function FindMomsPage() {
           }}
           onInvite={() => void handleInviteWithFeedback(selectedMom.id)}
           onUninvite={() => void handleUninviteWithFeedback(selectedMom.id)}
+          onAccept={() => void handleAcceptWithFeedback(selectedMom.id)}
         />
       )}
       {NotificationComponent}
@@ -497,6 +546,7 @@ interface MomCardProps {
   statusLoading: boolean;
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
   onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onAccept: (momId: string) => Promise<void>;
   onOpenPreview: (momId: string) => void;
 }
 
@@ -506,10 +556,11 @@ interface NameSuggestionRowProps {
   statusLoading: boolean;
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
   onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onAccept: (momId: string) => Promise<void>;
   onOpenPreview: (momId: string) => void;
 }
 
-function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onOpenPreview }: NameSuggestionRowProps) {
+function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onAccept, onOpenPreview }: NameSuggestionRowProps) {
   const { showNotification, NotificationComponent } = useNotification();
 
   async function handleInviteClick() {
@@ -527,6 +578,10 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
     const result = await onUninvite(mom.id);
     showNotification(result.message);
+  }
+
+  async function handleAcceptClick() {
+    await onAccept(mom.id);
   }
 
   return (
@@ -562,6 +617,8 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
         onClick={
           relationshipStatus === "invited"
             ? () => void handleInvitedClick()
+            : relationshipStatus === "invited_you"
+            ? () => void handleAcceptClick()
             : () => void handleInviteClick()
         }
         disabled={statusLoading || relationshipStatus === "in_village"}
@@ -570,6 +627,8 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
             ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
             : relationshipStatus === "invited"
             ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
+            : relationshipStatus === "invited_you"
+            ? "bg-blue-100 text-blue-700 border-blue-500 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700 dark:hover:bg-blue-900/45"
             : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
         } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
       >
@@ -579,6 +638,10 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
           ? statusLoading
             ? "Updating..."
             : "Invited"
+          : relationshipStatus === "invited_you"
+          ? statusLoading
+            ? "Accepting..."
+            : "Accept Invitation"
           : statusLoading
           ? "Sending..."
           : "Invite"}
@@ -590,7 +653,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
 
 
 
-function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onOpenPreview }: MomCardProps) {
+function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onAccept, onOpenPreview }: MomCardProps) {
   const router = useRouter();
   const metadata = mom.user_metadata;
   const { showNotification, NotificationComponent } = useNotification();
@@ -610,6 +673,10 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite,
 
     const result = await onUninvite(mom.id);
     showNotification(result.message);
+  }
+
+  async function handleAcceptClick() {
+    await onAccept(mom.id);
   }
 
   return (
@@ -658,6 +725,8 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite,
               onClick={
                 relationshipStatus === "invited"
                   ? () => void handleInvitedClick()
+                  : relationshipStatus === "invited_you"
+                  ? () => void handleAcceptClick()
                   : () => void handleInviteClick()
               }
               disabled={statusLoading || relationshipStatus === "in_village"}
@@ -666,6 +735,8 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite,
                   ? "bg-green-100 text-green-700 border-green-500 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
                   : relationshipStatus === "invited"
                   ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
+                  : relationshipStatus === "invited_you"
+                  ? "bg-blue-100 text-blue-700 border-blue-500 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700 dark:hover:bg-blue-900/45"
                   : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
               } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
             >
@@ -675,6 +746,10 @@ function MomCard({ mom, relationshipStatus, statusLoading, onInvite, onUninvite,
                 ? statusLoading
                   ? "Updating..."
                   : "Invited"
+                : relationshipStatus === "invited_you"
+                ? statusLoading
+                  ? "Accepting..."
+                  : "Accept Invitation"
                 : statusLoading
                 ? "Sending..."
                 : "Invite to Village"}
@@ -701,6 +776,7 @@ interface ProfilePreviewModalProps {
   onViewProfile: () => void;
   onInvite: () => void;
   onUninvite: () => void;
+  onAccept: () => void;
 }
 
 function ProfilePreviewModal({
@@ -711,6 +787,7 @@ function ProfilePreviewModal({
   onViewProfile,
   onInvite,
   onUninvite,
+  onAccept,
 }: ProfilePreviewModalProps) {
   const metadata = mom.user_metadata;
 
@@ -725,6 +802,11 @@ function ProfilePreviewModal({
       );
       if (!shouldUninvite) return;
       onUninvite();
+      return;
+    }
+
+    if (relationshipStatus === "invited_you") {
+      onAccept();
       return;
     }
 
@@ -790,6 +872,8 @@ function ProfilePreviewModal({
                 ? "border-green-500 bg-green-100 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200"
                 : relationshipStatus === "invited"
                 ? "border-zinc-400 bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
+                : relationshipStatus === "invited_you"
+                ? "border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/45"
                 : "border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
             } ${statusLoading ? "cursor-not-allowed opacity-60" : ""}`}
           >
@@ -799,6 +883,10 @@ function ProfilePreviewModal({
               ? statusLoading
                 ? "Updating..."
                 : "Invited"
+              : relationshipStatus === "invited_you"
+              ? statusLoading
+                ? "Accepting..."
+                : "Accept Invitation"
               : statusLoading
               ? "Sending..."
               : "Invite"}
