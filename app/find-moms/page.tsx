@@ -873,14 +873,43 @@ function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecl
         className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          Village Invitation
-        </h3>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          {getSafeDisplayName(mom.user_metadata?.full_name)} invited you to join her village.
-        </p>
+        <div className="mb-3 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-pink-600 transition hover:bg-pink-100 hover:text-pink-700 dark:text-pink-300 dark:hover:bg-pink-900/30 dark:hover:text-pink-200"
+            aria-label="Close invitation popup"
+          >
+            ✕
+          </button>
+        </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2">
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.user_metadata?.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={getSafeDisplayName(mom.user_metadata?.full_name)}
+                role="img"
+                style={{ backgroundImage: `url(${mom.user_metadata.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {getSafeDisplayName(mom.user_metadata?.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(mom.user_metadata?.full_name)}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            has invited you to join her village!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={onDecline}
@@ -893,7 +922,8 @@ function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecl
             type="button"
             onClick={onAccept}
             disabled={statusLoading}
-            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
           >
             {statusLoading ? "Updating..." : "Accept"}
           </button>
@@ -917,14 +947,32 @@ function UninviteConfirmationModal({ mom, statusLoading, onCancel, onConfirm }: 
         className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          Uninvite Mom
-        </h3>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          Would you like to uninvite {getSafeDisplayName(mom.user_metadata?.full_name)} to your village?
-        </p>
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3">
+            {mom.user_metadata?.profile_photo_url ? (
+              <div
+                className="h-24 w-24 rounded-full border-4 border-pink-300 bg-cover bg-center"
+                aria-label={getSafeDisplayName(mom.user_metadata?.full_name)}
+                role="img"
+                style={{ backgroundImage: `url(${mom.user_metadata.profile_photo_url})` }}
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-3xl font-semibold text-white">
+                {getSafeDisplayName(mom.user_metadata?.full_name).charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2">
+          <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {getSafeDisplayName(mom.user_metadata?.full_name)}
+          </h3>
+
+          <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+            would you like to uninvite this mom?
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={onCancel}
@@ -937,7 +985,8 @@ function UninviteConfirmationModal({ mom, statusLoading, onCancel, onConfirm }: 
             type="button"
             onClick={() => void onConfirm()}
             disabled={statusLoading}
-            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            style={{ color: "#ffffff" }}
           >
             {statusLoading ? "Updating..." : "Uninvite"}
           </button>
