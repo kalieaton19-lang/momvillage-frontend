@@ -166,6 +166,7 @@ export default function HomePage() {
   const [sharedPostId, setSharedPostId] = useState<string | null>(null);
   const [didFocusSharedPost, setDidFocusSharedPost] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const feedRefreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -256,6 +257,65 @@ export default function HomePage() {
       void supabase.removeChannel(unreadMessagesChannel);
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const scheduleFeedRefresh = () => {
+      if (feedRefreshTimeoutRef.current) {
+        clearTimeout(feedRefreshTimeoutRef.current);
+      }
+      feedRefreshTimeoutRef.current = setTimeout(() => {
+        if (feedType === "groups" && selectedGroupId) {
+          void loadGroupPosts(selectedGroupId);
+        } else {
+          void loadPosts();
+        }
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`home-feed-realtime-${user.id}-${feedType}-${selectedGroupId || "none"}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "posts" },
+        scheduleFeedRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "posts" },
+        scheduleFeedRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts" },
+        scheduleFeedRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_comments" },
+        scheduleFeedRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "post_comments" },
+        scheduleFeedRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_comments" },
+        scheduleFeedRefresh,
+      )
+      .subscribe();
+
+    return () => {
+      if (feedRefreshTimeoutRef.current) {
+        clearTimeout(feedRefreshTimeoutRef.current);
+        feedRefreshTimeoutRef.current = null;
+      }
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, feedType, selectedGroupId]);
 
   useEffect(() => {
     if (!user?.id || !sharedPostId) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PostContentWithPreview from "../../components/PostContentWithPreview";
 import PostShareSheet from "../../components/PostShareSheet";
@@ -68,10 +68,66 @@ export default function GroupDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
+  const groupRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     void initialize();
   }, [groupId]);
+
+  useEffect(() => {
+    if (!user?.id || !groupId) return;
+
+    const scheduleGroupRefresh = () => {
+      if (groupRefreshTimeoutRef.current) {
+        clearTimeout(groupRefreshTimeoutRef.current);
+      }
+      groupRefreshTimeoutRef.current = setTimeout(() => {
+        void loadGroupPosts(groupId);
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`group-feed-realtime-${groupId}-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "posts", filter: `group_id=eq.${groupId}` },
+        scheduleGroupRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "posts", filter: `group_id=eq.${groupId}` },
+        scheduleGroupRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts", filter: `group_id=eq.${groupId}` },
+        scheduleGroupRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_comments" },
+        scheduleGroupRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "post_comments" },
+        scheduleGroupRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_comments" },
+        scheduleGroupRefresh,
+      )
+      .subscribe();
+
+    return () => {
+      if (groupRefreshTimeoutRef.current) {
+        clearTimeout(groupRefreshTimeoutRef.current);
+        groupRefreshTimeoutRef.current = null;
+      }
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, groupId]);
 
   const isPrivateGroup = group?.visibility === "by_permission";
   const isGroupCreator = group?.creator_user_id === user?.id;

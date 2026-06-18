@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import InvitationsTab from "./InvitationsTab";
 import { supabase } from "../../lib/supabase";
@@ -9,55 +9,121 @@ export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null);
   const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const invitationsRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchUserAndInvitations = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      console.log('[DEBUG][notifications] currentUser:', currentUser);
-      setUser(currentUser);
-      if (!currentUser) return setLoading(false);
-      // 1. Fetch invitations only (no join)
-      const { data: invites, error: invitesError } = await supabase
-        .from("village_invitations")
-        .select("*")
-        .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`);
-      if (invitesError) {
-        console.log('[DEBUG][notifications] invitations fetch error:', invitesError);
-        setLoading(false);
-        return;
-      }
-      // 2. Collect all unique user IDs
-      const userIds = Array.from(new Set([
-        ...invites.map((i: any) => i.from_user_id),
-        ...invites.map((i: any) => i.to_user_id),
-      ]));
-      // 3. Fetch user profiles
-      let profiles: any[] = [];
-      if (userIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from("user_public_profiles")
-          .select("id, full_name, profile_photo_url, city, state")
-          .in("id", userIds);
-        if (profilesError) {
-          console.log('[DEBUG][notifications] profiles fetch error:', profilesError);
-        } else {
-          profiles = profilesData || [];
-        }
-      }
-      // 4. Merge profiles into invitations
-      const profilesById = Object.fromEntries(profiles.map((p: any) => [p.id, p]));
-      const mergedInvites = invites.map((inv: any) => ({
-        ...inv,
-        from_user_profile: profilesById[inv.from_user_id] || null,
-        to_user_profile: profilesById[inv.to_user_id] || null,
-      }));
-      console.log('[DEBUG][notifications] merged invitations:', mergedInvites);
-      setInvitations(mergedInvites);
+  async function fetchUserAndInvitations(options?: { preserveLoading?: boolean; userOverride?: any }) {
+    const preserveLoading = options?.preserveLoading ?? false;
+    if (!preserveLoading) {
+      setLoading(true);
+    }
+
+    const currentUser = options?.userOverride ?? (await supabase.auth.getUser()).data.user;
+    console.log('[DEBUG][notifications] currentUser:', currentUser);
+    setUser(currentUser);
+    if (!currentUser) {
+      setInvitations([]);
       setLoading(false);
-    };
-    fetchUserAndInvitations();
+      return;
+    }
+
+    const { data: invites, error: invitesError } = await supabase
+      .from("village_invitations")
+      .select("*")
+      .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`);
+    if (invitesError) {
+      console.log('[DEBUG][notifications] invitations fetch error:', invitesError);
+      setLoading(false);
+      return;
+    }
+
+    const userIds = Array.from(new Set([
+      ...(invites || []).map((invitation: any) => invitation.from_user_id),
+      ...(invites || []).map((invitation: any) => invitation.to_user_id),
+    ]));
+
+    let profiles: any[] = [];
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, profile_photo_url, city, state")
+        .in("id", userIds);
+      if (profilesError) {
+        console.log('[DEBUG][notifications] profiles fetch error:', profilesError);
+      } else {
+        profiles = profilesData || [];
+      }
+    }
+
+    const profilesById = Object.fromEntries(profiles.map((profile: any) => [profile.id, profile]));
+    const mergedInvites = (invites || []).map((invitation: any) => ({
+      ...invitation,
+      from_user_profile: profilesById[invitation.from_user_id] || null,
+      to_user_profile: profilesById[invitation.to_user_id] || null,
+    }));
+    console.log('[DEBUG][notifications] merged invitations:', mergedInvites);
+    setInvitations(mergedInvites);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    void fetchUserAndInvitations();
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const scheduleInvitationRefresh = () => {
+      if (invitationsRefreshTimeoutRef.current) {
+        clearTimeout(invitationsRefreshTimeoutRef.current);
+      }
+      invitationsRefreshTimeoutRef.current = setTimeout(() => {
+        void fetchUserAndInvitations({ preserveLoading: true, userOverride: user });
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`notifications-invitations-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "village_invitations", filter: `to_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "village_invitations", filter: `to_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "village_invitations", filter: `to_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "village_invitations", filter: `from_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "village_invitations", filter: `from_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "village_invitations", filter: `from_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .subscribe();
+
+    return () => {
+      if (invitationsRefreshTimeoutRef.current) {
+        clearTimeout(invitationsRefreshTimeoutRef.current);
+        invitationsRefreshTimeoutRef.current = null;
+      }
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 w-full">

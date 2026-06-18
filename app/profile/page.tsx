@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -130,6 +130,7 @@ export default function ProfilePage() {
   const [reportModalType, setReportModalType] = useState<ReportType>("post");
   const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
+  const profileRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
@@ -144,6 +145,61 @@ export default function ProfilePage() {
     if (user?.id) {
       loadMyPosts(user.id);
     }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const scheduleProfileRefresh = () => {
+      if (profileRefreshTimeoutRef.current) {
+        clearTimeout(profileRefreshTimeoutRef.current);
+      }
+      profileRefreshTimeoutRef.current = setTimeout(() => {
+        void loadMyPosts(user.id);
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`profile-realtime-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "posts", filter: `author_user_id=eq.${user.id}` },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "posts", filter: `author_user_id=eq.${user.id}` },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts", filter: `author_user_id=eq.${user.id}` },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_comments" },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "post_comments" },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_comments" },
+        scheduleProfileRefresh,
+      )
+      .subscribe();
+
+    return () => {
+      if (profileRefreshTimeoutRef.current) {
+        clearTimeout(profileRefreshTimeoutRef.current);
+        profileRefreshTimeoutRef.current = null;
+      }
+      void supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   async function loadVillageCount(userId: string) {

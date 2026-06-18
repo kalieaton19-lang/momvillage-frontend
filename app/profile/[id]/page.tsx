@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
@@ -85,6 +85,8 @@ export default function ProfilePage() {
   const [reportModalType, setReportModalType] = useState<ReportType>("post");
   const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
+  const [realtimeRefreshKey, setRealtimeRefreshKey] = useState(0);
+  const profileRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showNotification, NotificationComponent } = useNotification();
 
   function getProfileHref(authorUserId?: string | null) {
@@ -245,7 +247,62 @@ export default function ProfilePage() {
       setLoading(false);
     }
     if (profileUserId) fetchProfile();
-  }, [profileUserId, currentUser?.id]);
+  }, [profileUserId, currentUser?.id, realtimeRefreshKey]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !profileUserId) return;
+
+    const scheduleProfileRefresh = () => {
+      if (profileRefreshTimeoutRef.current) {
+        clearTimeout(profileRefreshTimeoutRef.current);
+      }
+      profileRefreshTimeoutRef.current = setTimeout(() => {
+        setRealtimeRefreshKey((prev) => prev + 1);
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`profile-public-realtime-${profileUserId}-${currentUser.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "posts", filter: `author_user_id=eq.${profileUserId}` },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "posts", filter: `author_user_id=eq.${profileUserId}` },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts", filter: `author_user_id=eq.${profileUserId}` },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_comments" },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "post_comments" },
+        scheduleProfileRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_comments" },
+        scheduleProfileRefresh,
+      )
+      .subscribe();
+
+    return () => {
+      if (profileRefreshTimeoutRef.current) {
+        clearTimeout(profileRefreshTimeoutRef.current);
+        profileRefreshTimeoutRef.current = null;
+      }
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, profileUserId]);
 
   async function refreshInviteStatus(userOverride?: any) {
     const activeUser = userOverride || currentUser;
