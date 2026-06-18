@@ -635,9 +635,10 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
             : relationshipStatus === "invited"
             ? "bg-zinc-200 text-zinc-700 border-zinc-400 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-500 dark:hover:bg-zinc-600"
             : relationshipStatus === "invited_you"
-            ? "bg-pink-700 text-white border-pink-800 hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:bg-pink-700 dark:text-white dark:border-pink-900 dark:hover:bg-pink-800 dark:ring-pink-500/40"
+            ? "bg-pink-700 !text-white border-pink-800 hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:bg-pink-700 dark:!text-white dark:border-pink-900 dark:hover:bg-pink-800 dark:ring-pink-500/40"
             : "bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
         } ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          style={relationshipStatus === "invited_you" ? { color: "#ffffff" } : undefined}
       >
         {relationshipStatus === "in_village"
           ? "In Your Village"
@@ -779,9 +780,10 @@ function ProfilePreviewModal({
                 : relationshipStatus === "invited"
                 ? "border-zinc-400 bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
                 : relationshipStatus === "invited_you"
-                ? "border-pink-800 bg-pink-700 text-white hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:border-pink-900 dark:bg-pink-700 dark:text-white dark:hover:bg-pink-800 dark:ring-pink-500/40"
+                ? "border-pink-800 bg-pink-700 !text-white hover:bg-pink-800 ring-2 ring-pink-300/70 shadow-sm dark:border-pink-900 dark:bg-pink-700 dark:!text-white dark:hover:bg-pink-800 dark:ring-pink-500/40"
                 : "border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/45"
             } ${statusLoading ? "cursor-not-allowed opacity-60" : ""}`}
+              style={relationshipStatus === "invited_you" ? { color: "#ffffff" } : undefined}
           >
             {relationshipStatus === "in_village"
               ? "In Your Village"
