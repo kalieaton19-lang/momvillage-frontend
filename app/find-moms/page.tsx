@@ -761,10 +761,10 @@ function ProfilePreviewModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white px-6 pb-6 pt-4 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-end">
+        <div className="mb-2 flex items-center justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -777,7 +777,7 @@ function ProfilePreviewModal({
           </button>
         </div>
 
-        <div className="mb-6 flex flex-col items-center text-center">
+        <div className="mb-5 flex flex-col items-center text-center">
           <div className="mb-3">
             {metadata?.profile_photo_url ? (
               <div
@@ -872,10 +872,10 @@ function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecl
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-3 flex items-center justify-end">
+        <div className="mb-1 flex items-center justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -948,10 +948,10 @@ function UninviteConfirmationModal({ mom, statusLoading, onCancel, onConfirm }: 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onCancel}>
       <div
-        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white px-5 pb-5 pt-4 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-5 flex flex-col items-center text-center">
+        <div className="mb-4 flex flex-col items-center text-center">
           <div className="mb-3">
             {mom.user_metadata?.profile_photo_url ? (
               <div
