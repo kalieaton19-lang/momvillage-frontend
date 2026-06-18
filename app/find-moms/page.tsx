@@ -768,7 +768,7 @@ function ProfilePreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-pink-600 transition hover:bg-pink-100 hover:text-pink-700 dark:text-pink-300 dark:hover:bg-pink-900/30 dark:hover:text-pink-200"
+            className="rounded-full border border-pink-200 bg-white p-2 text-pink-600 shadow-md transition hover:shadow-lg hover:text-pink-700 dark:border-pink-200 dark:bg-white dark:text-pink-600"
             aria-label="Close profile preview"
           >
             ✕
@@ -877,7 +877,7 @@ function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecl
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-pink-600 transition hover:bg-pink-100 hover:text-pink-700 dark:text-pink-300 dark:hover:bg-pink-900/30 dark:hover:text-pink-200"
+            className="rounded-full border border-pink-200 bg-white p-2 text-pink-600 shadow-md transition hover:shadow-lg hover:text-pink-700 dark:border-pink-200 dark:bg-white dark:text-pink-600"
             aria-label="Close invitation popup"
           >
             ✕
