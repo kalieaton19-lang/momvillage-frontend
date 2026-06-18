@@ -4,7 +4,13 @@ import { getUserByAccessToken, supabaseAdmin } from "../../../../lib/supabaseAdm
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get("authorization") || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const cookieHeader = request.headers.get("cookie") || "";
+    const cookieTokenPair = cookieHeader
+      .split("; ")
+      .find((cookie) => cookie.startsWith("sb_access_token="));
+    const cookieToken = cookieTokenPair ? decodeURIComponent(cookieTokenPair.split("=")[1] || "") : null;
+    const token = bearerToken || cookieToken;
     const user = await getUserByAccessToken(token);
 
     if (!user?.id) {

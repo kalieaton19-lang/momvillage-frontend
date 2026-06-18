@@ -485,14 +485,19 @@ export default function ConversationPageInner({ conversationId }: { conversation
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) return;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       await fetch("/api/messages/mark-read", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
+        credentials: "include",
         body: JSON.stringify({ conversationId: currentConversationId }),
       });
     } catch {
