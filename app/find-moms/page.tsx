@@ -94,6 +94,7 @@ export default function FindMomsPage() {
   const [statusLoadingByMomId, setStatusLoadingByMomId] = useState<Record<string, boolean>>({});
   const [selectedMomId, setSelectedMomId] = useState<string | null>(null);
   const [invitationReviewMomId, setInvitationReviewMomId] = useState<string | null>(null);
+  const [uninviteConfirmMomId, setUninviteConfirmMomId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMoms() {
@@ -423,10 +424,19 @@ export default function FindMomsPage() {
   const invitationReviewMom = invitationReviewMomId
     ? moms.find((mom) => mom.id === invitationReviewMomId) || null
     : null;
+  const uninviteConfirmMom = uninviteConfirmMomId
+    ? moms.find((mom) => mom.id === uninviteConfirmMomId) || null
+    : null;
 
   function openInvitationReview(momId: string) {
     setSelectedMomId(null);
     setInvitationReviewMomId(momId);
+  }
+
+  function openUninviteConfirm(momId: string) {
+    setSelectedMomId(null);
+    setInvitationReviewMomId(null);
+    setUninviteConfirmMomId(momId);
   }
 
   async function handleInviteWithFeedback(momId: string) {
@@ -528,7 +538,7 @@ export default function FindMomsPage() {
                       relationshipStatus={relationshipStatusByMomId[mom.id] || "none"}
                       statusLoading={!!statusLoadingByMomId[mom.id]}
                       onInvite={handleInviteToVillage}
-                      onUninvite={handleUninvite}
+                      onRequestUninvite={openUninviteConfirm}
                       onViewInvitation={openInvitationReview}
                       onOpenPreview={setSelectedMomId}
                     />
@@ -555,7 +565,7 @@ export default function FindMomsPage() {
                     relationshipStatus={relationshipStatusByMomId[mom.id] || "none"}
                     statusLoading={!!statusLoadingByMomId[mom.id]}
                     onInvite={handleInviteToVillage}
-                    onUninvite={handleUninvite}
+                    onRequestUninvite={openUninviteConfirm}
                     onViewInvitation={openInvitationReview}
                     onOpenPreview={setSelectedMomId}
                   />
@@ -577,13 +587,25 @@ export default function FindMomsPage() {
             router.push(`/profile/${selectedMom.id}`);
           }}
           onInvite={() => void handleInviteWithFeedback(selectedMom.id)}
-          onUninvite={() => void handleUninviteWithFeedback(selectedMom.id)}
+          onRequestUninvite={() => openUninviteConfirm(selectedMom.id)}
           onViewInvitation={() => openInvitationReview(selectedMom.id)}
           onMessage={() => {
             setSelectedMomId(null);
             router.push("/messages");
           }}
           hasMessaged={messagedUserIds.has(selectedMom.id)}
+        />
+      )}
+      {uninviteConfirmMom && (
+        <UninviteConfirmationModal
+          mom={uninviteConfirmMom}
+          statusLoading={!!statusLoadingByMomId[uninviteConfirmMom.id]}
+          onCancel={() => setUninviteConfirmMomId(null)}
+          onConfirm={async () => {
+            const result = await handleUninvite(uninviteConfirmMom.id);
+            showNotification(result.message);
+            setUninviteConfirmMomId(null);
+          }}
         />
       )}
       {invitationReviewMom && (
@@ -611,28 +633,16 @@ interface NameSuggestionRowProps {
   relationshipStatus: MomRelationshipStatus;
   statusLoading: boolean;
   onInvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
-  onUninvite: (momId: string) => Promise<{ ok: boolean; message: string }>;
+  onRequestUninvite: (momId: string) => void;
   onViewInvitation: (momId: string) => void;
   onOpenPreview: (momId: string) => void;
 }
 
-function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onUninvite, onViewInvitation, onOpenPreview }: NameSuggestionRowProps) {
+function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, onRequestUninvite, onViewInvitation, onOpenPreview }: NameSuggestionRowProps) {
   const { showNotification, NotificationComponent } = useNotification();
 
   async function handleInviteClick() {
     const result = await onInvite(mom.id);
-    showNotification(result.message);
-  }
-
-  async function handleInvitedClick() {
-    const shouldUninvite = window.confirm(
-      `Uninvite ${getSafeDisplayName(mom.user_metadata?.full_name)}?`
-    );
-    if (!shouldUninvite) {
-      return;
-    }
-
-    const result = await onUninvite(mom.id);
     showNotification(result.message);
   }
 
@@ -668,7 +678,7 @@ function NameSuggestionRow({ mom, relationshipStatus, statusLoading, onInvite, o
       <button
         onClick={
           relationshipStatus === "invited"
-            ? () => void handleInvitedClick()
+            ? () => onRequestUninvite(mom.id)
             : relationshipStatus === "invited_you"
             ? () => onViewInvitation(mom.id)
             : () => void handleInviteClick()
@@ -712,7 +722,7 @@ interface ProfilePreviewModalProps {
   onMessage: () => void;
   hasMessaged: boolean;
   onInvite: () => void;
-  onUninvite: () => void;
+  onRequestUninvite: () => void;
   onViewInvitation: () => void;
 }
 
@@ -725,7 +735,7 @@ function ProfilePreviewModal({
   onMessage,
   hasMessaged,
   onInvite,
-  onUninvite,
+  onRequestUninvite,
   onViewInvitation,
 }: ProfilePreviewModalProps) {
   const metadata = mom.user_metadata;
@@ -736,11 +746,7 @@ function ProfilePreviewModal({
     }
 
     if (relationshipStatus === "invited") {
-      const shouldUninvite = window.confirm(
-        `Uninvite ${getSafeDisplayName(metadata?.full_name)}?`,
-      );
-      if (!shouldUninvite) return;
-      onUninvite();
+      onRequestUninvite();
       return;
     }
 
@@ -890,6 +896,50 @@ function InvitationDecisionModal({ mom, statusLoading, onClose, onAccept, onDecl
             className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             {statusLoading ? "Updating..." : "Accept"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface UninviteConfirmationModalProps {
+  mom: MomProfile;
+  statusLoading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+}
+
+function UninviteConfirmationModal({ mom, statusLoading, onCancel, onConfirm }: UninviteConfirmationModalProps) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" onClick={onCancel}>
+      <div
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          Uninvite Mom
+        </h3>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+          Would you like to uninvite {getSafeDisplayName(mom.user_metadata?.full_name)} to your village?
+        </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={statusLoading}
+            className={`rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void onConfirm()}
+            disabled={statusLoading}
+            className={`rounded-full border border-pink-800 bg-pink-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pink-800 dark:border-pink-900 dark:bg-pink-700 dark:hover:bg-pink-800 ${statusLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            {statusLoading ? "Updating..." : "Uninvite"}
           </button>
         </div>
       </div>
