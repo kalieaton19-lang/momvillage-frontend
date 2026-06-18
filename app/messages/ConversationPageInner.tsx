@@ -565,6 +565,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
     full_name: otherUser.name || 'Mom',
     profile_photo_url: otherUser.photo || '',
   };
+  const lastOutgoingMessageId = [...messages].reverse().find((message) => message.sender_id === user?.id)?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
@@ -718,6 +719,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
               {messages.map((msg) => {
                 const isOutgoing = msg.sender_id === user?.id;
                 const statusText = msg.read_at ? 'Read' : 'Delivered';
+                const showOutgoingStatus = isOutgoing && msg.id === lastOutgoingMessageId;
                 return (
                   <div
                     key={msg.id}
@@ -741,7 +743,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                         }`}>
                           {formatTime(msg.created_at)}
                         </p>
-                        {isOutgoing && (
+                        {showOutgoingStatus && (
                           <p className={`text-xs font-semibold ${msg.read_at ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
                             {statusText}
                           </p>
