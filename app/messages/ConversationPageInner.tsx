@@ -772,8 +772,8 @@ export default function ConversationPageInner({ conversationId }: { conversation
                     </div>
                     {showOutgoingStatus && (
                       <p className="mt-1 px-2 sm:px-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                        {isRead && <span className="text-pink-500 text-[10px] leading-none">✓</span>}
                         {statusText}
+                        {isRead && <span className="text-pink-500 text-[10px] leading-none">✓</span>}
                       </p>
                     )}
                   </div>
