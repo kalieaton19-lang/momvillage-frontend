@@ -195,6 +195,8 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const [showInvitationDecisionModal, setShowInvitationDecisionModal] = useState(false);
   const [showInvitedActionsModal, setShowInvitedActionsModal] = useState(false);
   const [showVillageMemberModal, setShowVillageMemberModal] = useState(false);
+  const [viewportHeightPx, setViewportHeightPx] = useState<number | null>(null);
+  const [viewportOffsetTopPx, setViewportOffsetTopPx] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -204,21 +206,67 @@ export default function ConversationPageInner({ conversationId }: { conversation
   useEffect(() => {
     if (typeof document === "undefined") return;
 
+    const scrollY = window.scrollY;
     const previousBodyOverflow = document.body.style.overflow;
     const previousBodyOverscroll = document.body.style.overscrollBehavior;
     const previousBodyTouchAction = document.body.style.touchAction;
+    const previousBodyPosition = document.body.style.position;
+    const previousBodyTop = document.body.style.top;
+    const previousBodyLeft = document.body.style.left;
+    const previousBodyRight = document.body.style.right;
+    const previousBodyWidth = document.body.style.width;
     const previousHtmlOverflow = document.documentElement.style.overflow;
 
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "none";
     document.body.style.touchAction = "manipulation";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
     document.documentElement.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.body.style.overscrollBehavior = previousBodyOverscroll;
       document.body.style.touchAction = previousBodyTouchAction;
+      document.body.style.position = previousBodyPosition;
+      document.body.style.top = previousBodyTop;
+      document.body.style.left = previousBodyLeft;
+      document.body.style.right = previousBodyRight;
+      document.body.style.width = previousBodyWidth;
       document.documentElement.style.overflow = previousHtmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateViewportMetrics = () => {
+      const vv = window.visualViewport;
+      if (!vv) {
+        setViewportHeightPx(window.innerHeight);
+        setViewportOffsetTopPx(0);
+        return;
+      }
+
+      setViewportHeightPx(Math.round(vv.height));
+      setViewportOffsetTopPx(Math.round(vv.offsetTop));
+    };
+
+    updateViewportMetrics();
+
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", updateViewportMetrics);
+    vv?.addEventListener("scroll", updateViewportMetrics);
+    window.addEventListener("resize", updateViewportMetrics);
+
+    return () => {
+      vv?.removeEventListener("resize", updateViewportMetrics);
+      vv?.removeEventListener("scroll", updateViewportMetrics);
+      window.removeEventListener("resize", updateViewportMetrics);
     };
   }, []);
 
@@ -613,7 +661,13 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const lastOutgoingMessageId = [...messages].reverse().find((message) => message.sender_id === user?.id)?.id;
 
   return (
-    <div className="fixed inset-0 h-[100dvh] overflow-hidden overscroll-none bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
+    <div
+      className="fixed inset-x-0 overflow-hidden overscroll-none bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900"
+      style={{
+        height: viewportHeightPx ? `${viewportHeightPx}px` : "100dvh",
+        top: `${viewportOffsetTopPx}px`,
+      }}
+    >
       <div className="max-w-2xl mx-auto h-full flex flex-col overflow-hidden">
         <div className="sticky top-0 z-20 bg-white dark:bg-zinc-900">
           <header className="shrink-0 flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
