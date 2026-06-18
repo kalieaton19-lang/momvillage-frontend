@@ -261,6 +261,18 @@ export default function HomePage() {
   useEffect(() => {
     if (!user?.id) return;
 
+    const unreadIntervalId = window.setInterval(() => {
+      void refreshMessageNotifications(user.id);
+    }, 7000);
+
+    return () => {
+      window.clearInterval(unreadIntervalId);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
     const scheduleFeedRefresh = () => {
       if (feedRefreshTimeoutRef.current) {
         clearTimeout(feedRefreshTimeoutRef.current);
@@ -314,6 +326,22 @@ export default function HomePage() {
         feedRefreshTimeoutRef.current = null;
       }
       void supabase.removeChannel(channel);
+    };
+  }, [user?.id, feedType, selectedGroupId]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const feedIntervalId = window.setInterval(() => {
+      if (feedType === "groups" && selectedGroupId) {
+        void loadGroupPosts(selectedGroupId);
+      } else {
+        void loadPosts();
+      }
+    }, 8000);
+
+    return () => {
+      window.clearInterval(feedIntervalId);
     };
   }, [user?.id, feedType, selectedGroupId]);
 

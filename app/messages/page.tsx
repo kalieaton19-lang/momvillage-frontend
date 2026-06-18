@@ -107,6 +107,18 @@ function MessagesPageInner() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const conversationsIntervalId = window.setInterval(() => {
+      void loadConversations(user.id);
+    }, 7000);
+
+    return () => {
+      window.clearInterval(conversationsIntervalId);
+    };
+  }, [user?.id]);
+
   function getConversationActivityTimestamp(
     conversation: Conversation,
     latestByConversation?: Record<string, LatestMessageInfo>,

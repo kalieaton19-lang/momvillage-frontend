@@ -125,6 +125,18 @@ export default function NotificationsPage() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const invitationsIntervalId = window.setInterval(() => {
+      void fetchUserAndInvitations({ preserveLoading: true, userOverride: user });
+    }, 8000);
+
+    return () => {
+      window.clearInterval(invitationsIntervalId);
+    };
+  }, [user?.id]);
+
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-zinc-900 w-full">
       {/* Back Button - top left */}
