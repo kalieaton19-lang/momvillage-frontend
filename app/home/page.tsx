@@ -571,9 +571,8 @@ export default function HomePage() {
         .eq("read", false)
         .limit(1);
 
-      if (unreadNotificationsError) throw unreadNotificationsError;
-
-      const hasUnreadMessageNotifications = (unreadNotificationRows?.length ?? 0) > 0;
+      const hasUnreadMessageNotifications =
+        !unreadNotificationsError && (unreadNotificationRows?.length ?? 0) > 0;
 
       const { data: unreadMessageRows, error: unreadMessagesError } = await supabase
         .from("messages")
@@ -582,11 +581,44 @@ export default function HomePage() {
         .is("read_at", null)
         .limit(1);
 
-      if (unreadMessagesError) throw unreadMessagesError;
+      const hasUnreadMessagesByReadAt =
+        !unreadMessagesError && (unreadMessageRows?.length ?? 0) > 0;
 
-      const hasUnreadMessagesFallback = (unreadMessageRows?.length ?? 0) > 0;
+      const { data: recentIncomingRows, error: recentIncomingError } = await supabase
+        .from("messages")
+        .select("conversation_id,created_at")
+        .eq("receiver_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      setHasUnreadMessages(hasUnreadMessageNotifications || hasUnreadMessagesFallback);
+      let hasUnreadBySeenMap = false;
+      if (!recentIncomingError && typeof window !== "undefined") {
+        const seenStorageKey = `messages_seen_at:${userId}`;
+        let seenConversationAt: Record<string, string> = {};
+        try {
+          const raw = localStorage.getItem(seenStorageKey);
+          const parsed = raw ? JSON.parse(raw) : {};
+          seenConversationAt = parsed && typeof parsed === "object" ? parsed : {};
+        } catch {
+          seenConversationAt = {};
+        }
+
+        for (const row of recentIncomingRows || []) {
+          const conversationId = (row as any)?.conversation_id as string | undefined;
+          const createdAt = (row as any)?.created_at as string | undefined;
+          if (!conversationId || !createdAt) continue;
+
+          const seenAt = seenConversationAt[conversationId];
+          if (!seenAt || new Date(createdAt).getTime() > new Date(seenAt).getTime()) {
+            hasUnreadBySeenMap = true;
+            break;
+          }
+        }
+      }
+
+      setHasUnreadMessages(
+        hasUnreadMessageNotifications || hasUnreadMessagesByReadAt || hasUnreadBySeenMap,
+      );
     } catch {
       setHasUnreadMessages(false);
     }
