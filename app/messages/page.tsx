@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
@@ -54,12 +54,16 @@ function MessagesPageInner() {
   const [user, setUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [latestMessageByConversation, setLatestMessageByConversation] = useState<Record<string, LatestMessageInfo>>({});
+  const [typingByConversation, setTypingByConversation] = useState<Record<string, boolean>>({});
   const [seenConversationAt, setSeenConversationAt] = useState<Record<string, string>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedConversationIds, setSelectedConversationIds] = useState<string[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const router = useRouter();
   const { showNotification, NotificationComponent } = useNotification();
+  const typingChannelsRef = useRef<Record<string, any>>({});
+  const typingHideTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const typingChannelsUserIdRef = useRef<string | null>(null);
 
   const seenStorageKey = user?.id ? `messages_seen_at:${user.id}` : null;
 
@@ -106,6 +110,137 @@ function MessagesPageInner() {
       void supabase.removeChannel(channel);
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      Object.values(typingChannelsRef.current).forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+      typingChannelsRef.current = {};
+
+      Object.values(typingHideTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      typingHideTimeoutsRef.current = {};
+      typingChannelsUserIdRef.current = null;
+      setTypingByConversation({});
+      return;
+    }
+
+    if (typingChannelsUserIdRef.current && typingChannelsUserIdRef.current !== user.id) {
+      Object.values(typingChannelsRef.current).forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+      typingChannelsRef.current = {};
+
+      Object.values(typingHideTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      typingHideTimeoutsRef.current = {};
+      setTypingByConversation({});
+    }
+    typingChannelsUserIdRef.current = user.id;
+
+    const existingChannelIds = Object.keys(typingChannelsRef.current);
+    const activeConversationIds = new Set(conversations.map((conversation) => conversation.id));
+
+    for (const conversationId of existingChannelIds) {
+      if (activeConversationIds.has(conversationId)) continue;
+
+      const channel = typingChannelsRef.current[conversationId];
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+      delete typingChannelsRef.current[conversationId];
+
+      const timeoutId = typingHideTimeoutsRef.current[conversationId];
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        delete typingHideTimeoutsRef.current[conversationId];
+      }
+
+      setTypingByConversation((prev) => {
+        if (!prev[conversationId]) return prev;
+        const next = { ...prev };
+        delete next[conversationId];
+        return next;
+      });
+    }
+
+    for (const conversation of conversations) {
+      if (typingChannelsRef.current[conversation.id]) continue;
+
+      const channel = supabase
+        .channel(`messages-preview-typing-${user.id}-${conversation.id}`)
+        .on("broadcast", { event: "typing" }, ({ payload }: any) => {
+          const senderId = payload?.sender_id;
+          if (!senderId || senderId === user.id) return;
+
+          const isTyping = Boolean(payload?.is_typing);
+          if (isTyping) {
+            setTypingByConversation((prev) => ({ ...prev, [conversation.id]: true }));
+
+            const existingTimeout = typingHideTimeoutsRef.current[conversation.id];
+            if (existingTimeout) {
+              clearTimeout(existingTimeout);
+            }
+
+            typingHideTimeoutsRef.current[conversation.id] = setTimeout(() => {
+              setTypingByConversation((prev) => {
+                if (!prev[conversation.id]) return prev;
+                return { ...prev, [conversation.id]: false };
+              });
+              delete typingHideTimeoutsRef.current[conversation.id];
+            }, 7000);
+
+            return;
+          }
+
+          const existingTimeout = typingHideTimeoutsRef.current[conversation.id];
+          if (existingTimeout) {
+            clearTimeout(existingTimeout);
+          }
+
+          typingHideTimeoutsRef.current[conversation.id] = setTimeout(() => {
+            setTypingByConversation((prev) => {
+              if (!prev[conversation.id]) return prev;
+              return { ...prev, [conversation.id]: false };
+            });
+            delete typingHideTimeoutsRef.current[conversation.id];
+          }, 900);
+        })
+        .subscribe();
+
+      typingChannelsRef.current[conversation.id] = channel;
+    }
+
+    return () => {
+      if (conversations.length > 0) return;
+      Object.values(typingChannelsRef.current).forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+      typingChannelsRef.current = {};
+
+      Object.values(typingHideTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      typingHideTimeoutsRef.current = {};
+    };
+  }, [user?.id, conversations]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(typingChannelsRef.current).forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+      typingChannelsRef.current = {};
+
+      Object.values(typingHideTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      typingHideTimeoutsRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -440,7 +575,8 @@ function MessagesPageInner() {
                 const otherUser = getOtherUserInfo(conv);
                 const latestInfo = latestMessageByConversation[conv.id];
                 const seenAt = seenConversationAt[conv.id] || "";
-                const previewText = latestInfo?.messageText || conv.last_message || "Start chatting";
+                const isTyping = !!typingByConversation[conv.id];
+                const previewText = isTyping ? "Typing..." : latestInfo?.messageText || conv.last_message || "Start chatting";
                 const hasUnreadIncoming =
                   Boolean(user?.id) &&
                   Boolean(latestInfo?.senderId) &&
@@ -506,7 +642,7 @@ function MessagesPageInner() {
                       )}
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="font-semibold text-zinc-900 dark:text-zinc-50 text-base min-h-[28px] truncate w-full text-left">{otherUser.name}</div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate w-full text-left">{previewText}</div>
+                        <div className={`text-xs truncate w-full text-left ${isTyping ? "text-pink-600 dark:text-pink-300 italic font-medium" : "text-zinc-500 dark:text-zinc-400"}`}>{previewText}</div>
                       </div>
                     </div>
                     {!isEditMode && (
