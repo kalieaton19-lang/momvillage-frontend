@@ -640,14 +640,34 @@ export default function ConversationPageInner({ conversationId }: { conversation
         headers.Authorization = `Bearer ${token}`;
       }
 
-      await fetch("/api/messages/mark-read", {
+      const response = await fetch("/api/messages/mark-read", {
         method: "POST",
         headers,
         credentials: "include",
         body: JSON.stringify({ conversationId: currentConversationId }),
       });
+
+      if (!response.ok) {
+        throw new Error("mark-read-api-failed");
+      }
     } catch {
-      // Silent fail to avoid interrupting chat UX.
+      if (!user?.id) return;
+
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from("messages")
+        .update({ read_at: nowIso })
+        .eq("conversation_id", currentConversationId)
+        .eq("receiver_id", user.id)
+        .is("read_at", null);
+
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("type", "message_received")
+        .eq("read", false)
+        .filter("data->>conversation_id", "eq", currentConversationId);
     }
   }
 
