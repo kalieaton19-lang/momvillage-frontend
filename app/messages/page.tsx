@@ -64,6 +64,7 @@ function MessagesPageInner() {
   const typingChannelsRef = useRef<Record<string, any>>({});
   const typingHideTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const typingChannelsUserIdRef = useRef<string | null>(null);
+  const loadConversationsRequestIdRef = useRef(0);
 
   const seenStorageKey = user?.id ? `messages_seen_at:${user.id}` : null;
 
@@ -76,6 +77,10 @@ function MessagesPageInner() {
       loadConversations(user.id);
     }
   }, [user]);
+
+  useEffect(() => {
+    loadConversationsRequestIdRef.current += 1;
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -433,6 +438,8 @@ function MessagesPageInner() {
   }
 
   async function loadConversations(userId: string) {
+    const requestId = ++loadConversationsRequestIdRef.current;
+
     try {
       const convosRes = await supabase
         .from("conversations")
@@ -441,34 +448,36 @@ function MessagesPageInner() {
         .order("updated_at", { ascending: false });
       if (convosRes.error) throw convosRes.error;
 
-      const loadedConversations = (convosRes.data || []) as Conversation[];
-      setConversations(sortConversationsByActivity(loadedConversations));
+      if (requestId !== loadConversationsRequestIdRef.current) return;
 
+      const loadedConversations = (convosRes.data || []) as Conversation[];
       const conversationIds = loadedConversations.map((conversation) => conversation.id);
-      if (conversationIds.length === 0) {
-        setLatestMessageByConversation({});
-        return;
+      const latestByConversation: Record<string, LatestMessageInfo> = {};
+
+      if (conversationIds.length > 0) {
+        const { data: messageRows } = await supabase
+          .from("messages")
+          .select("conversation_id,sender_id,created_at,message_text")
+          .in("conversation_id", conversationIds)
+          .order("created_at", { ascending: false });
+
+        if (requestId !== loadConversationsRequestIdRef.current) return;
+
+        (messageRows || []).forEach((row: any) => {
+          if (!row?.conversation_id || !row?.sender_id || !row?.created_at) return;
+          if (latestByConversation[row.conversation_id]) return;
+          latestByConversation[row.conversation_id] = {
+            senderId: row.sender_id,
+            createdAt: row.created_at,
+            messageText: row.message_text || "",
+          };
+        });
       }
 
-      const { data: messageRows } = await supabase
-        .from("messages")
-        .select("conversation_id,sender_id,created_at,message_text")
-        .in("conversation_id", conversationIds)
-        .order("created_at", { ascending: false });
-
-      const latestByConversation: Record<string, LatestMessageInfo> = {};
-      (messageRows || []).forEach((row: any) => {
-        if (!row?.conversation_id || !row?.sender_id || !row?.created_at) return;
-        if (latestByConversation[row.conversation_id]) return;
-        latestByConversation[row.conversation_id] = {
-          senderId: row.sender_id,
-          createdAt: row.created_at,
-          messageText: row.message_text || "",
-        };
-      });
+      if (requestId !== loadConversationsRequestIdRef.current) return;
 
       setLatestMessageByConversation(latestByConversation);
-      setConversations((prev) => sortConversationsByActivity(prev, latestByConversation));
+      setConversations(sortConversationsByActivity(loadedConversations, latestByConversation));
     } catch (error) {
       // Optionally show notification
     }
