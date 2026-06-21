@@ -46,6 +46,7 @@ interface LatestMessageInfo {
   senderId: string;
   createdAt: string;
   messageText?: string;
+  readAt?: string | null;
 }
 
 
@@ -451,13 +452,19 @@ function MessagesPageInner() {
       if (requestId !== loadConversationsRequestIdRef.current) return;
 
       const loadedConversations = (convosRes.data || []) as Conversation[];
+      setConversations(loadedConversations);
       const conversationIds = loadedConversations.map((conversation) => conversation.id);
       const latestByConversation: Record<string, LatestMessageInfo> = {};
+
+      if (conversationIds.length === 0) {
+        setLatestMessageByConversation({});
+        return;
+      }
 
       if (conversationIds.length > 0) {
         const { data: messageRows } = await supabase
           .from("messages")
-          .select("conversation_id,sender_id,created_at,message_text")
+          .select("conversation_id,sender_id,created_at,message_text,read_at")
           .in("conversation_id", conversationIds)
           .order("created_at", { ascending: false });
 
@@ -470,6 +477,7 @@ function MessagesPageInner() {
             senderId: row.sender_id,
             createdAt: row.created_at,
             messageText: row.message_text || "",
+            readAt: row.read_at ?? null,
           };
         });
       }
@@ -477,7 +485,6 @@ function MessagesPageInner() {
       if (requestId !== loadConversationsRequestIdRef.current) return;
 
       setLatestMessageByConversation(latestByConversation);
-      setConversations(sortConversationsByActivity(loadedConversations, latestByConversation));
     } catch (error) {
       // Optionally show notification
     }
@@ -583,15 +590,13 @@ function MessagesPageInner() {
               {conversations.map(conv => {
                 const otherUser = getOtherUserInfo(conv);
                 const latestInfo = latestMessageByConversation[conv.id];
-                const seenAt = seenConversationAt[conv.id] || "";
                 const isTyping = !!typingByConversation[conv.id];
                 const previewText = isTyping ? "Typing..." : latestInfo?.messageText || conv.last_message || "Start chatting";
                 const hasUnreadIncoming =
                   Boolean(user?.id) &&
                   Boolean(latestInfo?.senderId) &&
                   latestInfo.senderId !== user.id &&
-                  Boolean(latestInfo?.createdAt) &&
-                  (!seenAt || new Date(latestInfo.createdAt).getTime() > new Date(seenAt).getTime());
+                  !latestInfo?.readAt;
                 return (
                   <div
                     key={conv.id}
