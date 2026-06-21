@@ -505,14 +505,36 @@ function MessagesPageInner() {
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
-        const { data: messageRows } = await supabase
+        let messageRows: any[] | null = null;
+        let queryError: any = null;
+
+        const primaryQuery = await supabase
           .from("messages")
           .select("conversation_id,sender_id,created_at,message_text,read_at")
           .in("conversation_id", conversationIds)
           .order("created_at", { ascending: false })
           .range(from, to);
 
+        messageRows = (primaryQuery.data || null) as any[] | null;
+        queryError = primaryQuery.error;
+
+        if (queryError) {
+          const fallbackQuery = await supabase
+            .from("messages")
+            .select("conversation_id,sender_id,created_at,message_text")
+            .in("conversation_id", conversationIds)
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+          messageRows = (fallbackQuery.data || null) as any[] | null;
+          queryError = fallbackQuery.error;
+        }
+
         if (requestId !== loadConversationsRequestIdRef.current) return;
+
+        if (queryError) {
+          break;
+        }
 
         if (!messageRows || messageRows.length === 0) {
           break;
@@ -527,7 +549,7 @@ function MessagesPageInner() {
             senderId: row.sender_id,
             createdAt: row.created_at,
             messageText: row.message_text || "",
-            readAt: row.read_at ?? null,
+            readAt: (row as any)?.read_at ?? null,
           };
         }
 
@@ -548,14 +570,25 @@ function MessagesPageInner() {
 
           const chunkResults = await Promise.all(
             chunk.map(async (conversationId) => {
-              const { data } = await supabase
+              const primaryQuery = await supabase
                 .from("messages")
                 .select("conversation_id,sender_id,created_at,message_text,read_at")
                 .eq("conversation_id", conversationId)
                 .order("created_at", { ascending: false })
                 .limit(1);
 
-              return data?.[0] || null;
+              if (!primaryQuery.error && primaryQuery.data?.[0]) {
+                return primaryQuery.data[0];
+              }
+
+              const fallbackQuery = await supabase
+                .from("messages")
+                .select("conversation_id,sender_id,created_at,message_text")
+                .eq("conversation_id", conversationId)
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+              return fallbackQuery.data?.[0] || null;
             }),
           );
 
@@ -567,7 +600,7 @@ function MessagesPageInner() {
               senderId: row.sender_id,
               createdAt: row.created_at,
               messageText: row.message_text || "",
-              readAt: row.read_at ?? null,
+              readAt: (row as any)?.read_at ?? null,
             };
           }
         }
