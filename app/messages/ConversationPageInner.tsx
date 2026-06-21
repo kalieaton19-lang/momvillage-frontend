@@ -626,6 +626,46 @@ export default function ConversationPageInner({ conversationId }: { conversation
   }
 
   async function markConversationMessagesAsRead(currentConversationId: string) {
+    if (!user?.id) return;
+
+    const nowIso = new Date().toISOString();
+
+    try {
+      await supabase
+        .from("messages")
+        .update({ read_at: nowIso })
+        .eq("conversation_id", currentConversationId)
+        .eq("receiver_id", user.id)
+        .is("read_at", null);
+
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("type", "message_received")
+        .eq("read", false)
+        .filter("data->>conversation_id", "eq", currentConversationId);
+
+      setMessages((prev) =>
+        prev.map((message) => {
+          if (message.receiver_id !== user.id || message.read_at) {
+            return message;
+          }
+
+          return {
+            ...message,
+            read_at: nowIso,
+            metadata: {
+              ...(message.metadata || {}),
+              read_by_receiver_at: nowIso,
+            },
+          };
+        }),
+      );
+    } catch {
+      // Continue to API sync path below.
+    }
+
     try {
       const {
         data: { session },
@@ -644,6 +684,8 @@ export default function ConversationPageInner({ conversationId }: { conversation
         method: "POST",
         headers,
         credentials: "include",
+        cache: "no-store",
+        keepalive: true,
         body: JSON.stringify({ conversationId: currentConversationId }),
       });
 
@@ -651,23 +693,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
         throw new Error("mark-read-api-failed");
       }
     } catch {
-      if (!user?.id) return;
-
-      const nowIso = new Date().toISOString();
-      await supabase
-        .from("messages")
-        .update({ read_at: nowIso })
-        .eq("conversation_id", currentConversationId)
-        .eq("receiver_id", user.id)
-        .is("read_at", null);
-
-      await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", user.id)
-        .eq("type", "message_received")
-        .eq("read", false)
-        .filter("data->>conversation_id", "eq", currentConversationId);
+      // Client-side updates above already handled best-effort mark-read.
     }
   }
 
