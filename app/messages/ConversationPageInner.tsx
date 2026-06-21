@@ -338,7 +338,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             }
             typingIndicatorHideTimeoutRef.current = setTimeout(() => {
               setIsOtherUserTyping(false);
-            }, 5000);
+            }, 7000);
             return;
           }
 
