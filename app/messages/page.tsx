@@ -536,6 +536,43 @@ function MessagesPageInner() {
         }
       }
 
+      const missingConversationIds = conversationIds.filter(
+        (conversationId) => !latestByConversation[conversationId],
+      );
+
+      if (missingConversationIds.length > 0) {
+        const chunkSize = 12;
+
+        for (let index = 0; index < missingConversationIds.length; index += chunkSize) {
+          const chunk = missingConversationIds.slice(index, index + chunkSize);
+
+          const chunkResults = await Promise.all(
+            chunk.map(async (conversationId) => {
+              const { data } = await supabase
+                .from("messages")
+                .select("conversation_id,sender_id,created_at,message_text,read_at")
+                .eq("conversation_id", conversationId)
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+              return data?.[0] || null;
+            }),
+          );
+
+          if (requestId !== loadConversationsRequestIdRef.current) return;
+
+          for (const row of chunkResults) {
+            if (!row?.conversation_id || !row?.sender_id || !row?.created_at) continue;
+            latestByConversation[row.conversation_id] = {
+              senderId: row.sender_id,
+              createdAt: row.created_at,
+              messageText: row.message_text || "",
+              readAt: row.read_at ?? null,
+            };
+          }
+        }
+      }
+
       if (requestId !== loadConversationsRequestIdRef.current) return;
       setLatestMessageByConversation(latestByConversation);
       setConversations((prev) => sortConversationsByActivity(prev, latestByConversation));
