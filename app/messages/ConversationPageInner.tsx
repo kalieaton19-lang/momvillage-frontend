@@ -207,6 +207,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const typingIndicatorHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingSentActiveRef = useRef(false);
   const lastTypingTrueSentAtRef = useRef(0);
+  const markReadInFlightRef = useRef(false);
 
   useEffect(() => {
     checkUser();
@@ -619,7 +620,15 @@ export default function ConversationPageInner({ conversationId }: { conversation
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      setMessages((data || []) as ChatMessage[]);
+      const nextMessages = (data || []) as ChatMessage[];
+      setMessages(nextMessages);
+
+      const hasUnreadIncoming = nextMessages.some(
+        (message) => message.receiver_id === user?.id && !message.read_at,
+      );
+      if (hasUnreadIncoming && user?.id) {
+        void markConversationMessagesAsRead(conversationId);
+      }
     } catch (error) {
       showNotification("Failed to load messages");
     }
@@ -627,6 +636,9 @@ export default function ConversationPageInner({ conversationId }: { conversation
 
   async function markConversationMessagesAsRead(currentConversationId: string) {
     if (!user?.id) return;
+    if (markReadInFlightRef.current) return;
+
+    markReadInFlightRef.current = true;
 
     const nowIso = new Date().toISOString();
 
@@ -694,8 +706,29 @@ export default function ConversationPageInner({ conversationId }: { conversation
       }
     } catch {
       // Client-side updates above already handled best-effort mark-read.
+    } finally {
+      markReadInFlightRef.current = false;
     }
   }
+
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+
+    const attemptMarkRead = () => {
+      if (document.visibilityState !== "visible") return;
+      void markConversationMessagesAsRead(conversation.id);
+    };
+
+    const intervalId = window.setInterval(attemptMarkRead, 2500);
+    window.addEventListener("focus", attemptMarkRead);
+    document.addEventListener("visibilitychange", attemptMarkRead);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", attemptMarkRead);
+      document.removeEventListener("visibilitychange", attemptMarkRead);
+    };
+  }, [conversation?.id, user?.id]);
 
   function getOtherUserInfo(conv: any) {
     if (!user) return {};
