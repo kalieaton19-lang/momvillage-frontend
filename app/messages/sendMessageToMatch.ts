@@ -94,6 +94,21 @@ export async function sendMessageToMatch({
 		}
 
 		if (response.ok) {
+			const trimmedMessageText = messageText.trim();
+			void (async () => {
+				try {
+					await supabase
+						.from('conversations')
+						.update({
+							last_message: trimmedMessageText,
+							last_message_time: createdAt,
+							updated_at: createdAt,
+						})
+						.eq('id', selectedConversation);
+				} catch {
+				}
+			})();
+
 			return { data: parsed, error: null, status: response.status };
 		}
 

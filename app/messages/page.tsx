@@ -494,8 +494,8 @@ function MessagesPageInner() {
 
       const latestByConversation: Record<string, LatestMessageInfo> = {};
       const targetConversationIds = new Set(conversationIds);
-      const pageSize = 200;
-      const maxPages = 5;
+      const pageSize = 250;
+      const maxPages = 6;
 
       for (let page = 0; page < maxPages; page += 1) {
         if (Object.keys(latestByConversation).length >= targetConversationIds.size) {
@@ -508,7 +508,7 @@ function MessagesPageInner() {
         const { data: messageRows } = await supabase
           .from("messages")
           .select("conversation_id,sender_id,created_at,message_text,read_at")
-          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .in("conversation_id", conversationIds)
           .order("created_at", { ascending: false })
           .range(from, to);
 
@@ -538,6 +538,7 @@ function MessagesPageInner() {
 
       if (requestId !== loadConversationsRequestIdRef.current) return;
       setLatestMessageByConversation(latestByConversation);
+      setConversations((prev) => sortConversationsByActivity(prev, latestByConversation));
     } catch (error) {
       // Optionally show notification
     }
