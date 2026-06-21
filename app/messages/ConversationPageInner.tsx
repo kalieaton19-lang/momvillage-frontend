@@ -197,10 +197,15 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const [showVillageMemberModal, setShowVillageMemberModal] = useState(false);
   const [viewportHeightPx, setViewportHeightPx] = useState<number | null>(null);
   const [viewportOffsetTopPx, setViewportOffsetTopPx] = useState(0);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
   const previousMessagesCountRef = useRef(0);
+  const typingChannelRef = useRef<any>(null);
+  const typingStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingIndicatorHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingSentActiveRef = useRef(false);
 
   useEffect(() => {
     checkUser();
@@ -317,9 +322,49 @@ export default function ConversationPageInner({ conversationId }: { conversation
           void loadMessages(conversation.id);
         },
       )
+      .on(
+        "broadcast",
+        { event: "typing" },
+        ({ payload }: any) => {
+          const senderId = payload?.sender_id;
+          if (!senderId || senderId === user.id) return;
+
+          const isTyping = Boolean(payload?.is_typing);
+          if (isTyping) {
+            setIsOtherUserTyping(true);
+            if (typingIndicatorHideTimeoutRef.current) {
+              clearTimeout(typingIndicatorHideTimeoutRef.current);
+            }
+            typingIndicatorHideTimeoutRef.current = setTimeout(() => {
+              setIsOtherUserTyping(false);
+            }, 2200);
+            return;
+          }
+
+          setIsOtherUserTyping(false);
+          if (typingIndicatorHideTimeoutRef.current) {
+            clearTimeout(typingIndicatorHideTimeoutRef.current);
+            typingIndicatorHideTimeoutRef.current = null;
+          }
+        },
+      )
       .subscribe();
 
+    typingChannelRef.current = channel;
+    setIsOtherUserTyping(false);
+
     return () => {
+      typingChannelRef.current = null;
+      if (typingStopTimeoutRef.current) {
+        clearTimeout(typingStopTimeoutRef.current);
+        typingStopTimeoutRef.current = null;
+      }
+      if (typingIndicatorHideTimeoutRef.current) {
+        clearTimeout(typingIndicatorHideTimeoutRef.current);
+        typingIndicatorHideTimeoutRef.current = null;
+      }
+      typingSentActiveRef.current = false;
+      setIsOtherUserTyping(false);
       void supabase.removeChannel(channel);
     };
   }, [conversation?.id, user?.id]);
@@ -651,6 +696,22 @@ export default function ConversationPageInner({ conversationId }: { conversation
         receiverId,
       });
       setMessageText("");
+      if (typingSentActiveRef.current && typingChannelRef.current) {
+        await typingChannelRef.current.send({
+          type: "broadcast",
+          event: "typing",
+          payload: {
+            conversation_id: conversation.id,
+            sender_id: user.id,
+            is_typing: false,
+          },
+        });
+        typingSentActiveRef.current = false;
+      }
+      if (typingStopTimeoutRef.current) {
+        clearTimeout(typingStopTimeoutRef.current);
+        typingStopTimeoutRef.current = null;
+      }
       if (data) {
         setMessages((prev) => [...prev, data]);
       }
@@ -675,6 +736,51 @@ export default function ConversationPageInner({ conversationId }: { conversation
     profile_photo_url: otherUser.photo || '',
   };
   const lastOutgoingMessageId = [...messages].reverse().find((message) => message.sender_id === user?.id)?.id;
+
+  async function emitTypingState(isTyping: boolean) {
+    if (!typingChannelRef.current || !conversation?.id || !user?.id) return;
+    await typingChannelRef.current.send({
+      type: "broadcast",
+      event: "typing",
+      payload: {
+        conversation_id: conversation.id,
+        sender_id: user.id,
+        is_typing: isTyping,
+      },
+    });
+  }
+
+  async function handleMessageInputChange(nextValue: string) {
+    setMessageText(nextValue);
+
+    const hasText = nextValue.trim().length > 0;
+
+    if (!hasText) {
+      if (typingStopTimeoutRef.current) {
+        clearTimeout(typingStopTimeoutRef.current);
+        typingStopTimeoutRef.current = null;
+      }
+      if (typingSentActiveRef.current) {
+        await emitTypingState(false);
+        typingSentActiveRef.current = false;
+      }
+      return;
+    }
+
+    if (!typingSentActiveRef.current) {
+      await emitTypingState(true);
+      typingSentActiveRef.current = true;
+    }
+
+    if (typingStopTimeoutRef.current) {
+      clearTimeout(typingStopTimeoutRef.current);
+    }
+    typingStopTimeoutRef.current = setTimeout(() => {
+      void emitTypingState(false);
+      typingSentActiveRef.current = false;
+      typingStopTimeoutRef.current = null;
+    }, 1200);
+  }
 
   return (
     <div
@@ -877,6 +983,17 @@ export default function ConversationPageInner({ conversationId }: { conversation
                   </div>
                 );
               })}
+              {isOtherUserTyping && (
+                <div className="flex w-full flex-col items-start" style={{ marginBottom: 1 }}>
+                  <div className="px-2 py-2 rounded-2xl sm:px-3 sm:py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-3 sm:mr-32 max-w-[92vw] sm:max-w-xs">
+                    <div className="flex items-center gap-1 px-1">
+                      <span className="inline-block h-2 w-2 rounded-full bg-zinc-500 dark:bg-zinc-300 animate-bounce" />
+                      <span className="inline-block h-2 w-2 rounded-full bg-zinc-500 dark:bg-zinc-300 animate-bounce" style={{ animationDelay: "0.15s" }} />
+                      <span className="inline-block h-2 w-2 rounded-full bg-zinc-500 dark:bg-zinc-300 animate-bounce" style={{ animationDelay: "0.3s" }} />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </>
           )}
@@ -891,7 +1008,9 @@ export default function ConversationPageInner({ conversationId }: { conversation
               id="messageText"
               name="messageText"
               value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              onChange={(e) => {
+                void handleMessageInputChange(e.target.value);
+              }}
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
