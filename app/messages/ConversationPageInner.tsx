@@ -165,6 +165,7 @@ interface Conversation {
 
 interface ChatMessage {
   id: string;
+  conversation_id?: string;
   sender_id: string;
   receiver_id?: string | null;
   message_text: string;
@@ -642,7 +643,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
 
     const nowIso = new Date().toISOString();
 
-    try {
+    const runClientReadUpdate = async () => {
       await supabase
         .from("messages")
         .update({ read_at: nowIso })
@@ -657,10 +658,31 @@ export default function ConversationPageInner({ conversationId }: { conversation
         .eq("type", "message_received")
         .eq("read", false)
         .filter("data->>conversation_id", "eq", currentConversationId);
+    };
+
+    const getAccessTokenWithRefresh = async () => {
+      const {
+        data: { session: initialSession },
+      } = await supabase.auth.getSession();
+
+      if (initialSession?.access_token) {
+        return initialSession.access_token;
+      }
+
+      const { data: refreshedData } = await supabase.auth.refreshSession();
+      return refreshedData?.session?.access_token || null;
+    };
+
+    try {
+      await runClientReadUpdate();
 
       setMessages((prev) =>
         prev.map((message) => {
-          if (message.receiver_id !== user.id || message.read_at) {
+          if (
+            message.conversation_id !== currentConversationId ||
+            message.receiver_id !== user.id ||
+            message.read_at
+          ) {
             return message;
           }
 
@@ -675,14 +697,16 @@ export default function ConversationPageInner({ conversationId }: { conversation
         }),
       );
     } catch {
-      // Continue to API sync path below.
+      try {
+        await supabase.auth.refreshSession();
+        await runClientReadUpdate();
+      } catch {
+        // Continue to API sync path below.
+      }
     }
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getAccessTokenWithRefresh();
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
