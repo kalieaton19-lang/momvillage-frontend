@@ -206,6 +206,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const typingStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingIndicatorHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingSentActiveRef = useRef(false);
+  const lastTypingTrueSentAtRef = useRef(0);
 
   useEffect(() => {
     checkUser();
@@ -337,7 +338,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             }
             typingIndicatorHideTimeoutRef.current = setTimeout(() => {
               setIsOtherUserTyping(false);
-            }, 3200);
+            }, 5000);
             return;
           }
 
@@ -784,6 +785,13 @@ export default function ConversationPageInner({ conversationId }: { conversation
     if (!typingSentActiveRef.current) {
       await emitTypingState(true);
       typingSentActiveRef.current = true;
+      lastTypingTrueSentAtRef.current = Date.now();
+    } else {
+      const now = Date.now();
+      if (now - lastTypingTrueSentAtRef.current >= 1200) {
+        await emitTypingState(true);
+        lastTypingTrueSentAtRef.current = now;
+      }
     }
 
     if (typingStopTimeoutRef.current) {
