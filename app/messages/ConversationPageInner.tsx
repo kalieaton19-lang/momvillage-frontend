@@ -337,7 +337,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             }
             typingIndicatorHideTimeoutRef.current = setTimeout(() => {
               setIsOtherUserTyping(false);
-            }, 2200);
+            }, 3200);
             return;
           }
 
@@ -566,6 +566,20 @@ export default function ConversationPageInner({ conversationId }: { conversation
     previousMessagesCountRef.current = messages.length;
   }, [messages]);
 
+  useEffect(() => {
+    if (!isOtherUserTyping) return;
+    updateAutoScrollState();
+    if (!shouldAutoScrollRef.current) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [isOtherUserTyping]);
+
   async function checkUser() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -779,7 +793,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
       void emitTypingState(false);
       typingSentActiveRef.current = false;
       typingStopTimeoutRef.current = null;
-    }, 1200);
+    }, 1800);
   }
 
   return (
@@ -931,7 +945,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
           ref={messagesContainerRef}
           onScroll={updateAutoScrollState}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 sm:p-2 bg-white dark:bg-black space-y-2 sm:space-y-4"
-          style={{ WebkitOverflowScrolling: "touch" }}
+          style={{
+            WebkitOverflowScrolling: "touch",
+            paddingBottom: isOtherUserTyping ? "0.75rem" : undefined,
+          }}
         >
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
