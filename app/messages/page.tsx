@@ -37,6 +37,8 @@ interface Conversation {
   user2_id: string;
   user1_name?: string;
   user2_name?: string;
+  user1_photo?: string;
+  user2_photo?: string;
   last_message: string;
   last_message_time: string;
   updated_at?: string;
@@ -91,17 +93,6 @@ function MessagesPageInner() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        (payload: any) => {
-          const senderId = payload?.new?.sender_id;
-          const receiverId = payload?.new?.receiver_id;
-          if (senderId === user.id || receiverId === user.id) {
-            void loadConversations(user.id);
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages" },
         (payload: any) => {
           const senderId = payload?.new?.sender_id;
           const receiverId = payload?.new?.receiver_id;
@@ -453,37 +444,68 @@ function MessagesPageInner() {
 
       const loadedConversations = (convosRes.data || []) as Conversation[];
       setConversations(loadedConversations);
+
+      const participantIds = Array.from(
+        new Set(
+          loadedConversations
+            .flatMap((conversation) => [conversation.user1_id, conversation.user2_id])
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
       const conversationIds = loadedConversations.map((conversation) => conversation.id);
-      const latestByConversation: Record<string, LatestMessageInfo> = {};
+      const profilePromise = participantIds.length
+        ? supabase
+            .from("user_public_profiles")
+            .select("id,full_name,profile_photo_url")
+            .in("id", participantIds)
+        : Promise.resolve({ data: [], error: null } as any);
 
-      if (conversationIds.length === 0) {
-        setLatestMessageByConversation({});
-        return;
-      }
+      const messagesPromise = conversationIds.length
+        ? supabase
+            .from("messages")
+            .select("conversation_id,sender_id,created_at,message_text,read_at")
+            .in("conversation_id", conversationIds)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null } as any);
 
-      if (conversationIds.length > 0) {
-        const { data: messageRows } = await supabase
-          .from("messages")
-          .select("conversation_id,sender_id,created_at,message_text,read_at")
-          .in("conversation_id", conversationIds)
-          .order("created_at", { ascending: false });
-
-        if (requestId !== loadConversationsRequestIdRef.current) return;
-
-        (messageRows || []).forEach((row: any) => {
-          if (!row?.conversation_id || !row?.sender_id || !row?.created_at) return;
-          if (latestByConversation[row.conversation_id]) return;
-          latestByConversation[row.conversation_id] = {
-            senderId: row.sender_id,
-            createdAt: row.created_at,
-            messageText: row.message_text || "",
-            readAt: row.read_at ?? null,
-          };
-        });
-      }
+      const [profilesRes, messagesRes] = await Promise.all([profilePromise, messagesPromise]);
 
       if (requestId !== loadConversationsRequestIdRef.current) return;
 
+      const profileById = new Map<string, { full_name?: string | null; profile_photo_url?: string | null }>();
+      (profilesRes.data || []).forEach((profile: any) => {
+        if (!profile?.id) return;
+        profileById.set(profile.id, {
+          full_name: profile.full_name,
+          profile_photo_url: profile.profile_photo_url,
+        });
+      });
+
+      const hydratedConversations = loadedConversations.map((conversation) => {
+        const user1Profile = profileById.get(conversation.user1_id);
+        const user2Profile = profileById.get(conversation.user2_id);
+        return {
+          ...conversation,
+          user1_name: conversation.user1_name || user1Profile?.full_name || undefined,
+          user2_name: conversation.user2_name || user2Profile?.full_name || undefined,
+          user1_photo: conversation.user1_photo || user1Profile?.profile_photo_url || undefined,
+          user2_photo: conversation.user2_photo || user2Profile?.profile_photo_url || undefined,
+        };
+      });
+
+      const latestByConversation: Record<string, LatestMessageInfo> = {};
+      (messagesRes.data || []).forEach((row: any) => {
+        if (!row?.conversation_id || !row?.sender_id || !row?.created_at) return;
+        if (latestByConversation[row.conversation_id]) return;
+        latestByConversation[row.conversation_id] = {
+          senderId: row.sender_id,
+          createdAt: row.created_at,
+          messageText: row.message_text || "",
+          readAt: row.read_at ?? null,
+        };
+      });
+
+      setConversations(hydratedConversations);
       setLatestMessageByConversation(latestByConversation);
     } catch (error) {
       // Optionally show notification
