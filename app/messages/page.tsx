@@ -281,11 +281,17 @@ function MessagesPageInner() {
   async function checkUser() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (session?.user) {
+        setUser(session.user);
+        return;
+      }
+
+      const { data: refreshedData } = await supabase.auth.refreshSession();
+      if (!refreshedData?.session?.user) {
         router.push("/login");
         return;
       }
-      setUser(session.user);
+      setUser(refreshedData.session.user);
     } catch (error) {
       router.push("/login");
     }
