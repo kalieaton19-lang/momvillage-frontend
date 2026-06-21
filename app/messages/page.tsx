@@ -76,13 +76,14 @@ function MessagesPageInner() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      loadConversations(user.id);
+    if (!user?.id) {
+      loadConversationsRequestIdRef.current += 1;
+      setConversations([]);
+      setLatestMessageByConversation({});
+      return;
     }
-  }, [user]);
 
-  useEffect(() => {
-    loadConversationsRequestIdRef.current += 1;
+    void loadConversations(user.id);
   }, [user?.id]);
 
   useEffect(() => {
