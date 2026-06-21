@@ -177,7 +177,7 @@ function MessagesPageInner() {
       if (typingChannelsRef.current[conversation.id]) continue;
 
       const channel = supabase
-        .channel(`messages-preview-typing-${user.id}-${conversation.id}`)
+        .channel(`conversation-messages-${conversation.id}`)
         .on("broadcast", { event: "typing" }, ({ payload }: any) => {
           const senderId = payload?.sender_id;
           if (!senderId || senderId === user.id) return;
