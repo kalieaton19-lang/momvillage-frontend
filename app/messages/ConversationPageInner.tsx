@@ -366,13 +366,12 @@ export default function ConversationPageInner({ conversationId }: { conversation
             return;
           }
 
-          if (typingIndicatorHideTimeoutRef.current) {
-            clearTimeout(typingIndicatorHideTimeoutRef.current);
+          if (!typingIndicatorHideTimeoutRef.current) {
+            typingIndicatorHideTimeoutRef.current = setTimeout(() => {
+              setIsOtherUserTyping(false);
+              typingIndicatorHideTimeoutRef.current = null;
+            }, 7000);
           }
-          typingIndicatorHideTimeoutRef.current = setTimeout(() => {
-            setIsOtherUserTyping(false);
-            typingIndicatorHideTimeoutRef.current = null;
-          }, 900);
         },
       )
       .subscribe();
