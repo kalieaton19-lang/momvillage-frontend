@@ -309,7 +309,29 @@ export default function ConversationPageInner({ conversationId }: { conversation
           table: "messages",
           filter: `conversation_id=eq.${conversation.id}`,
         },
-        () => {
+        (payload: any) => {
+          const newMessage = payload?.new as ChatMessage | undefined;
+          if (newMessage?.id) {
+            setMessages((prev) => {
+              if (prev.some((message) => message.id === newMessage.id)) {
+                return prev;
+              }
+              const merged = [...prev, newMessage];
+              merged.sort(
+                (left, right) =>
+                  new Date(left.created_at).getTime() - new Date(right.created_at).getTime(),
+              );
+              return merged;
+            });
+
+            if (newMessage.sender_id && newMessage.sender_id !== user.id) {
+              setIsOtherUserTyping(false);
+              if (typingIndicatorHideTimeoutRef.current) {
+                clearTimeout(typingIndicatorHideTimeoutRef.current);
+                typingIndicatorHideTimeoutRef.current = null;
+              }
+            }
+          }
           void loadMessages(conversation.id);
         },
       )
@@ -344,11 +366,13 @@ export default function ConversationPageInner({ conversationId }: { conversation
             return;
           }
 
-          setIsOtherUserTyping(false);
           if (typingIndicatorHideTimeoutRef.current) {
             clearTimeout(typingIndicatorHideTimeoutRef.current);
-            typingIndicatorHideTimeoutRef.current = null;
           }
+          typingIndicatorHideTimeoutRef.current = setTimeout(() => {
+            setIsOtherUserTyping(false);
+            typingIndicatorHideTimeoutRef.current = null;
+          }, 900);
         },
       )
       .subscribe();
