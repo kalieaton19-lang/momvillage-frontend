@@ -453,59 +453,89 @@ function MessagesPageInner() {
         ),
       );
       const conversationIds = loadedConversations.map((conversation) => conversation.id);
-      const profilePromise = participantIds.length
-        ? supabase
-            .from("user_public_profiles")
-            .select("id,full_name,profile_photo_url")
-            .in("id", participantIds)
-        : Promise.resolve({ data: [], error: null } as any);
 
-      const messagesPromise = conversationIds.length
-        ? supabase
-            .from("messages")
-            .select("conversation_id,sender_id,created_at,message_text,read_at")
-            .in("conversation_id", conversationIds)
-            .order("created_at", { ascending: false })
-        : Promise.resolve({ data: [], error: null } as any);
+      if (participantIds.length > 0) {
+        const profilesRes = await supabase
+          .from("user_public_profiles")
+          .select("id,full_name,profile_photo_url")
+          .in("id", participantIds);
 
-      const [profilesRes, messagesRes] = await Promise.all([profilePromise, messagesPromise]);
+        if (requestId !== loadConversationsRequestIdRef.current) return;
 
-      if (requestId !== loadConversationsRequestIdRef.current) return;
-
-      const profileById = new Map<string, { full_name?: string | null; profile_photo_url?: string | null }>();
-      (profilesRes.data || []).forEach((profile: any) => {
-        if (!profile?.id) return;
-        profileById.set(profile.id, {
-          full_name: profile.full_name,
-          profile_photo_url: profile.profile_photo_url,
+        const profileById = new Map<string, { full_name?: string | null; profile_photo_url?: string | null }>();
+        (profilesRes.data || []).forEach((profile: any) => {
+          if (!profile?.id) return;
+          profileById.set(profile.id, {
+            full_name: profile.full_name,
+            profile_photo_url: profile.profile_photo_url,
+          });
         });
-      });
 
-      const hydratedConversations = loadedConversations.map((conversation) => {
-        const user1Profile = profileById.get(conversation.user1_id);
-        const user2Profile = profileById.get(conversation.user2_id);
-        return {
-          ...conversation,
-          user1_name: conversation.user1_name || user1Profile?.full_name || undefined,
-          user2_name: conversation.user2_name || user2Profile?.full_name || undefined,
-          user1_photo: conversation.user1_photo || user1Profile?.profile_photo_url || undefined,
-          user2_photo: conversation.user2_photo || user2Profile?.profile_photo_url || undefined,
-        };
-      });
+        setConversations((prev) =>
+          prev.map((conversation) => {
+            const user1Profile = profileById.get(conversation.user1_id);
+            const user2Profile = profileById.get(conversation.user2_id);
+            return {
+              ...conversation,
+              user1_name: conversation.user1_name || user1Profile?.full_name || undefined,
+              user2_name: conversation.user2_name || user2Profile?.full_name || undefined,
+              user1_photo: conversation.user1_photo || user1Profile?.profile_photo_url || undefined,
+              user2_photo: conversation.user2_photo || user2Profile?.profile_photo_url || undefined,
+            };
+          }),
+        );
+      }
+
+      if (conversationIds.length === 0) {
+        setLatestMessageByConversation({});
+        return;
+      }
 
       const latestByConversation: Record<string, LatestMessageInfo> = {};
-      (messagesRes.data || []).forEach((row: any) => {
-        if (!row?.conversation_id || !row?.sender_id || !row?.created_at) return;
-        if (latestByConversation[row.conversation_id]) return;
-        latestByConversation[row.conversation_id] = {
-          senderId: row.sender_id,
-          createdAt: row.created_at,
-          messageText: row.message_text || "",
-          readAt: row.read_at ?? null,
-        };
-      });
+      const targetConversationIds = new Set(conversationIds);
+      const pageSize = 200;
+      const maxPages = 5;
 
-      setConversations(hydratedConversations);
+      for (let page = 0; page < maxPages; page += 1) {
+        if (Object.keys(latestByConversation).length >= targetConversationIds.size) {
+          break;
+        }
+
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data: messageRows } = await supabase
+          .from("messages")
+          .select("conversation_id,sender_id,created_at,message_text,read_at")
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .order("created_at", { ascending: false })
+          .range(from, to);
+
+        if (requestId !== loadConversationsRequestIdRef.current) return;
+
+        if (!messageRows || messageRows.length === 0) {
+          break;
+        }
+
+        for (const row of messageRows as any[]) {
+          if (!row?.conversation_id || !row?.sender_id || !row?.created_at) continue;
+          if (!targetConversationIds.has(row.conversation_id)) continue;
+          if (latestByConversation[row.conversation_id]) continue;
+
+          latestByConversation[row.conversation_id] = {
+            senderId: row.sender_id,
+            createdAt: row.created_at,
+            messageText: row.message_text || "",
+            readAt: row.read_at ?? null,
+          };
+        }
+
+        if (messageRows.length < pageSize) {
+          break;
+        }
+      }
+
+      if (requestId !== loadConversationsRequestIdRef.current) return;
       setLatestMessageByConversation(latestByConversation);
     } catch (error) {
       // Optionally show notification
