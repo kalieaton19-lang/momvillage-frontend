@@ -657,15 +657,6 @@ export default function HomePage() {
 
   async function refreshMessageNotifications(userId: string) {
     try {
-      const { count: unreadNotificationsCount, error: unreadNotificationsError } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("type", "message_received")
-        .eq("read", false);
-
-      const unreadNotifications = !unreadNotificationsError ? (unreadNotificationsCount ?? 0) : 0;
-
       const { count: unreadMessagesCount, error: unreadMessagesError } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
@@ -706,7 +697,7 @@ export default function HomePage() {
       }
 
       const nextUnreadCount = unreadMessagesError
-        ? (unreadNotifications > 0 ? unreadNotifications : unreadBySeenMapCount)
+        ? unreadBySeenMapCount
         : unreadMessagesByReadAt;
 
       setUnreadMessageCount(nextUnreadCount);
