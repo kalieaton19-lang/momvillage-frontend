@@ -163,6 +163,8 @@ export default function HomePage() {
   const [supportActionBusyByPost, setSupportActionBusyByPost] = useState<Record<string, boolean>>({});
   const [supportPickerPost, setSupportPickerPost] = useState<Post | null>(null);
   const [selectedSupportOfferUserId, setSelectedSupportOfferUserId] = useState<string>("");
+  const [cancelSupportPost, setCancelSupportPost] = useState<Post | null>(null);
+  const [cancelSupportReason, setCancelSupportReason] = useState<string>("no_longer_need_help");
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
   const [openCommentsByPost, setOpenCommentsByPost] = useState<Record<string, boolean>>({});
@@ -1264,8 +1266,17 @@ export default function HomePage() {
     if (!user?.id || post.type !== "support" || user.id !== post.author_user_id) return;
     if (normalizeSupportStatus(post) !== "open") return;
 
-    const confirmed = window.confirm("Cancel this support request?");
-    if (!confirmed) return;
+    setCancelSupportPost(post);
+    setCancelSupportReason("no_longer_need_help");
+  }
+
+  async function handleSubmitCancelSupportPost() {
+    if (!user?.id || !cancelSupportPost) return;
+    const post = cancelSupportPost;
+    if (!cancelSupportReason) {
+      alert("Please choose a reason.");
+      return;
+    }
 
     setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
@@ -1294,6 +1305,9 @@ export default function HomePage() {
             : entry,
         ),
       );
+
+      setCancelSupportPost(null);
+      setCancelSupportReason("no_longer_need_help");
     } catch (error: any) {
       alert(error?.message || "Failed to cancel support request.");
     } finally {
@@ -2291,12 +2305,12 @@ export default function HomePage() {
                 >
                   {post.type === 'support' && (
                     <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-xl bg-pink-600 text-white">
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="font-semibold uppercase tracking-wide">Support Post</span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold ${supportStatus === "open" ? "bg-white text-pink-700" : supportStatus === "fulfilled" ? "bg-emerald-500 text-white" : "bg-zinc-500 text-white"}`}>
+                      <div className="text-xs font-semibold uppercase tracking-wide">Support Post</div>
+                      <div className="mt-1 flex items-baseline gap-3 text-base sm:text-lg font-bold">
+                        <span>
                           {supportStatus === "open" ? "Open" : supportStatus === "fulfilled" ? "Fulfilled" : "Canceled"}
                         </span>
-                        <span className="font-medium text-pink-100">
+                        <span className="text-pink-100">
                           {supportOffers.length} offer{supportOffers.length === 1 ? "" : "s"}
                         </span>
                       </div>
@@ -2462,7 +2476,7 @@ export default function HomePage() {
                             type="button"
                             onClick={() => handleOfferSupport(post)}
                             disabled={!!supportActionBusyByPost[post.id] || supportOfferedByMe}
-                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-pink-600 text-white hover:bg-pink-700 shadow-sm border border-pink-500 disabled:opacity-60"
+                            className="w-full px-5 py-3 rounded-2xl text-base font-semibold bg-pink-600 text-white hover:bg-pink-700 shadow-sm border border-pink-500 disabled:opacity-60"
                           >
                             {supportOfferedByMe
                               ? "Support Offered"
@@ -2479,7 +2493,7 @@ export default function HomePage() {
                             type="button"
                             onClick={() => handleFulfillSupportPost(post)}
                             disabled={!!supportActionBusyByPost[post.id] || supportOffers.length === 0}
-                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-500 shadow-sm disabled:opacity-60"
+                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-pink-600 text-white hover:bg-pink-700 border border-pink-500 shadow-sm disabled:opacity-60"
                           >
                             {supportActionBusyByPost[post.id] ? "Saving..." : "Supported"}
                           </button>
@@ -2748,6 +2762,78 @@ export default function HomePage() {
           onClose={() => setReportModalOpen(false)}
           onSubmit={handleReport}
         />
+        {cancelSupportPost && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl">
+              <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">Why are you canceling this request?</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCancelSupportPost(null);
+                    setCancelSupportReason("no_longer_need_help");
+                  }}
+                  className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  aria-label="Close cancel reason popup"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                <label className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                  <input
+                    type="radio"
+                    name="cancel-support-reason"
+                    value="no_longer_need_help"
+                    checked={cancelSupportReason === "no_longer_need_help"}
+                    onChange={(event) => setCancelSupportReason(event.target.value)}
+                  />
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100">No longer need help</span>
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                  <input
+                    type="radio"
+                    name="cancel-support-reason"
+                    value="got_no_response"
+                    checked={cancelSupportReason === "got_no_response"}
+                    onChange={(event) => setCancelSupportReason(event.target.value)}
+                  />
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Got no response</span>
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                  <input
+                    type="radio"
+                    name="cancel-support-reason"
+                    value="got_help_elsewhere"
+                    checked={cancelSupportReason === "got_help_elsewhere"}
+                    onChange={(event) => setCancelSupportReason(event.target.value)}
+                  />
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Got help elsewhere</span>
+                </label>
+              </div>
+              <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCancelSupportPost(null);
+                    setCancelSupportReason("no_longer_need_help");
+                  }}
+                  className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmitCancelSupportPost()}
+                  disabled={!!supportActionBusyByPost[cancelSupportPost.id]}
+                  className="px-5 py-2.5 rounded-xl bg-pink-600 text-white hover:bg-pink-700 border border-pink-500 font-semibold disabled:opacity-60"
+                >
+                  {supportActionBusyByPost[cancelSupportPost.id] ? "Submitting..." : "Submit"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {supportPickerPost && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
             <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl">
