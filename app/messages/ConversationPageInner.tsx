@@ -5,6 +5,8 @@ import { useNotification } from "../components/useNotification";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { sendMessageToMatch } from "./sendMessageToMatch";
+import PostContentWithPreview from "../components/PostContentWithPreview";
+import { formatFirstNameLastInitial, formatTimeAgo } from "../../utils";
 
 
 // ProfileModal component for displaying user profile info in a modal
@@ -174,6 +176,43 @@ interface ChatMessage {
   metadata?: Record<string, any> | null;
 }
 
+type SharedPostPreview = {
+  id: string;
+  author_user_id: string;
+  author_name: string;
+  author_photo_url?: string | null;
+  type: "general" | "support";
+  title: string;
+  content: string;
+  photo_url?: string | null;
+  created_at: string;
+};
+
+const SHARED_POST_LINK_REGEX = /(?:https?:\/\/[^\s]+)?\/home\?post=([^&\s#]+)/gi;
+const TRAILING_LINK_PUNCTUATION_REGEX = /[).,!?:;\]}]+$/;
+
+function extractSharedPostId(messageText: string): string | null {
+  if (!messageText) return null;
+
+  const match = SHARED_POST_LINK_REGEX.exec(messageText);
+  SHARED_POST_LINK_REGEX.lastIndex = 0;
+  if (!match) return null;
+
+  const rawPostId = (match[1] || "").replace(TRAILING_LINK_PUNCTUATION_REGEX, "").trim();
+  if (!rawPostId) return null;
+
+  try {
+    return decodeURIComponent(rawPostId);
+  } catch {
+    return rawPostId;
+  }
+}
+
+function stripSharedPostLink(messageText: string): string {
+  if (!messageText) return "";
+  return messageText.replace(SHARED_POST_LINK_REGEX, "").replace(/\s+/g, " ").trim();
+}
+
 export default function ConversationPageInner({ conversationId }: { conversationId: string }) {
   // Debug log for conversationId
   console.log('[ConversationPageInner] conversationId:', conversationId);
@@ -213,7 +252,19 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const supportHighlightHandledRef = useRef(false);
   const supportHighlightClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [sharedPostById, setSharedPostById] = useState<Record<string, SharedPostPreview>>({});
+  const [loadingSharedPostById, setLoadingSharedPostById] = useState<Record<string, boolean>>({});
   const supportOfferForPost = searchParams?.get("supportOfferForPost") || "";
+  const sharedPostIdsInMessages = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const message of messages) {
+      const maybePostId = extractSharedPostId(String(message?.message_text || ""));
+      if (maybePostId) {
+        ids.add(maybePostId);
+      }
+    }
+    return [...ids];
+  }, [messages]);
 
   useEffect(() => {
     checkUser();
@@ -343,6 +394,102 @@ export default function ConversationPageInner({ conversationId }: { conversation
       }
     };
   }, [supportOfferForPost, messages]);
+
+  useEffect(() => {
+    if (sharedPostIdsInMessages.length === 0) return;
+
+    const missingIds = sharedPostIdsInMessages.filter(
+      (postId) => !sharedPostById[postId] && !loadingSharedPostById[postId],
+    );
+    if (missingIds.length === 0) return;
+
+    let cancelled = false;
+
+    const loadSharedPosts = async () => {
+      setLoadingSharedPostById((prev) => {
+        const next = { ...prev };
+        for (const postId of missingIds) {
+          next[postId] = true;
+        }
+        return next;
+      });
+
+      try {
+        const { data: postsData, error: postsError } = await supabase
+          .from("posts")
+          .select("id, author_user_id, author_name, type, title, content, photo_url, created_at")
+          .in("id", missingIds);
+
+        if (postsError) throw postsError;
+
+        const rawPosts = postsData || [];
+        const authorIds = [...new Set(rawPosts.map((post: any) => String(post.author_user_id || "")).filter(Boolean))];
+
+        let authorPhotoById: Record<string, string> = {};
+        let authorNameById: Record<string, string> = {};
+
+        if (authorIds.length > 0) {
+          const { data: authorProfiles } = await supabase
+            .from("user_public_profiles")
+            .select("id, full_name, profile_photo_url")
+            .in("id", authorIds);
+
+          (authorProfiles || []).forEach((profile: any) => {
+            const normalizedName = String(profile?.full_name || "").trim();
+            if (profile?.id) {
+              authorNameById[profile.id] = normalizedName;
+              authorPhotoById[profile.id] = String(profile?.profile_photo_url || "").trim();
+            }
+          });
+        }
+
+        if (!cancelled) {
+          const nextPostsById: Record<string, SharedPostPreview> = {};
+
+          for (const post of rawPosts) {
+            const postId = String(post?.id || "");
+            if (!postId) continue;
+
+            const authorUserId = String(post?.author_user_id || "");
+            const authorFromProfile = authorNameById[authorUserId] || "";
+            const authorFromPost = String(post?.author_name || "").trim();
+            const finalAuthorName = authorFromProfile || authorFromPost || "Mom";
+
+            nextPostsById[postId] = {
+              id: postId,
+              author_user_id: authorUserId,
+              author_name: finalAuthorName,
+              author_photo_url: authorPhotoById[authorUserId] || "",
+              type: post?.type === "support" ? "support" : "general",
+              title: String(post?.title || ""),
+              content: String(post?.content || ""),
+              photo_url: post?.photo_url || "",
+              created_at: String(post?.created_at || new Date().toISOString()),
+            };
+          }
+
+          setSharedPostById((prev) => ({ ...prev, ...nextPostsById }));
+        }
+      } catch {
+      } finally {
+        if (!cancelled) {
+          setLoadingSharedPostById((prev) => {
+            const next = { ...prev };
+            for (const postId of missingIds) {
+              delete next[postId];
+            }
+            return next;
+          });
+        }
+      }
+    };
+
+    void loadSharedPosts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedPostById, loadingSharedPostById, sharedPostIdsInMessages]);
 
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
@@ -1151,6 +1298,12 @@ export default function ConversationPageInner({ conversationId }: { conversation
             <>
               {messages.map((msg) => {
                 const isOutgoing = msg.sender_id === user?.id;
+                const sharedPostId = extractSharedPostId(String(msg.message_text || ""));
+                const sharedPost = sharedPostId ? sharedPostById[sharedPostId] : undefined;
+                const isSharedPostLoading = !!(sharedPostId && loadingSharedPostById[sharedPostId]);
+                const messageTextWithoutPostLink = sharedPostId
+                  ? stripSharedPostLink(String(msg.message_text || ""))
+                  : String(msg.message_text || "");
                 const isRead = Boolean(
                   msg.read_at || msg.metadata?.read_by_receiver_at || msg.metadata?.read_at,
                 );
@@ -1171,7 +1324,86 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       }`}
                       style={{ wordBreak: 'break-word', width: 'fit-content', minWidth: 0 }}
                     >
-                      <p className="break-words text-base leading-snug">{msg.message_text}</p>
+                      {messageTextWithoutPostLink ? (
+                        <p className="break-words text-base leading-snug">{messageTextWithoutPostLink}</p>
+                      ) : null}
+
+                      {sharedPostId && (
+                        <div className="mt-2">
+                          {sharedPost ? (
+                            <a
+                              href={`/home?post=${encodeURIComponent(sharedPost.id)}`}
+                              className="block w-[70vw] max-w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+                            >
+                              {sharedPost.type === "support" && (
+                                <div className="px-3 py-1.5 bg-pink-600 text-white text-[11px] font-semibold uppercase tracking-wide">
+                                  Support Post
+                                </div>
+                              )}
+
+                              <div className="p-3">
+                                <div className="mb-2 flex items-center gap-2 min-w-0">
+                                  {sharedPost.author_photo_url ? (
+                                    <img
+                                      src={sharedPost.author_photo_url}
+                                      alt={sharedPost.author_name}
+                                      className="h-7 w-7 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                                    />
+                                  ) : (
+                                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white text-xs font-semibold flex items-center justify-center">
+                                      {(sharedPost.author_name || "M").charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+                                      {formatFirstNameLastInitial(sharedPost.author_name || "Mom")}
+                                    </div>
+                                    <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                                      Posted {formatTimeAgo(sharedPost.created_at)}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {sharedPost.photo_url ? (
+                                  <img
+                                    src={sharedPost.photo_url}
+                                    alt="Shared post photo"
+                                    className="mb-2 h-auto max-h-44 w-full rounded-lg object-cover border border-zinc-100 dark:border-zinc-800"
+                                  />
+                                ) : null}
+
+                                {sharedPost.title ? (
+                                  <div className="mb-1 text-sm font-bold text-zinc-900 dark:text-zinc-50 line-clamp-2">
+                                    {sharedPost.title}
+                                  </div>
+                                ) : null}
+
+                                {sharedPost.content ? (
+                                  <PostContentWithPreview
+                                    text={sharedPost.content}
+                                    className="text-sm text-zinc-700 dark:text-zinc-200 line-clamp-4"
+                                  />
+                                ) : (
+                                  <div className="text-sm text-zinc-500 dark:text-zinc-400">Tap to open this shared post.</div>
+                                )}
+                              </div>
+                            </a>
+                          ) : isSharedPostLoading ? (
+                            <div className="w-[70vw] max-w-[320px] rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                              Loading shared post…
+                            </div>
+                          ) : (
+                            <a
+                              href={`/home?post=${encodeURIComponent(sharedPostId)}`}
+                              className="inline-flex text-sm font-medium text-pink-600 underline hover:text-pink-700 dark:text-pink-300 dark:hover:text-pink-200"
+                            >
+                              View shared post
+                            </a>
+                          )}
+                        </div>
+                      )}
+
                       <p className={`text-xs mt-1 ${
                         isOutgoing
                           ? 'text-pink-400'
