@@ -8,6 +8,7 @@ import PostShareSheet from "../components/PostShareSheet";
 import ReportModal, { ReportType, ReportReason } from "../components/ReportModal";
 import { supabase } from "../../lib/supabase";
 import { fetchPosts, fetchPostById, createPost, fetchPostInteractions, togglePostLike, addPostComment, sharePost, PostCommentRow } from "../../lib/posts";
+import { sendMessageToMatch } from "../messages/sendMessageToMatch";
 import { Post, PostType, PostScope, PostVisibility } from "../../types/post";
 import { formatFirstNameLastInitial, formatTimeAgo } from "../../utils";
 import type { JSX } from "react";
@@ -1290,21 +1291,18 @@ export default function HomePage() {
         ? `${window.location.origin}/home?post=${encodeURIComponent(post.id)}`
         : `/home?post=${encodeURIComponent(post.id)}`;
 
-      await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        receiver_id: post.author_user_id,
-        message_text: `I offered support with this! Message here to coordinate support: ${postUrl}`,
+      const supportMessageText = `I offered support with this! Message here to coordinate support: ${postUrl}`;
+      const sendResult = await sendMessageToMatch({
+        supabase,
+        selectedConversation: conversationId,
+        userId: user.id,
+        receiverId: post.author_user_id,
+        messageText: supportMessageText,
       });
 
-      await supabase
-        .from("conversations")
-        .update({
-          last_message: "Offered support",
-          last_message_time: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", conversationId);
+      if (sendResult.error) {
+        throw new Error(sendResult.error.message || "Failed to send support message.");
+      }
 
       setSupportOfferFeedbackByPost((prev) => ({
         ...prev,
