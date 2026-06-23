@@ -49,6 +49,7 @@ interface LatestMessageInfo {
   createdAt: string;
   messageText?: string;
   readAt?: string | null;
+  readStateKnown?: boolean;
 }
 
 
@@ -550,6 +551,7 @@ function MessagesPageInner() {
             createdAt: row.created_at,
             messageText: row.message_text || "",
             readAt: (row as any)?.read_at ?? null,
+            readStateKnown: Object.prototype.hasOwnProperty.call(row, "read_at"),
           };
         }
 
@@ -601,6 +603,7 @@ function MessagesPageInner() {
               createdAt: row.created_at,
               messageText: row.message_text || "",
               readAt: (row as any)?.read_at ?? null,
+              readStateKnown: Object.prototype.hasOwnProperty.call(row, "read_at"),
             };
           }
         }
@@ -716,11 +719,20 @@ function MessagesPageInner() {
                 const latestInfo = latestMessageByConversation[conv.id];
                 const isTyping = !!typingByConversation[conv.id];
                 const previewText = isTyping ? "Typing..." : latestInfo?.messageText || conv.last_message || "Start chatting";
+                const seenAt = seenConversationAt[conv.id] || "";
+                const latestMessageTimestamp = latestInfo?.createdAt
+                  ? new Date(latestInfo.createdAt).getTime()
+                  : 0;
+                const seenTimestamp = seenAt ? new Date(seenAt).getTime() : 0;
+                const readStateKnown = latestInfo?.readStateKnown !== false;
+                const isReadBySeenTimestamp =
+                  Boolean(seenAt) && latestMessageTimestamp > 0 && seenTimestamp >= latestMessageTimestamp;
                 const hasUnreadIncoming =
                   Boolean(user?.id) &&
                   Boolean(latestInfo?.senderId) &&
                   latestInfo.senderId !== user.id &&
-                  !latestInfo?.readAt;
+                  latestMessageTimestamp > 0 &&
+                  (readStateKnown ? !latestInfo?.readAt : !isReadBySeenTimestamp);
                 return (
                   <div
                     key={conv.id}
