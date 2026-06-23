@@ -2113,15 +2113,18 @@ export default function HomePage() {
                     className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
                   />
 
-                  <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3 text-sm">
+                  <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-5 text-sm">
                     <button
                       type="button"
                       disabled={!!interactionBusyByPost[post.id]}
                       onClick={() => handleToggleLike(post.id)}
-                      className={`px-3 py-1 rounded-full border transition ${likedByMeByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                      className={`inline-flex items-center gap-1.5 transition-colors disabled:opacity-60 ${likedByMeByPost[post.id] ? 'text-pink-600 dark:text-pink-300' : 'text-zinc-700 dark:text-zinc-200'}`}
                       aria-label={`Likes ${likesCountByPost[post.id] || 0}`}
                     >
-                      ♡ {likesCountByPost[post.id] || 0}
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill={likedByMeByPost[post.id] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                      <span className="text-lg font-semibold leading-none">{likesCountByPost[post.id] || 0}</span>
                     </button>
                     {!post.comments_disabled && (
                       <button
@@ -2132,10 +2135,13 @@ export default function HomePage() {
                             [post.id]: !prev[post.id],
                           }))
                         }
-                        className={`px-3 py-1 rounded-full border transition ${openCommentsByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                        className={`inline-flex items-center gap-1.5 transition-colors ${openCommentsByPost[post.id] ? 'text-pink-600 dark:text-pink-300' : 'text-zinc-700 dark:text-zinc-200'}`}
                         aria-label={`Comments ${(commentsByPost[post.id] || []).length}`}
                       >
-                        💬 {(commentsByPost[post.id] || []).length}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                        </svg>
+                        <span className="text-lg font-semibold leading-none">{(commentsByPost[post.id] || []).length}</span>
                       </button>
                     )}
                     {post.visibility === 'public' && (
@@ -2143,10 +2149,14 @@ export default function HomePage() {
                         type="button"
                         disabled={!!interactionBusyByPost[post.id]}
                         onClick={() => handleShare(post)}
-                        className="px-3 py-1 rounded-full border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700"
+                        className="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-200 transition-colors disabled:opacity-60"
                         aria-label={`Shares ${sharesCountByPost[post.id] || 0}`}
                       >
-                        ↗ {sharesCountByPost[post.id] || 0}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M7 17L17 7" />
+                          <path d="M7 7h10v10" />
+                        </svg>
+                        <span className="text-lg font-semibold leading-none">{sharesCountByPost[post.id] || 0}</span>
                       </button>
                     )}
                   </div>
