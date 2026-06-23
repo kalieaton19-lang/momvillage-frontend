@@ -158,6 +158,7 @@ export default function HomePage() {
   const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
   const [supportOffersByPost, setSupportOffersByPost] = useState<Record<string, SupportOfferRow[]>>({});
+  const [supportOfferFeedbackByPost, setSupportOfferFeedbackByPost] = useState<Record<string, string>>({});
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
   const [supportActionBusyByPost, setSupportActionBusyByPost] = useState<Record<string, boolean>>({});
@@ -1219,18 +1220,42 @@ export default function HomePage() {
   }
 
   async function handleOfferSupport(post: Post) {
-    if (!user?.id || post.type !== "support" || user.id === post.author_user_id) return;
+    if (!user?.id) {
+      setSupportOfferFeedbackByPost((prev) => ({
+        ...prev,
+        [post.id]: "Please sign in to offer support.",
+      }));
+      return;
+    }
+    if (post.type !== "support") return;
+    if (user.id === post.author_user_id) {
+      setSupportOfferFeedbackByPost((prev) => ({
+        ...prev,
+        [post.id]: "You can’t offer support on your own post.",
+      }));
+      return;
+    }
     if (normalizeSupportStatus(post) !== "open") {
-      alert("This support request is no longer open.");
+      setSupportOfferFeedbackByPost((prev) => ({
+        ...prev,
+        [post.id]: "This support request is no longer open.",
+      }));
       return;
     }
 
     if ((supportOffersByPost[post.id] || []).some((entry) => entry.offered_by_user_id === user.id)) {
-      alert("You already offered support for this post.");
+      setSupportOfferFeedbackByPost((prev) => ({
+        ...prev,
+        [post.id]: "You already offered support for this post.",
+      }));
       return;
     }
 
     setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    setSupportOfferFeedbackByPost((prev) => ({
+      ...prev,
+      [post.id]: "Sending your offer...",
+    }));
     try {
       const { error } = await supabase
         .from("post_support_offers")
@@ -1258,9 +1283,28 @@ export default function HomePage() {
         };
       });
 
-      alert("Support offer sent.");
+      setSupportOfferFeedbackByPost((prev) => ({
+        ...prev,
+        [post.id]: "Support offer sent.",
+      }));
     } catch (error: any) {
-      alert(error?.message || "Failed to offer support.");
+      const message = String(error?.message || "Failed to offer support.");
+      const lower = message.toLowerCase();
+      const migrationHint =
+        lower.includes("post_support_offers") ||
+        lower.includes("does not exist") ||
+        lower.includes("relation")
+          ? " Support offers table may be missing. Run migration 022 in Supabase."
+          : "";
+      const policyHint =
+        error?.code === "42501" || lower.includes("policy")
+          ? " Permission denied by RLS policy."
+          : "";
+
+      setSupportOfferFeedbackByPost((prev) => ({
+        ...prev,
+        [post.id]: `${message}${migrationHint}${policyHint}`,
+      }));
     } finally {
       setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
@@ -2492,6 +2536,11 @@ export default function HomePage() {
                           {supportOfferedByMe && (
                             <div className="mt-2 text-xs font-medium text-pink-700 dark:text-pink-300">
                               Thanks! Your offer was sent.
+                            </div>
+                          )}
+                          {!!supportOfferFeedbackByPost[post.id] && (
+                            <div className="mt-2 text-xs font-medium text-pink-700 dark:text-pink-300 break-words">
+                              {supportOfferFeedbackByPost[post.id]}
                             </div>
                           )}
                         </div>
