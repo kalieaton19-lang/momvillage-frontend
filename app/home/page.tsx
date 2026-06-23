@@ -1283,6 +1283,29 @@ export default function HomePage() {
         };
       });
 
+      const authorDisplayName = authorNameById[post.author_user_id] || post.author_name || "Mom";
+      const authorPhoto = authorPhotoById[post.author_user_id] || "";
+      const conversationId = await ensureConversation(post.author_user_id, authorDisplayName, authorPhoto);
+      const postUrl = typeof window !== "undefined"
+        ? `${window.location.origin}/home?post=${encodeURIComponent(post.id)}`
+        : `/home?post=${encodeURIComponent(post.id)}`;
+
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        receiver_id: post.author_user_id,
+        message_text: `I offered support with this! Message here to coordinate support: ${postUrl}`,
+      });
+
+      await supabase
+        .from("conversations")
+        .update({
+          last_message: "Offered support",
+          last_message_time: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", conversationId);
+
       setSupportOfferFeedbackByPost((prev) => ({
         ...prev,
         [post.id]: "Support offer sent.",

@@ -13,6 +13,56 @@ export default function NotificationsPage() {
   const invitationsRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
+  async function ensureConversationWithOfferer(
+    offererUserId: string,
+    offererName: string,
+    offererPhoto?: string | null,
+  ) {
+    if (!user?.id) throw new Error("You must be signed in.");
+
+    const { data: existingConvos, error: convoError } = await supabase
+      .from("conversations")
+      .select("id")
+      .or(
+        `and(user1_id.eq.${user.id},user2_id.eq.${offererUserId}),and(user1_id.eq.${offererUserId},user2_id.eq.${user.id})`
+      )
+      .limit(1);
+
+    if (convoError) throw convoError;
+    if (existingConvos && existingConvos.length > 0) return existingConvos[0].id;
+
+    const { data: newConvo, error: createError } = await supabase
+      .from("conversations")
+      .insert({
+        user1_id: user.id,
+        user2_id: offererUserId,
+        user1_name: user.user_metadata?.full_name || "Mom",
+        user2_name: offererName || "Mom",
+        user1_photo: user.user_metadata?.profile_photo_url || "",
+        user2_photo: offererPhoto || "",
+      })
+      .select("id")
+      .single();
+
+    if (createError || !newConvo) throw new Error("Failed to open message thread.");
+    return newConvo.id;
+  }
+
+  async function handleOpenSupportConversation(offer: any) {
+    try {
+      const offererName = offer?.offered_by_profile?.full_name || "Mom";
+      const offererPhoto = offer?.offered_by_profile?.profile_photo_url || "";
+      const conversationId = await ensureConversationWithOfferer(
+        offer.offered_by_user_id,
+        offererName,
+        offererPhoto,
+      );
+      router.push(`/messages/${conversationId}`);
+    } catch (error: any) {
+      alert(error?.message || "Could not open messages.");
+    }
+  }
+
   async function fetchUserAndInvitations(options?: { preserveLoading?: boolean; userOverride?: any }) {
     const preserveLoading = options?.preserveLoading ?? false;
     if (!preserveLoading) {
@@ -240,14 +290,19 @@ export default function NotificationsPage() {
                       const displayName = offer.offered_by_profile?.full_name || "A mom";
                       const postTitle = offer.posts?.title || "your support post";
                       return (
-                        <div key={offer.id} className="rounded-xl border border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20 p-3">
+                        <button
+                          key={offer.id}
+                          type="button"
+                          onClick={() => void handleOpenSupportConversation(offer)}
+                          className="w-full text-left rounded-xl border border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20 p-3 hover:bg-pink-100 dark:hover:bg-pink-900/35 transition"
+                        >
                           <div className="text-sm text-zinc-800 dark:text-zinc-100">
-                            <span className="font-semibold">{displayName}</span> offered support on <span className="font-semibold">{postTitle}</span>.
+                            <span className="font-semibold">{displayName}</span> offered support on <span className="font-semibold">{postTitle}</span>. Message here to coordinate support.
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             {new Date(offer.created_at).toLocaleString()}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
