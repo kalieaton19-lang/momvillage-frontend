@@ -20,7 +20,10 @@ export default function NotificationsPage() {
   ) {
     if (!user?.id) throw new Error("You must be signed in.");
 
-    const { data: existingConvos, error: convoError } = await supabase
+    let existingConvos: any[] | null = null;
+    let convoError: any = null;
+
+    const primaryQuery = await supabase
       .from("conversations")
       .select("id")
       .or(
@@ -29,6 +32,23 @@ export default function NotificationsPage() {
       .order("updated_at", { ascending: false })
       .order("last_message_time", { ascending: false })
       .limit(1);
+
+    existingConvos = primaryQuery.data;
+    convoError = primaryQuery.error;
+
+    if (convoError && (convoError.code === "42703" || String(convoError.message || "").includes("last_message_time"))) {
+      const fallbackQuery = await supabase
+        .from("conversations")
+        .select("id")
+        .or(
+          `and(user1_id.eq.${user.id},user2_id.eq.${offererUserId}),and(user1_id.eq.${offererUserId},user2_id.eq.${user.id})`
+        )
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      existingConvos = fallbackQuery.data;
+      convoError = fallbackQuery.error;
+    }
 
     if (convoError) throw convoError;
     if (existingConvos && existingConvos.length > 0) return existingConvos[0].id;
@@ -48,6 +68,40 @@ export default function NotificationsPage() {
 
     if (createError || !newConvo) throw new Error("Failed to open message thread.");
     return newConvo.id;
+  }
+
+  async function updateConversationActivity(conversationId: string, lastMessage: string) {
+    const nowIso = new Date().toISOString();
+    const withLastMessageTime = await supabase
+      .from("conversations")
+      .update({
+        last_message: lastMessage,
+        last_message_time: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("id", conversationId);
+
+    if (!withLastMessageTime.error) return;
+
+    const missingLastMessageTime =
+      withLastMessageTime.error.code === "42703" ||
+      String(withLastMessageTime.error.message || "").includes("last_message_time");
+
+    if (!missingLastMessageTime) {
+      throw withLastMessageTime.error;
+    }
+
+    const withoutLastMessageTime = await supabase
+      .from("conversations")
+      .update({
+        last_message: lastMessage,
+        updated_at: nowIso,
+      })
+      .eq("id", conversationId);
+
+    if (withoutLastMessageTime.error) {
+      throw withoutLastMessageTime.error;
+    }
   }
 
   async function handleOpenSupportConversation(offer: any) {
@@ -77,21 +131,18 @@ export default function NotificationsPage() {
 
         if (!existingSupportMsg || existingSupportMsg.length === 0) {
           const coordinationText = `${offererName} offered support with ${postTitle}! Message now to coordinate: ${postUrl}`;
-          await supabase.from("messages").insert({
+          const { error: insertMessageError } = await supabase.from("messages").insert({
             conversation_id: conversationId,
             sender_id: user.id,
             receiver_id: offer.offered_by_user_id,
             message_text: coordinationText,
           });
 
-          await supabase
-            .from("conversations")
-            .update({
-              last_message: coordinationText,
-              last_message_time: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", conversationId);
+          if (insertMessageError) {
+            throw insertMessageError;
+          }
+
+          await updateConversationActivity(conversationId, coordinationText);
         }
       }
 

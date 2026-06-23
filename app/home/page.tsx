@@ -211,7 +211,10 @@ export default function HomePage() {
   ) {
     if (!user?.id) throw new Error("You must be signed in.");
 
-    const { data: existingConvos, error: convoError } = await supabase
+    let existingConvos: any[] | null = null;
+    let convoError: any = null;
+
+    const primaryQuery = await supabase
       .from("conversations")
       .select("id")
       .or(
@@ -220,6 +223,23 @@ export default function HomePage() {
       .order("updated_at", { ascending: false })
       .order("last_message_time", { ascending: false })
       .limit(1);
+
+    existingConvos = primaryQuery.data;
+    convoError = primaryQuery.error;
+
+    if (convoError && (convoError.code === "42703" || String(convoError.message || "").includes("last_message_time"))) {
+      const fallbackQuery = await supabase
+        .from("conversations")
+        .select("id")
+        .or(
+          `and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`
+        )
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      existingConvos = fallbackQuery.data;
+      convoError = fallbackQuery.error;
+    }
 
     if (convoError) throw convoError;
     if (existingConvos && existingConvos.length > 0) return existingConvos[0].id;
@@ -241,6 +261,40 @@ export default function HomePage() {
       throw new Error("Failed to create conversation.");
     }
     return newConvo.id;
+  }
+
+  async function updateConversationActivity(conversationId: string, lastMessage: string) {
+    const nowIso = new Date().toISOString();
+    const withLastMessageTime = await supabase
+      .from("conversations")
+      .update({
+        last_message: lastMessage,
+        last_message_time: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("id", conversationId);
+
+    if (!withLastMessageTime.error) return;
+
+    const missingLastMessageTime =
+      withLastMessageTime.error.code === "42703" ||
+      String(withLastMessageTime.error.message || "").includes("last_message_time");
+
+    if (!missingLastMessageTime) {
+      throw withLastMessageTime.error;
+    }
+
+    const withoutLastMessageTime = await supabase
+      .from("conversations")
+      .update({
+        last_message: lastMessage,
+        updated_at: nowIso,
+      })
+      .eq("id", conversationId);
+
+    if (withoutLastMessageTime.error) {
+      throw withoutLastMessageTime.error;
+    }
   }
 
   useEffect(() => {
@@ -1304,14 +1358,7 @@ export default function HomePage() {
         throw new Error(messageInsertError.message || "Failed to send support message.");
       }
 
-      await supabase
-        .from("conversations")
-        .update({
-          last_message: supportMessageText,
-          last_message_time: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", conversationId);
+      await updateConversationActivity(conversationId, supportMessageText);
 
       setSupportOfferFeedbackByPost((prev) => ({
         ...prev,
@@ -1460,14 +1507,7 @@ export default function HomePage() {
         message_text: `Thank you for offering support on my post \"${post.title}\". I selected you to help.`,
       });
 
-      await supabase
-        .from("conversations")
-        .update({
-          last_message: "Support request fulfilled",
-          last_message_time: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", conversationId);
+      await updateConversationActivity(conversationId, "Support request fulfilled");
 
       setPosts((prev) =>
         prev.map((entry) =>
