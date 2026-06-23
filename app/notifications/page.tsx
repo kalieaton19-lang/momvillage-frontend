@@ -57,7 +57,12 @@ export default function NotificationsPage() {
         offererName,
         offererPhoto,
       );
-      router.push(`/messages/${conversationId}`);
+      const supportPostId = String(offer?.post_id || "").trim();
+      if (supportPostId) {
+        router.push(`/messages/${conversationId}?supportOfferForPost=${encodeURIComponent(supportPostId)}`);
+      } else {
+        router.push(`/messages/${conversationId}`);
+      }
     } catch (error: any) {
       alert(error?.message || "Could not open messages.");
     }

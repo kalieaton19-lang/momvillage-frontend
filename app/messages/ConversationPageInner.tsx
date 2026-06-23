@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNotification } from "../components/useNotification";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { sendMessageToMatch } from "./sendMessageToMatch";
 
@@ -182,6 +182,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   }
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showNotification, NotificationComponent } = useNotification();
   const [user, setUser] = useState<any>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -209,6 +210,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const typingSentActiveRef = useRef(false);
   const lastTypingTrueSentAtRef = useRef(0);
   const markReadInFlightRef = useRef(false);
+  const supportHighlightHandledRef = useRef(false);
+  const supportHighlightClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const supportOfferForPost = searchParams?.get("supportOfferForPost") || "";
 
   useEffect(() => {
     checkUser();
@@ -295,6 +300,49 @@ export default function ConversationPageInner({ conversationId }: { conversation
       setVillageStatus(null);
     }
   }, [conversation, user]);
+
+  useEffect(() => {
+    if (!supportOfferForPost || messages.length === 0 || supportHighlightHandledRef.current) return;
+
+    const encodedToken = `post=${encodeURIComponent(supportOfferForPost)}`;
+    const rawToken = `post=${supportOfferForPost}`;
+    const matched = [...messages]
+      .reverse()
+      .find((message) => {
+        const text = String(message.message_text || "");
+        return (
+          text.includes(encodedToken) ||
+          text.includes(rawToken) ||
+          text.toLowerCase().includes("offered support with this")
+        );
+      });
+
+    if (!matched?.id) return;
+
+    supportHighlightHandledRef.current = true;
+    setHighlightedMessageId(matched.id);
+
+    requestAnimationFrame(() => {
+      const element = document.getElementById(`msg-${matched.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    if (supportHighlightClearTimeoutRef.current) {
+      clearTimeout(supportHighlightClearTimeoutRef.current);
+    }
+    supportHighlightClearTimeoutRef.current = setTimeout(() => {
+      setHighlightedMessageId(null);
+    }, 6000);
+
+    return () => {
+      if (supportHighlightClearTimeoutRef.current) {
+        clearTimeout(supportHighlightClearTimeoutRef.current);
+        supportHighlightClearTimeoutRef.current = null;
+      }
+    };
+  }, [supportOfferForPost, messages]);
 
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
@@ -1111,11 +1159,12 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 return (
                   <div
                     key={msg.id}
+                    id={`msg-${msg.id}`}
                     className={`flex w-full flex-col ${isOutgoing ? 'items-end' : 'items-start'}`}
                     style={{ marginBottom: 1 }}
                   >
                     <div
-                      className={`px-2 py-1 rounded-2xl sm:px-3 sm:py-2 ${
+                      className={`px-2 py-1 rounded-2xl sm:px-3 sm:py-2 transition-shadow ${highlightedMessageId === msg.id ? 'ring-2 ring-pink-400 shadow-md' : ''} ${
                         isOutgoing
                           ? 'bg-pink-100 text-pink-900 rounded-br-none ml-3 sm:ml-32 max-w-[92vw] sm:max-w-xs'
                           : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none mr-3 sm:mr-32 max-w-[92vw] sm:max-w-xs'
