@@ -611,7 +611,6 @@ function MessagesPageInner() {
 
       if (requestId !== loadConversationsRequestIdRef.current) return;
       setLatestMessageByConversation(latestByConversation);
-      setConversations((prev) => sortConversationsByActivity(prev, latestByConversation));
     } catch (error) {
       // Optionally show notification
     }
