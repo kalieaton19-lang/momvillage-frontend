@@ -72,7 +72,7 @@ export default function NotificationsPage() {
 
   async function updateConversationActivity(conversationId: string, lastMessage: string) {
     const nowIso = new Date().toISOString();
-    const withLastMessageTime = await supabase
+    const withLastMessageAndTime = await supabase
       .from("conversations")
       .update({
         last_message: lastMessage,
@@ -81,17 +81,20 @@ export default function NotificationsPage() {
       })
       .eq("id", conversationId);
 
-    if (!withLastMessageTime.error) return;
+    if (!withLastMessageAndTime.error) return;
 
-    const missingLastMessageTime =
-      withLastMessageTime.error.code === "42703" ||
-      String(withLastMessageTime.error.message || "").includes("last_message_time");
+    const firstErrorMessage = String(withLastMessageAndTime.error.message || "").toLowerCase();
+    const missingColumnOnFirstAttempt =
+      withLastMessageAndTime.error.code === "42703" ||
+      firstErrorMessage.includes("last_message_time") ||
+      firstErrorMessage.includes("last_message") ||
+      firstErrorMessage.includes("column");
 
-    if (!missingLastMessageTime) {
-      throw withLastMessageTime.error;
+    if (!missingColumnOnFirstAttempt) {
+      throw withLastMessageAndTime.error;
     }
 
-    const withoutLastMessageTime = await supabase
+    const withLastMessageOnly = await supabase
       .from("conversations")
       .update({
         last_message: lastMessage,
@@ -99,8 +102,27 @@ export default function NotificationsPage() {
       })
       .eq("id", conversationId);
 
-    if (withoutLastMessageTime.error) {
-      throw withoutLastMessageTime.error;
+    if (!withLastMessageOnly.error) return;
+
+    const secondErrorMessage = String(withLastMessageOnly.error.message || "").toLowerCase();
+    const missingLastMessageColumn =
+      withLastMessageOnly.error.code === "42703" ||
+      secondErrorMessage.includes("last_message") ||
+      secondErrorMessage.includes("column");
+
+    if (!missingLastMessageColumn) {
+      throw withLastMessageOnly.error;
+    }
+
+    const withUpdatedAtOnly = await supabase
+      .from("conversations")
+      .update({
+        updated_at: nowIso,
+      })
+      .eq("id", conversationId);
+
+    if (withUpdatedAtOnly.error) {
+      throw withUpdatedAtOnly.error;
     }
   }
 
