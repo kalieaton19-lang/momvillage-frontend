@@ -217,6 +217,8 @@ export default function HomePage() {
       .or(
         `and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`
       )
+      .order("updated_at", { ascending: false })
+      .order("last_message_time", { ascending: false })
       .limit(1);
 
     if (convoError) throw convoError;

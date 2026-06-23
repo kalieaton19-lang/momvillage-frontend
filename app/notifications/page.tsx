@@ -26,6 +26,8 @@ export default function NotificationsPage() {
       .or(
         `and(user1_id.eq.${user.id},user2_id.eq.${offererUserId}),and(user1_id.eq.${offererUserId},user2_id.eq.${user.id})`
       )
+      .order("updated_at", { ascending: false })
+      .order("last_message_time", { ascending: false })
       .limit(1);
 
     if (convoError) throw convoError;
@@ -57,6 +59,42 @@ export default function NotificationsPage() {
         offererName,
         offererPhoto,
       );
+
+      const postId = String(offer?.post_id || "").trim();
+      const postTitle = String(offer?.posts?.title || "Support Post").trim();
+      const postUrl = typeof window !== "undefined"
+        ? `${window.location.origin}/home?post=${encodeURIComponent(postId)}`
+        : `/home?post=${encodeURIComponent(postId)}`;
+
+      if (postId) {
+        const { data: existingSupportMsg } = await supabase
+          .from("messages")
+          .select("id")
+          .eq("conversation_id", conversationId)
+          .or(`message_text.ilike.%post=${postId}%,message_text.ilike.%${postTitle}%`)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (!existingSupportMsg || existingSupportMsg.length === 0) {
+          const coordinationText = `${offererName} offered support with ${postTitle}! Message now to coordinate: ${postUrl}`;
+          await supabase.from("messages").insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            receiver_id: offer.offered_by_user_id,
+            message_text: coordinationText,
+          });
+
+          await supabase
+            .from("conversations")
+            .update({
+              last_message: coordinationText,
+              last_message_time: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", conversationId);
+        }
+      }
+
       const supportPostId = String(offer?.post_id || "").trim();
       if (supportPostId) {
         router.push(`/messages/${conversationId}?supportOfferForPost=${encodeURIComponent(supportPostId)}`);
