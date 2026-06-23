@@ -1225,19 +1225,21 @@ export default function HomePage() {
       return;
     }
 
+    if ((supportOffersByPost[post.id] || []).some((entry) => entry.offered_by_user_id === user.id)) {
+      alert("You already offered support for this post.");
+      return;
+    }
+
     setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
       const { error } = await supabase
         .from("post_support_offers")
-        .upsert(
-          {
-            post_id: post.id,
-            offered_by_user_id: user.id,
-          },
-          { onConflict: "post_id,offered_by_user_id" },
-        );
+        .insert({
+          post_id: post.id,
+          offered_by_user_id: user.id,
+        });
 
-      if (error) throw error;
+      if (error && error.code !== "23505") throw error;
 
       setSupportOffersByPost((prev) => {
         const existing = prev[post.id] || [];
@@ -1255,6 +1257,8 @@ export default function HomePage() {
           ],
         };
       });
+
+      alert("Support offer sent.");
     } catch (error: any) {
       alert(error?.message || "Failed to offer support.");
     } finally {
@@ -2485,6 +2489,11 @@ export default function HomePage() {
                               ? "Saving..."
                               : "Offer Support"}
                           </button>
+                          {supportOfferedByMe && (
+                            <div className="mt-2 text-xs font-medium text-pink-700 dark:text-pink-300">
+                              Thanks! Your offer was sent.
+                            </div>
+                          )}
                         </div>
                       )}
 
