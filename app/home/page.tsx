@@ -2476,7 +2476,8 @@ export default function HomePage() {
                             type="button"
                             onClick={() => handleOfferSupport(post)}
                             disabled={!!supportActionBusyByPost[post.id] || supportOfferedByMe}
-                            className="w-full px-5 py-3 rounded-2xl text-base font-semibold bg-pink-600 text-white hover:bg-pink-700 shadow-sm border border-pink-500 disabled:opacity-60"
+                            className="w-full px-5 py-3 rounded-2xl text-base font-semibold bg-pink-600 text-white hover:bg-pink-700 hover:text-white shadow-sm border border-pink-500 disabled:opacity-60 disabled:text-white"
+                            style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
                           >
                             {supportOfferedByMe
                               ? "Support Offered"
@@ -2493,7 +2494,8 @@ export default function HomePage() {
                             type="button"
                             onClick={() => handleFulfillSupportPost(post)}
                             disabled={!!supportActionBusyByPost[post.id] || supportOffers.length === 0}
-                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-pink-600 text-white hover:bg-pink-700 border border-pink-500 shadow-sm disabled:opacity-60"
+                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-pink-600 text-white hover:bg-pink-700 hover:text-white border border-pink-500 shadow-sm disabled:opacity-60 disabled:text-white"
+                            style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
                           >
                             {supportActionBusyByPost[post.id] ? "Saving..." : "Supported"}
                           </button>
