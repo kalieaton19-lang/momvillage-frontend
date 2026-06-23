@@ -705,12 +705,9 @@ export default function HomePage() {
         }
       }
 
-      const nextUnreadCount =
-        unreadMessagesByReadAt > 0
-          ? unreadMessagesByReadAt
-          : unreadNotifications > 0
-          ? unreadNotifications
-          : unreadBySeenMapCount;
+      const nextUnreadCount = unreadMessagesError
+        ? (unreadNotifications > 0 ? unreadNotifications : unreadBySeenMapCount)
+        : unreadMessagesByReadAt;
 
       setUnreadMessageCount(nextUnreadCount);
     } catch {
