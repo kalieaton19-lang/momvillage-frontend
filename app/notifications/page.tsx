@@ -104,6 +104,43 @@ export default function NotificationsPage() {
     }
   }
 
+  async function insertConversationMessageCompat(params: {
+    conversationId: string;
+    senderId: string;
+    receiverId: string;
+    messageText: string;
+  }) {
+    const basePayload = {
+      conversation_id: params.conversationId,
+      sender_id: params.senderId,
+      receiver_id: params.receiverId,
+      message_text: params.messageText,
+    };
+
+    const attempts = [
+      { ...basePayload, match_id: params.conversationId, match_uuid: params.conversationId },
+      { ...basePayload, match_id: params.conversationId },
+      { ...basePayload, match_uuid: params.conversationId },
+      basePayload,
+    ];
+
+    let lastError: any = null;
+    for (const payload of attempts) {
+      const { error } = await supabase.from("messages").insert(payload as any);
+      if (!error) return;
+      lastError = error;
+      const isColumnShapeError =
+        error.code === "42703" ||
+        String(error.message || "").toLowerCase().includes("column") ||
+        String(error.message || "").toLowerCase().includes("schema cache");
+      if (!isColumnShapeError) {
+        throw error;
+      }
+    }
+
+    throw lastError || new Error("Could not write support coordination message.");
+  }
+
   async function handleOpenSupportConversation(offer: any) {
     try {
       const offererName = offer?.offered_by_profile?.full_name || "Mom";
@@ -131,16 +168,12 @@ export default function NotificationsPage() {
 
         if (!existingSupportMsg || existingSupportMsg.length === 0) {
           const coordinationText = `${offererName} offered support with ${postTitle}! Message now to coordinate: ${postUrl}`;
-          const { error: insertMessageError } = await supabase.from("messages").insert({
-            conversation_id: conversationId,
-            sender_id: user.id,
-            receiver_id: offer.offered_by_user_id,
-            message_text: coordinationText,
+          await insertConversationMessageCompat({
+            conversationId,
+            senderId: user.id,
+            receiverId: offer.offered_by_user_id,
+            messageText: coordinationText,
           });
-
-          if (insertMessageError) {
-            throw insertMessageError;
-          }
 
           await updateConversationActivity(conversationId, coordinationText);
         }
