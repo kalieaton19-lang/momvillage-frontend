@@ -33,6 +33,7 @@ interface UserProfile {
   parenting_style?: string;
   other_info?: string;
   profile_photo_url?: string;
+  moms_helped_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -88,6 +89,7 @@ export default function ProfilePage() {
     preferred_language: "",
     parenting_style: "",
     other_info: "",
+    moms_helped_count: 0,
   });
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsCount, setPostsCount] = useState<number>(0);
@@ -259,7 +261,7 @@ export default function ProfilePage() {
       if (user?.user_metadata) {
         const { data: publicProfile } = await supabase
           .from("user_public_profiles")
-          .select("id, full_name, name, city, state, profile_photo_url")
+          .select("id, full_name, name, city, state, profile_photo_url, moms_helped_count")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -285,6 +287,7 @@ export default function ProfilePage() {
             publicProfile?.profile_photo_url ||
             user.user_metadata.profile_photo_url ||
             "",
+          moms_helped_count: publicProfile?.moms_helped_count ?? 0,
         });
       }
     } catch (error) {
@@ -804,6 +807,14 @@ export default function ProfilePage() {
                 </span>
                 <span className="text-[10px] font-medium text-pink-400 uppercase tracking-wide mt-0.5 text-center">
                   Posts
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-500 leading-none text-center">
+                  {profile.moms_helped_count ?? 0}
+                </span>
+                <span className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide mt-0.5 text-center">
+                  Moms Helped
                 </span>
               </div>
             </div>

@@ -21,6 +21,14 @@ type GroupRow = {
   created_at: string;
 };
 
+type SupportOfferRow = {
+  id: string;
+  post_id: string;
+  offered_by_user_id: string;
+  message?: string | null;
+  created_at: string;
+};
+
 function getSafeDisplayName(name?: string | null, fallback = "Mom") {
   const normalized = (name || "").trim();
   if (!normalized) return fallback;
@@ -149,8 +157,10 @@ export default function HomePage() {
   const [likedByMeByPost, setLikedByMeByPost] = useState<Record<string, boolean>>({});
   const [sharesCountByPost, setSharesCountByPost] = useState<Record<string, number>>({});
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
+  const [supportOffersByPost, setSupportOffersByPost] = useState<Record<string, SupportOfferRow[]>>({});
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
+  const [supportActionBusyByPost, setSupportActionBusyByPost] = useState<Record<string, boolean>>({});
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
   const [openCommentsByPost, setOpenCommentsByPost] = useState<Record<string, boolean>>({});
@@ -179,6 +189,51 @@ export default function HomePage() {
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
     return authorUserId === user?.id ? '/profile' : `/profile/${authorUserId}`;
+  }
+
+  function normalizeSupportStatus(post: Post): "open" | "fulfilled" | "canceled" {
+    if (post.type !== "support") return "open";
+    if (post.support_status === "fulfilled" || post.support_status === "canceled") {
+      return post.support_status;
+    }
+    return "open";
+  }
+
+  async function ensureConversation(
+    otherUserId: string,
+    otherUserName: string,
+    otherUserPhoto?: string | null,
+  ) {
+    if (!user?.id) throw new Error("You must be signed in.");
+
+    const { data: existingConvos, error: convoError } = await supabase
+      .from("conversations")
+      .select("id")
+      .or(
+        `and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`
+      )
+      .limit(1);
+
+    if (convoError) throw convoError;
+    if (existingConvos && existingConvos.length > 0) return existingConvos[0].id;
+
+    const { data: newConvo, error: createError } = await supabase
+      .from("conversations")
+      .insert({
+        user1_id: user.id,
+        user2_id: otherUserId,
+        user1_name: user.user_metadata?.full_name || "Mom",
+        user2_name: otherUserName || "Mom",
+        user1_photo: user.user_metadata?.profile_photo_url || "",
+        user2_photo: otherUserPhoto || "",
+      })
+      .select("id")
+      .single();
+
+    if (createError || !newConvo) {
+      throw new Error("Failed to create conversation.");
+    }
+    return newConvo.id;
   }
 
   useEffect(() => {
@@ -641,6 +696,75 @@ export default function HomePage() {
         setSharesCountByPost({});
         setCommentsByPost({});
       }
+
+      try {
+        const supportPostIds = nextPosts
+          .filter((post) => post.type === "support")
+          .map((post) => post.id);
+
+        if (supportPostIds.length === 0) {
+          setSupportOffersByPost({});
+        } else {
+          const { data: offersData, error: offersError } = await supabase
+            .from("post_support_offers")
+            .select("id,post_id,offered_by_user_id,message,created_at")
+            .in("post_id", supportPostIds)
+            .order("created_at", { ascending: true });
+
+          if (offersError) throw offersError;
+
+          const offersMap: Record<string, SupportOfferRow[]> = {};
+          (offersData || []).forEach((offer: any) => {
+            if (!offer?.post_id) return;
+            if (!offersMap[offer.post_id]) offersMap[offer.post_id] = [];
+            offersMap[offer.post_id].push(offer as SupportOfferRow);
+          });
+          setSupportOffersByPost(offersMap);
+
+          const offererIds = [
+            ...new Set(
+              (offersData || [])
+                .map((offer: any) => offer?.offered_by_user_id)
+                .filter(Boolean),
+            ),
+          ] as string[];
+          const missingOffererIds = offererIds.filter(
+            (entry) => !authorNameById[entry] || !authorPhotoById[entry],
+          );
+
+          if (missingOffererIds.length > 0) {
+            const { data: offererProfiles } = await supabase
+              .from("user_public_profiles")
+              .select("id, full_name, name, profile_photo_url")
+              .in("id", missingOffererIds);
+
+            if (offererProfiles) {
+              setAuthorNameById((prev) => {
+                const updated = { ...prev };
+                offererProfiles.forEach((entry: any) => {
+                  const canonicalName = pickCanonicalProfileName(entry);
+                  if (entry?.id && canonicalName) {
+                    updated[entry.id] = getSafeDisplayName(canonicalName);
+                  }
+                });
+                return updated;
+              });
+
+              setAuthorPhotoById((prev) => {
+                const updated = { ...prev };
+                offererProfiles.forEach((entry: any) => {
+                  if (entry?.id && entry?.profile_photo_url) {
+                    updated[entry.id] = entry.profile_photo_url;
+                  }
+                });
+                return updated;
+              });
+            }
+          }
+        }
+      } catch {
+        setSupportOffersByPost({});
+      }
     } catch (e) {
       setPosts([]);
       setGroupNameById({});
@@ -649,6 +773,7 @@ export default function HomePage() {
       setLikedByMeByPost({});
       setSharesCountByPost({});
       setCommentsByPost({});
+      setSupportOffersByPost({});
     } finally {
       if (!preserveLoading) {
         setLoading(false);
@@ -1086,6 +1211,186 @@ export default function HomePage() {
       }
     } finally {
       setCreatingGroupPost(false);
+    }
+  }
+
+  async function handleOfferSupport(post: Post) {
+    if (!user?.id || post.type !== "support" || user.id === post.author_user_id) return;
+    if (normalizeSupportStatus(post) !== "open") {
+      alert("This support request is no longer open.");
+      return;
+    }
+
+    setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("post_support_offers")
+        .upsert(
+          {
+            post_id: post.id,
+            offered_by_user_id: user.id,
+          },
+          { onConflict: "post_id,offered_by_user_id" },
+        );
+
+      if (error) throw error;
+
+      setSupportOffersByPost((prev) => {
+        const existing = prev[post.id] || [];
+        if (existing.some((entry) => entry.offered_by_user_id === user.id)) return prev;
+        return {
+          ...prev,
+          [post.id]: [
+            ...existing,
+            {
+              id: `local-${Date.now()}`,
+              post_id: post.id,
+              offered_by_user_id: user.id,
+              created_at: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    } catch (error: any) {
+      alert(error?.message || "Failed to offer support.");
+    } finally {
+      setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
+  async function handleCancelSupportPost(post: Post) {
+    if (!user?.id || post.type !== "support" || user.id !== post.author_user_id) return;
+    if (normalizeSupportStatus(post) !== "open") return;
+
+    const confirmed = window.confirm("Cancel this support request?");
+    if (!confirmed) return;
+
+    setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({
+          support_status: "canceled",
+          support_fulfilled_by_user_id: null,
+          support_fulfilled_at: null,
+        })
+        .eq("id", post.id)
+        .eq("author_user_id", user.id)
+        .eq("type", "support");
+
+      if (error) throw error;
+
+      setPosts((prev) =>
+        prev.map((entry) =>
+          entry.id === post.id
+            ? {
+                ...entry,
+                support_status: "canceled",
+                support_fulfilled_by_user_id: null,
+                support_fulfilled_at: null,
+              }
+            : entry,
+        ),
+      );
+    } catch (error: any) {
+      alert(error?.message || "Failed to cancel support request.");
+    } finally {
+      setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
+    }
+  }
+
+  async function handleFulfillSupportPost(post: Post) {
+    if (!user?.id || post.type !== "support" || user.id !== post.author_user_id) return;
+    if (normalizeSupportStatus(post) !== "open") {
+      alert("This support request is no longer open.");
+      return;
+    }
+
+    const offers = supportOffersByPost[post.id] || [];
+    if (offers.length === 0) {
+      alert("No support offers yet.");
+      return;
+    }
+
+    const optionsText = offers
+      .map((offer, index) => {
+        const helperName =
+          authorNameById[offer.offered_by_user_id] ||
+          (offer.offered_by_user_id === user.id ? "You" : "Mom");
+        return `${index + 1}. ${helperName}`;
+      })
+      .join("\n");
+
+    const choice = window.prompt(`Choose a helper by number:\n${optionsText}`);
+    if (!choice) return;
+
+    const selectedIndex = Number(choice) - 1;
+    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= offers.length) {
+      alert("Invalid selection.");
+      return;
+    }
+
+    const selectedOffer = offers[selectedIndex];
+    const fulfilledAt = new Date().toISOString();
+
+    setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({
+          support_status: "fulfilled",
+          support_fulfilled_by_user_id: selectedOffer.offered_by_user_id,
+          support_fulfilled_at: fulfilledAt,
+        })
+        .eq("id", post.id)
+        .eq("author_user_id", user.id)
+        .eq("type", "support");
+
+      if (error) throw error;
+
+      const helperName =
+        authorNameById[selectedOffer.offered_by_user_id] ||
+        "Mom";
+      const helperPhoto = authorPhotoById[selectedOffer.offered_by_user_id] || "";
+
+      const conversationId = await ensureConversation(
+        selectedOffer.offered_by_user_id,
+        helperName,
+        helperPhoto,
+      );
+
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        receiver_id: selectedOffer.offered_by_user_id,
+        message_text: `Thank you for offering support on my post \"${post.title}\". I selected you to help.`,
+      });
+
+      await supabase
+        .from("conversations")
+        .update({
+          last_message: "Support request fulfilled",
+          last_message_time: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", conversationId);
+
+      setPosts((prev) =>
+        prev.map((entry) =>
+          entry.id === post.id
+            ? {
+                ...entry,
+                support_status: "fulfilled",
+                support_fulfilled_by_user_id: selectedOffer.offered_by_user_id,
+                support_fulfilled_at: fulfilledAt,
+              }
+            : entry,
+        ),
+      );
+    } catch (error: any) {
+      alert(error?.message || "Failed to fulfill support request.");
+    } finally {
+      setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: false }));
     }
   }
 
@@ -1961,7 +2266,19 @@ export default function HomePage() {
             <div className="text-center text-zinc-500 py-8">No posts yet. Be the first to post!</div>
           ) : (
             <>
-              {posts.map(post => (
+              {posts.map((post) => {
+                const supportOffers = supportOffersByPost[post.id] || [];
+                const isSupportPost = post.type === "support";
+                const supportStatus = normalizeSupportStatus(post);
+                const isSupportOpen = isSupportPost && supportStatus === "open";
+                const supportOfferedByMe = supportOffers.some(
+                  (offer) => offer.offered_by_user_id === user?.id,
+                );
+                const fulfilledHelperName = post.support_fulfilled_by_user_id
+                  ? authorNameById[post.support_fulfilled_by_user_id] || "Mom"
+                  : "";
+
+                return (
                 <div
                   key={post.id}
                   id={`post-${post.id}`}
@@ -2112,6 +2429,62 @@ export default function HomePage() {
                     text={post.content}
                     className="text-zinc-700 dark:text-zinc-200 whitespace-pre-line"
                   />
+
+                  {isSupportPost && (
+                    <div className="mt-3 rounded-lg border border-pink-200 dark:border-pink-800 bg-pink-100/70 dark:bg-pink-900/20 px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold ${supportStatus === "open" ? "bg-pink-600 text-white" : supportStatus === "fulfilled" ? "bg-emerald-600 text-white" : "bg-zinc-500 text-white"}`}>
+                          {supportStatus === "open" ? "Open" : supportStatus === "fulfilled" ? "Fulfilled" : "Canceled"}
+                        </span>
+                        <span className="text-pink-700 dark:text-pink-300 font-medium">
+                          {supportOffers.length} offer{supportOffers.length === 1 ? "" : "s"}
+                        </span>
+                        {supportStatus === "fulfilled" && fulfilledHelperName && (
+                          <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+                            Helped by {fulfilledHelperName}
+                          </span>
+                        )}
+                      </div>
+
+                      {isSupportOpen && user?.id !== post.author_user_id && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOfferSupport(post)}
+                            disabled={!!supportActionBusyByPost[post.id] || supportOfferedByMe}
+                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                          >
+                            {supportOfferedByMe
+                              ? "Support Offered"
+                              : supportActionBusyByPost[post.id]
+                              ? "Saving..."
+                              : "Offer Support"}
+                          </button>
+                        </div>
+                      )}
+
+                      {isSupportOpen && user?.id === post.author_user_id && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleFulfillSupportPost(post)}
+                            disabled={!!supportActionBusyByPost[post.id] || supportOffers.length === 0}
+                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {supportActionBusyByPost[post.id] ? "Saving..." : "Fulfill & Choose Helper"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelSupportPost(post)}
+                            disabled={!!supportActionBusyByPost[post.id]}
+                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-500 text-white hover:bg-zinc-600 disabled:opacity-60"
+                          >
+                            Cancel Request
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-4 text-sm">
                     <button
@@ -2353,7 +2726,8 @@ export default function HomePage() {
                   </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </>
           )}
         </main>

@@ -106,7 +106,7 @@ export default function ProfilePage() {
       setError("");
       const { data, error } = await supabase
         .from("user_public_profiles")
-        .select("id, full_name, name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio")
+        .select("id, full_name, name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio, moms_helped_count")
         .eq("id", profileUserId)
         .single();
       if (error) {
@@ -895,6 +895,10 @@ export default function ProfilePage() {
                   <span className="text-[10px] font-medium text-pink-400 uppercase tracking-wide mt-0.5 text-center">Posts</span>
                 </div>
               )}
+              <div className="flex flex-col items-center">
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-500 leading-none text-center">{profile.moms_helped_count ?? 0}</span>
+                <span className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide mt-0.5 text-center">Moms Helped</span>
+              </div>
             </div>
             <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               {profile.city && (
