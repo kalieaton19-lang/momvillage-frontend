@@ -8,6 +8,7 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'invitations'>('all');
   const [user, setUser] = useState<any>(null);
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [supportOffers, setSupportOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const invitationsRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
@@ -63,6 +64,39 @@ export default function NotificationsPage() {
     }));
     console.log('[DEBUG][notifications] merged invitations:', mergedInvites);
     setInvitations(mergedInvites);
+
+    const { data: supportRows, error: supportError } = await supabase
+      .from("post_support_offers")
+      .select("id,post_id,offered_by_user_id,created_at,posts!inner(id,title,author_user_id)")
+      .eq("posts.author_user_id", currentUser.id)
+      .order("created_at", { ascending: false });
+
+    if (supportError) {
+      console.log('[DEBUG][notifications] support offers fetch error:', supportError);
+      setSupportOffers([]);
+      setLoading(false);
+      return;
+    }
+
+    const supportOfferUserIds = Array.from(
+      new Set((supportRows || []).map((entry: any) => entry.offered_by_user_id).filter(Boolean))
+    );
+
+    let supportProfilesById: Record<string, any> = {};
+    if (supportOfferUserIds.length > 0) {
+      const { data: supportProfiles } = await supabase
+        .from("user_public_profiles")
+        .select("id, full_name, profile_photo_url")
+        .in("id", supportOfferUserIds);
+
+      supportProfilesById = Object.fromEntries((supportProfiles || []).map((entry: any) => [entry.id, entry]));
+    }
+
+    const mergedSupportOffers = (supportRows || []).map((entry: any) => ({
+      ...entry,
+      offered_by_profile: supportProfilesById[entry.offered_by_user_id] || null,
+    }));
+    setSupportOffers(mergedSupportOffers);
     setLoading(false);
   }
 
@@ -112,6 +146,16 @@ export default function NotificationsPage() {
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "village_invitations", filter: `from_user_id=eq.${user.id}` },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_support_offers" },
+        scheduleInvitationRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_support_offers" },
         scheduleInvitationRefresh,
       )
       .subscribe();
@@ -185,10 +229,39 @@ export default function NotificationsPage() {
           {loading ? (
             <div className="text-zinc-500 dark:text-zinc-300 text-center">Loading...</div>
           ) : activeTab === 'all' ? (
-            <InvitationsTab
-              invitations={invitations.filter(inv => inv.to_user_id === user?.id)}
-              user={user}
-            />
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">Support Offers</h2>
+                {supportOffers.length === 0 ? (
+                  <div className="text-sm text-zinc-500 dark:text-zinc-300">No support offers yet.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {supportOffers.map((offer: any) => {
+                      const displayName = offer.offered_by_profile?.full_name || "A mom";
+                      const postTitle = offer.posts?.title || "your support post";
+                      return (
+                        <div key={offer.id} className="rounded-xl border border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20 p-3">
+                          <div className="text-sm text-zinc-800 dark:text-zinc-100">
+                            <span className="font-semibold">{displayName}</span> offered support on <span className="font-semibold">{postTitle}</span>.
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                            {new Date(offer.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">Invitations</h2>
+                <InvitationsTab
+                  invitations={invitations.filter(inv => inv.to_user_id === user?.id)}
+                  user={user}
+                />
+              </div>
+            </div>
           ) : (
             <InvitationsTab
               invitations={invitations.filter(inv =>
