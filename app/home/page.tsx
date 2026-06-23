@@ -657,50 +657,76 @@ export default function HomePage() {
 
   async function refreshMessageNotifications(userId: string) {
     try {
-      const { count: unreadMessagesCount, error: unreadMessagesError } = await supabase
+      const primaryRowsResult = await supabase
         .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", userId)
-        .is("read_at", null);
-
-      const unreadMessagesByReadAt = !unreadMessagesError ? (unreadMessagesCount ?? 0) : 0;
-
-      const { data: recentIncomingRows, error: recentIncomingError } = await supabase
-        .from("messages")
-        .select("conversation_id,created_at")
+        .select("conversation_id,created_at,read_at")
         .eq("receiver_id", userId)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(200);
 
-      let unreadBySeenMapCount = 0;
-      if (!recentIncomingError && typeof window !== "undefined") {
-        const seenStorageKey = `messages_seen_at:${userId}`;
-        let seenConversationAt: Record<string, string> = {};
-        try {
-          const raw = localStorage.getItem(seenStorageKey);
-          const parsed = raw ? JSON.parse(raw) : {};
-          seenConversationAt = parsed && typeof parsed === "object" ? parsed : {};
-        } catch {
-          seenConversationAt = {};
+      let incomingRows: any[] = [];
+      let readStateKnown = false;
+
+      if (!primaryRowsResult.error) {
+        incomingRows = (primaryRowsResult.data || []) as any[];
+        readStateKnown = true;
+      } else {
+        const fallbackRowsResult = await supabase
+          .from("messages")
+          .select("conversation_id,created_at")
+          .eq("receiver_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if (fallbackRowsResult.error) {
+          setUnreadMessageCount(0);
+          return;
         }
 
-        for (const row of recentIncomingRows || []) {
-          const conversationId = (row as any)?.conversation_id as string | undefined;
-          const createdAt = (row as any)?.created_at as string | undefined;
-          if (!conversationId || !createdAt) continue;
-
-          const seenAt = seenConversationAt[conversationId];
-          if (!seenAt || new Date(createdAt).getTime() > new Date(seenAt).getTime()) {
-            unreadBySeenMapCount += 1;
-          }
-        }
+        incomingRows = (fallbackRowsResult.data || []) as any[];
+        readStateKnown = false;
       }
 
-      const nextUnreadCount = unreadMessagesError
-        ? unreadBySeenMapCount
-        : unreadMessagesByReadAt;
+      if (typeof window === "undefined") {
+        setUnreadMessageCount(0);
+        return;
+      }
 
-      setUnreadMessageCount(nextUnreadCount);
+      const seenStorageKey = `messages_seen_at:${userId}`;
+      let seenConversationAt: Record<string, string> = {};
+      try {
+        const raw = localStorage.getItem(seenStorageKey);
+        const parsed = raw ? JSON.parse(raw) : {};
+        seenConversationAt = parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        seenConversationAt = {};
+      }
+
+      const latestIncomingByConversation = new Map<string, any>();
+      for (const row of incomingRows) {
+        const conversationId = row?.conversation_id as string | undefined;
+        if (!conversationId) continue;
+        if (latestIncomingByConversation.has(conversationId)) continue;
+        latestIncomingByConversation.set(conversationId, row);
+      }
+
+      let unreadConversationCount = 0;
+      latestIncomingByConversation.forEach((row, conversationId) => {
+        const createdAt = row?.created_at as string | undefined;
+        if (!createdAt) return;
+
+        const seenAt = seenConversationAt[conversationId] || "";
+        const createdTimestamp = new Date(createdAt).getTime();
+        const seenTimestamp = seenAt ? new Date(seenAt).getTime() : 0;
+        const isReadBySeenTimestamp = seenTimestamp >= createdTimestamp;
+
+        if (isReadBySeenTimestamp) return;
+        if (readStateKnown && row?.read_at) return;
+
+        unreadConversationCount += 1;
+      });
+
+      setUnreadMessageCount(unreadConversationCount);
     } catch {
       setUnreadMessageCount(0);
     }

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
@@ -275,6 +275,11 @@ function MessagesPageInner() {
         getConversationActivityTimestamp(left, latestByConversation),
     );
   }
+
+  const orderedConversations = useMemo(
+    () => sortConversationsByActivity(conversations, latestMessageByConversation),
+    [conversations, latestMessageByConversation],
+  );
 
   useEffect(() => {
     if (!seenStorageKey) {
@@ -670,7 +675,7 @@ function MessagesPageInner() {
             )}
           </button>
         </header>
-        {isEditMode && conversations.length > 0 && (
+        {isEditMode && orderedConversations.length > 0 && (
           <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -698,7 +703,7 @@ function MessagesPageInner() {
           </div>
         )}
         <div className="flex-1 overflow-y-auto bg-pink-50 dark:bg-pink-950 py-2">
-          {conversations.length === 0 ? (
+          {orderedConversations.length === 0 ? (
             <div className="p-6 text-center">
               <div className="text-4xl mb-3">💌</div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
@@ -713,7 +718,7 @@ function MessagesPageInner() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {conversations.map(conv => {
+              {orderedConversations.map(conv => {
                 const otherUser = getOtherUserInfo(conv);
                 const latestInfo = latestMessageByConversation[conv.id];
                 const isTyping = !!typingByConversation[conv.id];
