@@ -69,6 +69,7 @@ function MessagesPageInner() {
   const typingHideTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const typingChannelsUserIdRef = useRef<string | null>(null);
   const loadConversationsRequestIdRef = useRef(0);
+  const hasRenderedInitialConversationOrderRef = useRef(false);
 
   const seenStorageKey = user?.id ? `messages_seen_at:${user.id}` : null;
 
@@ -79,6 +80,7 @@ function MessagesPageInner() {
   useEffect(() => {
     if (!user?.id) {
       loadConversationsRequestIdRef.current += 1;
+      hasRenderedInitialConversationOrderRef.current = false;
       setConversations([]);
       setLatestMessageByConversation({});
       return;
@@ -450,7 +452,10 @@ function MessagesPageInner() {
       if (requestId !== loadConversationsRequestIdRef.current) return;
 
       const loadedConversations = (convosRes.data || []) as Conversation[];
-      setConversations(loadedConversations);
+      const shouldDeferInitialRender = !hasRenderedInitialConversationOrderRef.current;
+      if (!shouldDeferInitialRender) {
+        setConversations(loadedConversations);
+      }
 
       const participantIds = Array.from(
         new Set(
@@ -616,6 +621,11 @@ function MessagesPageInner() {
 
       if (requestId !== loadConversationsRequestIdRef.current) return;
       setLatestMessageByConversation(latestByConversation);
+
+      if (shouldDeferInitialRender) {
+        setConversations(sortConversationsByActivity(loadedConversations, latestByConversation));
+        hasRenderedInitialConversationOrderRef.current = true;
+      }
     } catch (error) {
       // Optionally show notification
     }
