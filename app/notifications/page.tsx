@@ -173,34 +173,6 @@ export default function NotificationsPage() {
         offererPhoto,
       );
 
-      const postId = String(offer?.post_id || "").trim();
-      const postTitle = String(offer?.posts?.title || "Support Post").trim();
-      const postUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/home?post=${encodeURIComponent(postId)}`
-        : `/home?post=${encodeURIComponent(postId)}`;
-
-      if (postId) {
-        const { data: existingSupportMsg } = await supabase
-          .from("messages")
-          .select("id")
-          .eq("conversation_id", conversationId)
-          .or(`message_text.ilike.%post=${postId}%,message_text.ilike.%${postTitle}%`)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (!existingSupportMsg || existingSupportMsg.length === 0) {
-          const coordinationText = `${offererName} offered support with ${postTitle}! Message now to coordinate: ${postUrl}`;
-          await insertConversationMessageCompat({
-            conversationId,
-            senderId: user.id,
-            receiverId: offer.offered_by_user_id,
-            messageText: coordinationText,
-          });
-
-          await updateConversationActivity(conversationId, coordinationText);
-        }
-      }
-
       const supportPostId = String(offer?.post_id || "").trim();
       if (supportPostId) {
         router.push(`/messages/${conversationId}?supportOfferForPost=${encodeURIComponent(supportPostId)}`);
