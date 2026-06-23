@@ -161,6 +161,8 @@ export default function HomePage() {
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<string, string>>({});
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
   const [supportActionBusyByPost, setSupportActionBusyByPost] = useState<Record<string, boolean>>({});
+  const [supportPickerPost, setSupportPickerPost] = useState<Post | null>(null);
+  const [selectedSupportOfferUserId, setSelectedSupportOfferUserId] = useState<string>("");
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
   const [openCommentsByPost, setOpenCommentsByPost] = useState<Record<string, boolean>>({});
@@ -1299,7 +1301,7 @@ export default function HomePage() {
     }
   }
 
-  async function handleFulfillSupportPost(post: Post) {
+  function handleFulfillSupportPost(post: Post) {
     if (!user?.id || post.type !== "support" || user.id !== post.author_user_id) return;
     if (normalizeSupportStatus(post) !== "open") {
       alert("This support request is no longer open.");
@@ -1312,25 +1314,25 @@ export default function HomePage() {
       return;
     }
 
-    const optionsText = offers
-      .map((offer, index) => {
-        const helperName =
-          authorNameById[offer.offered_by_user_id] ||
-          (offer.offered_by_user_id === user.id ? "You" : "Mom");
-        return `${index + 1}. ${helperName}`;
-      })
-      .join("\n");
+    setSupportPickerPost(post);
+    setSelectedSupportOfferUserId(offers[0].offered_by_user_id);
+  }
 
-    const choice = window.prompt(`Choose a helper by number:\n${optionsText}`);
-    if (!choice) return;
-
-    const selectedIndex = Number(choice) - 1;
-    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= offers.length) {
-      alert("Invalid selection.");
+  async function handleConfirmSupportedHelper() {
+    if (!user?.id || !supportPickerPost) return;
+    const post = supportPickerPost;
+    if (!selectedSupportOfferUserId) {
+      alert("Please choose a mom first.");
       return;
     }
 
-    const selectedOffer = offers[selectedIndex];
+    const offers = supportOffersByPost[post.id] || [];
+    const selectedOffer = offers.find((offer) => offer.offered_by_user_id === selectedSupportOfferUserId);
+    if (!selectedOffer) {
+      alert("Selected mom is no longer available. Please try again.");
+      return;
+    }
+
     const fulfilledAt = new Date().toISOString();
 
     setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
@@ -1387,6 +1389,9 @@ export default function HomePage() {
             : entry,
         ),
       );
+
+      setSupportPickerPost(null);
+      setSelectedSupportOfferUserId("");
     } catch (error: any) {
       alert(error?.message || "Failed to fulfill support request.");
     } finally {
@@ -2285,8 +2290,16 @@ export default function HomePage() {
                   className={`border rounded-xl p-4 mb-4 shadow-sm ${post.type === 'support' ? 'bg-pink-50 border-pink-300 ring-2 ring-pink-200/70 shadow-[0_6px_18px_rgba(244,114,182,0.22)] dark:bg-pink-950/20 dark:border-pink-700 dark:ring-pink-800/70 dark:shadow-[0_6px_18px_rgba(244,114,182,0.16)]' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'}`}
                 >
                   {post.type === 'support' && (
-                    <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-xl bg-pink-600 text-white text-xs font-semibold uppercase tracking-wide">
-                      Support Post
+                    <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-xl bg-pink-600 text-white">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="font-semibold uppercase tracking-wide">Support Post</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold ${supportStatus === "open" ? "bg-white text-pink-700" : supportStatus === "fulfilled" ? "bg-emerald-500 text-white" : "bg-zinc-500 text-white"}`}>
+                          {supportStatus === "open" ? "Open" : supportStatus === "fulfilled" ? "Fulfilled" : "Canceled"}
+                        </span>
+                        <span className="font-medium text-pink-100">
+                          {supportOffers.length} offer{supportOffers.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -2432,19 +2445,16 @@ export default function HomePage() {
 
                   {isSupportPost && (
                     <div className="mt-3 rounded-lg border border-pink-200 dark:border-pink-800 bg-pink-100/70 dark:bg-pink-900/20 px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold ${supportStatus === "open" ? "bg-pink-600 text-white" : supportStatus === "fulfilled" ? "bg-emerald-600 text-white" : "bg-zinc-500 text-white"}`}>
-                          {supportStatus === "open" ? "Open" : supportStatus === "fulfilled" ? "Fulfilled" : "Canceled"}
-                        </span>
-                        <span className="text-pink-700 dark:text-pink-300 font-medium">
-                          {supportOffers.length} offer{supportOffers.length === 1 ? "" : "s"}
-                        </span>
-                        {supportStatus === "fulfilled" && fulfilledHelperName && (
-                          <span className="text-emerald-700 dark:text-emerald-300 font-medium">
-                            Helped by {fulfilledHelperName}
-                          </span>
-                        )}
-                      </div>
+                      {supportStatus === "fulfilled" && fulfilledHelperName && (
+                        <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                          Helped by {fulfilledHelperName}
+                        </div>
+                      )}
+                      {supportStatus === "canceled" && (
+                        <div className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                          This support request was canceled.
+                        </div>
+                      )}
 
                       {isSupportOpen && user?.id !== post.author_user_id && (
                         <div className="mt-2">
@@ -2452,7 +2462,7 @@ export default function HomePage() {
                             type="button"
                             onClick={() => handleOfferSupport(post)}
                             disabled={!!supportActionBusyByPost[post.id] || supportOfferedByMe}
-                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
+                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-pink-600 text-white hover:bg-pink-700 shadow-sm border border-pink-500 disabled:opacity-60"
                           >
                             {supportOfferedByMe
                               ? "Support Offered"
@@ -2464,20 +2474,20 @@ export default function HomePage() {
                       )}
 
                       {isSupportOpen && user?.id === post.author_user_id && (
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
                           <button
                             type="button"
                             onClick={() => handleFulfillSupportPost(post)}
                             disabled={!!supportActionBusyByPost[post.id] || supportOffers.length === 0}
-                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-500 shadow-sm disabled:opacity-60"
                           >
-                            {supportActionBusyByPost[post.id] ? "Saving..." : "Fulfill & Choose Helper"}
+                            {supportActionBusyByPost[post.id] ? "Saving..." : "Supported"}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleCancelSupportPost(post)}
                             disabled={!!supportActionBusyByPost[post.id]}
-                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-500 text-white hover:bg-zinc-600 disabled:opacity-60"
+                            className="px-5 py-3 rounded-2xl text-sm font-semibold bg-pink-100 text-pink-700 hover:bg-pink-200 border border-pink-400 shadow-sm dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45 disabled:opacity-60"
                           >
                             Cancel Request
                           </button>
@@ -2738,6 +2748,79 @@ export default function HomePage() {
           onClose={() => setReportModalOpen(false)}
           onSubmit={handleReport}
         />
+        {supportPickerPost && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl">
+              <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">Which mom supported you?</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSupportPickerPost(null);
+                    setSelectedSupportOfferUserId("");
+                  }}
+                  className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  aria-label="Close helper picker"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="px-5 py-4 space-y-2 max-h-[55vh] overflow-y-auto">
+                {(supportOffersByPost[supportPickerPost.id] || []).map((offer) => {
+                  const helperName =
+                    authorNameById[offer.offered_by_user_id] ||
+                    (offer.offered_by_user_id === user?.id ? "You" : "Mom");
+                  const helperPhoto = authorPhotoById[offer.offered_by_user_id] || "";
+                  const isSelected = selectedSupportOfferUserId === offer.offered_by_user_id;
+                  return (
+                    <button
+                      key={offer.id}
+                      type="button"
+                      onClick={() => setSelectedSupportOfferUserId(offer.offered_by_user_id)}
+                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition ${isSelected ? "border-pink-500 bg-pink-50 dark:bg-pink-900/20 dark:border-pink-700" : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
+                    >
+                      {helperPhoto ? (
+                        <img
+                          src={helperPhoto}
+                          alt={helperName}
+                          className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                          {helperName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate">{helperName}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">Responded {formatTimeAgo(offer.created_at)}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSupportPickerPost(null);
+                    setSelectedSupportOfferUserId("");
+                  }}
+                  className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmSupportedHelper()}
+                  disabled={!selectedSupportOfferUserId || !!supportActionBusyByPost[supportPickerPost.id]}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-500 font-semibold disabled:opacity-60"
+                >
+                  {supportActionBusyByPost[supportPickerPost.id] ? "Saving..." : "Confirm"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <PostShareSheet
           isOpen={!!shareSheetPost}
           post={shareSheetPost}
