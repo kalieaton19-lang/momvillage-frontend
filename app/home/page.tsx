@@ -153,6 +153,7 @@ export default function HomePage() {
   const [interactionBusyByPost, setInteractionBusyByPost] = useState<Record<string, boolean>>({});
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
+  const [openCommentsByPost, setOpenCommentsByPost] = useState<Record<string, boolean>>({});
   const [expandedCommentsByPost, setExpandedCommentsByPost] = useState<Record<string, boolean>>({});
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState<string>("");
@@ -2118,21 +2119,39 @@ export default function HomePage() {
                       disabled={!!interactionBusyByPost[post.id]}
                       onClick={() => handleToggleLike(post.id)}
                       className={`px-3 py-1 rounded-full border transition ${likedByMeByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                      aria-label={`Likes ${likesCountByPost[post.id] || 0}`}
                     >
-                      {likedByMeByPost[post.id] ? '♥' : '♡'} Like {likesCountByPost[post.id] || 0}
+                      ♡ {likesCountByPost[post.id] || 0}
                     </button>
+                    {!post.comments_disabled && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenCommentsByPost((prev) => ({
+                            ...prev,
+                            [post.id]: !prev[post.id],
+                          }))
+                        }
+                        className={`px-3 py-1 rounded-full border transition ${openCommentsByPost[post.id] ? 'bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700'}`}
+                        aria-label={`Comments ${(commentsByPost[post.id] || []).length}`}
+                      >
+                        💬 {(commentsByPost[post.id] || []).length}
+                      </button>
+                    )}
                     {post.visibility === 'public' && (
                       <button
                         type="button"
                         disabled={!!interactionBusyByPost[post.id]}
                         onClick={() => handleShare(post)}
                         className="px-3 py-1 rounded-full border bg-white text-zinc-700 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700"
+                        aria-label={`Shares ${sharesCountByPost[post.id] || 0}`}
                       >
-                        ↗ Share {sharesCountByPost[post.id] || 0}
+                        ↗ {sharesCountByPost[post.id] || 0}
                       </button>
                     )}
                   </div>
 
+                  {openCommentsByPost[post.id] && (
                   <div className="mt-3 space-y-2">
                     {post.comments_disabled ? null : (
                       <>
@@ -2322,6 +2341,7 @@ export default function HomePage() {
                       </>
                     )}
                   </div>
+                  )}
                 </div>
               ))}
             </>
