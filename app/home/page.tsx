@@ -523,18 +523,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!user?.id || !sharedPostId) return;
-    if (posts.some((post) => post.id === sharedPostId)) return;
     const targetPostId = sharedPostId;
 
     let cancelled = false;
     async function ensureSharedPostInFeed() {
       const sharedPost = await fetchPostById(targetPostId);
       if (!sharedPost || cancelled) return;
-      if (sharedPost.visibility !== "public") return;
       setPosts((prev) =>
-        prev.some((post) => post.id === sharedPost.id)
-          ? prev
-          : [sharedPost, ...prev]
+        [sharedPost, ...prev.filter((post) => post.id !== sharedPost.id)]
       );
     }
 
