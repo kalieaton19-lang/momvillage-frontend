@@ -217,7 +217,7 @@ export async function POST(request: Request) {
       const requestOrigin = new URL(request.url).origin;
       const postUrl = `${requestOrigin}/home?post=${encodeURIComponent(postId)}`;
       const supportMessageText = `I offered support with this! Message here to coordinate support: ${postUrl}`;
-      const createdAtIso = String((offer as any)?.created_at || new Date().toISOString());
+      const createdAtIso = new Date().toISOString();
 
       await insertMessageCompat({
         conversationId,

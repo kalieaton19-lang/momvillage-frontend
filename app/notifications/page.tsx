@@ -165,37 +165,48 @@ export default function NotificationsPage() {
 
   async function handleOpenSupportConversation(offer: any) {
     try {
-      const offererName = offer?.offered_by_profile?.full_name || "Mom";
-      const offererPhoto = offer?.offered_by_profile?.profile_photo_url || "";
-      const conversationId = await ensureConversationWithOfferer(
-        offer.offered_by_user_id,
-        offererName,
-        offererPhoto,
-      );
-
+      let conversationId = "";
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const sessionResult = await supabase.auth.getSession();
+        let accessToken = sessionResult.data.session?.access_token || "";
+
+        if (!accessToken) {
+          const refreshed = await supabase.auth.refreshSession();
+          accessToken = refreshed.data.session?.access_token || "";
+        }
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };
 
-        if (session?.access_token) {
-          headers.Authorization = `Bearer ${session.access_token}`;
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        await fetch("/api/support-offers/backfill-message", {
+        const backfillResponse = await fetch("/api/support-offers/backfill-message", {
           method: "POST",
           headers,
           credentials: "include",
           body: JSON.stringify({
             offerId: offer?.id,
-            conversationId,
           }),
         });
+
+        const backfillJson = await backfillResponse.json().catch(() => ({}));
+        if (backfillResponse.ok && backfillJson?.conversationId) {
+          conversationId = String(backfillJson.conversationId);
+        }
       } catch {
+      }
+
+      if (!conversationId) {
+        const offererName = offer?.offered_by_profile?.full_name || "Mom";
+        const offererPhoto = offer?.offered_by_profile?.profile_photo_url || "";
+        conversationId = await ensureConversationWithOfferer(
+          offer.offered_by_user_id,
+          offererName,
+          offererPhoto,
+        );
       }
 
       const supportPostId = String(offer?.post_id || "").trim();

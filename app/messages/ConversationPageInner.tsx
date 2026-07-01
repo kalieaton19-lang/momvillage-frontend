@@ -521,7 +521,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
     return () => {
       cancelled = true;
     };
-  }, [sharedPostById, loadingSharedPostById, unavailableSharedPostById, sharedPostIdsInMessages]);
+  }, [sharedPostIdsInMessages]);
 
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
