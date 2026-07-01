@@ -173,6 +173,31 @@ export default function NotificationsPage() {
         offererPhoto,
       );
 
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
+        }
+
+        await fetch("/api/support-offers/backfill-message", {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({
+            offerId: offer?.id,
+            conversationId,
+          }),
+        });
+      } catch {
+      }
+
       const supportPostId = String(offer?.post_id || "").trim();
       if (supportPostId) {
         router.push(`/messages/${conversationId}?supportOfferForPost=${encodeURIComponent(supportPostId)}`);

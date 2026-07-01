@@ -254,6 +254,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [sharedPostById, setSharedPostById] = useState<Record<string, SharedPostPreview>>({});
   const [loadingSharedPostById, setLoadingSharedPostById] = useState<Record<string, boolean>>({});
+  const [unavailableSharedPostById, setUnavailableSharedPostById] = useState<Record<string, boolean>>({});
   const supportOfferForPost = searchParams?.get("supportOfferForPost") || "";
   const sharedPostIdsInMessages = React.useMemo(() => {
     const ids = new Set<string>();
@@ -399,7 +400,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
     if (sharedPostIdsInMessages.length === 0) return;
 
     const missingIds = sharedPostIdsInMessages.filter(
-      (postId) => !sharedPostById[postId] && !loadingSharedPostById[postId],
+      (postId) => !sharedPostById[postId] && !loadingSharedPostById[postId] && !unavailableSharedPostById[postId],
     );
     if (missingIds.length === 0) return;
 
@@ -468,9 +469,40 @@ export default function ConversationPageInner({ conversationId }: { conversation
             };
           }
 
+          const loadedPostIds = new Set(Object.keys(nextPostsById));
+          const missingFromResponseIds = missingIds.filter((postId) => !loadedPostIds.has(postId));
+
           setSharedPostById((prev) => ({ ...prev, ...nextPostsById }));
+          if (missingFromResponseIds.length > 0) {
+            setUnavailableSharedPostById((prev) => {
+              const next = { ...prev };
+              for (const postId of missingFromResponseIds) {
+                next[postId] = true;
+              }
+              return next;
+            });
+          }
+
+          if (loadedPostIds.size > 0) {
+            setUnavailableSharedPostById((prev) => {
+              const next = { ...prev };
+              for (const loadedId of loadedPostIds) {
+                delete next[loadedId];
+              }
+              return next;
+            });
+          }
         }
       } catch {
+        if (!cancelled) {
+          setUnavailableSharedPostById((prev) => {
+            const next = { ...prev };
+            for (const postId of missingIds) {
+              next[postId] = true;
+            }
+            return next;
+          });
+        }
       } finally {
         if (!cancelled) {
           setLoadingSharedPostById((prev) => {
@@ -489,7 +521,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
     return () => {
       cancelled = true;
     };
-  }, [sharedPostById, loadingSharedPostById, sharedPostIdsInMessages]);
+  }, [sharedPostById, loadingSharedPostById, unavailableSharedPostById, sharedPostIdsInMessages]);
 
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
@@ -1301,6 +1333,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 const sharedPostId = extractSharedPostId(String(msg.message_text || ""));
                 const sharedPost = sharedPostId ? sharedPostById[sharedPostId] : undefined;
                 const isSharedPostLoading = !!(sharedPostId && loadingSharedPostById[sharedPostId]);
+                const isSharedPostUnavailable = !!(sharedPostId && unavailableSharedPostById[sharedPostId]);
                 const messageTextWithoutPostLink = sharedPostId
                   ? stripSharedPostLink(String(msg.message_text || ""))
                   : String(msg.message_text || "");
@@ -1393,6 +1426,13 @@ export default function ConversationPageInner({ conversationId }: { conversation
                             <div className="w-[70vw] max-w-[320px] rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                               Loading shared post…
                             </div>
+                          ) : isSharedPostUnavailable ? (
+                            <a
+                              href={`/home?post=${encodeURIComponent(sharedPostId)}`}
+                              className="inline-flex text-sm font-medium text-pink-600 underline hover:text-pink-700 dark:text-pink-300 dark:hover:text-pink-200"
+                            >
+                              View shared post
+                            </a>
                           ) : (
                             <a
                               href={`/home?post=${encodeURIComponent(sharedPostId)}`}
