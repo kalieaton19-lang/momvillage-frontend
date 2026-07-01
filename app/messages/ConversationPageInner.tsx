@@ -190,6 +190,8 @@ type SharedPostPreview = {
 
 const SHARED_POST_LINK_REGEX = /(?:https?:\/\/[^\s]+)?\/home\?post=([^&\s#]+)/gi;
 const TRAILING_LINK_PUNCTUATION_REGEX = /[).,!?:;\]}]+$/;
+const SHARED_POST_TIMEOUT_MS = 4500;
+const SHARED_POST_RETRY_AFTER_MS = 15000;
 
 function extractSharedPostId(messageText: string): string | null {
   if (!messageText) return null;
@@ -253,9 +255,11 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const supportHighlightClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supportBackfillAttemptedRef = useRef<Set<string>>(new Set());
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [sharedPostRetryTick, setSharedPostRetryTick] = useState(0);
   const [sharedPostById, setSharedPostById] = useState<Record<string, SharedPostPreview>>({});
   const [loadingSharedPostById, setLoadingSharedPostById] = useState<Record<string, boolean>>({});
-  const [unavailableSharedPostById, setUnavailableSharedPostById] = useState<Record<string, boolean>>({});
+  const [unavailableSharedPostById, setUnavailableSharedPostById] = useState<Record<string, number>>({});
   const supportOfferForPost = searchParams?.get("supportOfferForPost") || "";
   const sharedPostIdsInMessages = React.useMemo(() => {
     const ids = new Set<string>();
@@ -402,10 +406,28 @@ export default function ConversationPageInner({ conversationId }: { conversation
   }, [supportOfferForPost, messages]);
 
   useEffect(() => {
-    if (sharedPostIdsInMessages.length === 0) return;
+    if (!authReady || !user?.id || sharedPostIdsInMessages.length === 0) return;
+
+    const intervalId = window.setInterval(() => {
+      setSharedPostRetryTick((value) => value + 1);
+    }, 6000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [authReady, user?.id, sharedPostIdsKey]);
+
+  useEffect(() => {
+    if (!authReady || !user?.id || sharedPostIdsInMessages.length === 0) return;
+
+    const nowMs = Date.now();
 
     const missingIds = sharedPostIdsInMessages.filter(
-      (postId) => !sharedPostById[postId] && !loadingSharedPostById[postId] && !unavailableSharedPostById[postId],
+      (postId) => {
+        const unavailableAt = unavailableSharedPostById[postId] || 0;
+        const canRetry = !unavailableAt || nowMs - unavailableAt >= SHARED_POST_RETRY_AFTER_MS;
+        return !sharedPostById[postId] && !loadingSharedPostById[postId] && canRetry;
+      },
     );
     if (missingIds.length === 0) return;
 
@@ -417,7 +439,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
       setUnavailableSharedPostById((prev) => {
         const next = { ...prev };
         for (const postId of missingIds) {
-          next[postId] = true;
+          next[postId] = Date.now();
         }
         return next;
       });
@@ -428,7 +450,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
         }
         return next;
       });
-    }, 4500);
+    }, SHARED_POST_TIMEOUT_MS);
 
     const loadSharedPosts = async () => {
       setLoadingSharedPostById((prev) => {
@@ -501,7 +523,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
             setUnavailableSharedPostById((prev) => {
               const next = { ...prev };
               for (const postId of missingFromResponseIds) {
-                next[postId] = true;
+                next[postId] = Date.now();
               }
               return next;
             });
@@ -522,7 +544,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
           setUnavailableSharedPostById((prev) => {
             const next = { ...prev };
             for (const postId of missingIds) {
-              next[postId] = true;
+              next[postId] = Date.now();
             }
             return next;
           });
@@ -548,7 +570,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
       clearTimeout(loadingTimeout);
       cancelled = true;
     };
-  }, [sharedPostIdsKey]);
+  }, [authReady, user?.id, sharedPostIdsKey, sharedPostRetryTick]);
 
   useEffect(() => {
     if (!conversation?.id || !user?.id || messages.length === 0) return;
@@ -923,16 +945,20 @@ export default function ConversationPageInner({ conversationId }: { conversation
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
+        setAuthReady(true);
         return;
       }
 
       const { data: refreshedData } = await supabase.auth.refreshSession();
       if (!refreshedData?.session?.user) {
+        setAuthReady(true);
         router.push("/login");
         return;
       }
       setUser(refreshedData.session.user);
+      setAuthReady(true);
     } catch (error) {
+      setAuthReady(true);
       router.push("/login");
     }
   }
@@ -1418,7 +1444,12 @@ export default function ConversationPageInner({ conversationId }: { conversation
                 const sharedPostId = extractSharedPostId(String(msg.message_text || ""));
                 const sharedPost = sharedPostId ? sharedPostById[sharedPostId] : undefined;
                 const isSharedPostLoading = !!(sharedPostId && loadingSharedPostById[sharedPostId]);
-                const isSharedPostUnavailable = !!(sharedPostId && unavailableSharedPostById[sharedPostId]);
+                const isSharedPostUnavailable = !!(
+                  sharedPostId &&
+                  unavailableSharedPostById[sharedPostId] &&
+                  !isSharedPostLoading &&
+                  !sharedPost
+                );
                 const messageTextWithoutPostLink = sharedPostId
                   ? stripSharedPostLink(String(msg.message_text || ""))
                   : String(msg.message_text || "");
