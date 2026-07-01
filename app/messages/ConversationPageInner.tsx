@@ -405,6 +405,25 @@ export default function ConversationPageInner({ conversationId }: { conversation
     if (missingIds.length === 0) return;
 
     let cancelled = false;
+    let timedOut = false;
+    const loadingTimeout = setTimeout(() => {
+      if (cancelled) return;
+      timedOut = true;
+      setUnavailableSharedPostById((prev) => {
+        const next = { ...prev };
+        for (const postId of missingIds) {
+          next[postId] = true;
+        }
+        return next;
+      });
+      setLoadingSharedPostById((prev) => {
+        const next = { ...prev };
+        for (const postId of missingIds) {
+          delete next[postId];
+        }
+        return next;
+      });
+    }, 4500);
 
     const loadSharedPosts = async () => {
       setLoadingSharedPostById((prev) => {
@@ -504,6 +523,8 @@ export default function ConversationPageInner({ conversationId }: { conversation
           });
         }
       } finally {
+        clearTimeout(loadingTimeout);
+        if (timedOut) return;
         if (!cancelled) {
           setLoadingSharedPostById((prev) => {
             const next = { ...prev };
@@ -519,6 +540,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
     void loadSharedPosts();
 
     return () => {
+      clearTimeout(loadingTimeout);
       cancelled = true;
     };
   }, [sharedPostIdsInMessages]);
