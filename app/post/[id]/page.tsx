@@ -101,7 +101,7 @@ export default function SinglePostPage() {
           </button>
           {postId ? (
             <Link
-              href={`/home?post=${encodeURIComponent(postId)}`}
+              href={`/home?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`}
               className="rounded-full border border-pink-300 bg-pink-100 px-3 py-1 text-sm font-semibold text-pink-700 hover:bg-pink-200 dark:border-pink-800 dark:bg-pink-900/40 dark:text-pink-200"
             >
               View in Feed
