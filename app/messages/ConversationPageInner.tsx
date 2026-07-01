@@ -1481,7 +1481,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
                         <div className="mt-2">
                           {sharedPost ? (
                             <a
-                              href={`/home?post=${encodeURIComponent(sharedPost.id)}`}
+                              href={`/post/${encodeURIComponent(sharedPost.id)}`}
                               className="block w-[70vw] max-w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
                             >
                               {sharedPost.type === "support" && (
@@ -1544,14 +1544,14 @@ export default function ConversationPageInner({ conversationId }: { conversation
                             </div>
                           ) : isSharedPostUnavailable ? (
                             <a
-                              href={`/home?post=${encodeURIComponent(sharedPostId)}`}
+                              href={`/post/${encodeURIComponent(sharedPostId)}`}
                               className="inline-flex text-sm font-medium text-pink-600 underline hover:text-pink-700 dark:text-pink-300 dark:hover:text-pink-200"
                             >
                               View shared post
                             </a>
                           ) : (
                             <a
-                              href={`/home?post=${encodeURIComponent(sharedPostId)}`}
+                              href={`/post/${encodeURIComponent(sharedPostId)}`}
                               className="inline-flex text-sm font-medium text-pink-600 underline hover:text-pink-700 dark:text-pink-300 dark:hover:text-pink-200"
                             >
                               View shared post
