@@ -180,6 +180,7 @@ export default function HomePage() {
   const [reportModalTargetId, setReportModalTargetId] = useState<string>("");
   const [shareSheetPost, setShareSheetPost] = useState<Post | null>(null);
   const [sharedPostId, setSharedPostId] = useState<string | null>(null);
+  const [pinSharedPostToTop, setPinSharedPostToTop] = useState(false);
   const [didFocusSharedPost, setDidFocusSharedPost] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const feedRefreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -362,11 +363,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const queryPostId = new URLSearchParams(window.location.search).get("post");
+    const params = new URLSearchParams(window.location.search);
+    const queryPostId = params.get("post");
+    const shouldPinSharedPost = params.get("pin") === "1";
     const hashPostId = window.location.hash.startsWith("#post-")
       ? window.location.hash.replace("#post-", "")
       : null;
     const targetPostId = (queryPostId || hashPostId || "").trim();
+    setPinSharedPostToTop(shouldPinSharedPost);
     if (targetPostId) {
       setSharedPostId(targetPostId);
       setDidFocusSharedPost(false);
@@ -524,21 +528,28 @@ export default function HomePage() {
   useEffect(() => {
     if (!user?.id || !sharedPostId) return;
     const targetPostId = sharedPostId;
+    if (!pinSharedPostToTop && posts.some((post) => post.id === targetPostId)) return;
 
     let cancelled = false;
     async function ensureSharedPostInFeed() {
       const sharedPost = await fetchPostById(targetPostId);
       if (!sharedPost || cancelled) return;
-      setPosts((prev) =>
-        [sharedPost, ...prev.filter((post) => post.id !== sharedPost.id)]
-      );
+      setPosts((prev) => {
+        if (pinSharedPostToTop) {
+          return [sharedPost, ...prev.filter((post) => post.id !== sharedPost.id)];
+        }
+        if (prev.some((post) => post.id === sharedPost.id)) {
+          return prev;
+        }
+        return [...prev, sharedPost];
+      });
     }
 
     void ensureSharedPostInFeed();
     return () => {
       cancelled = true;
     };
-  }, [user?.id, sharedPostId, posts]);
+  }, [user?.id, sharedPostId, pinSharedPostToTop, posts]);
 
   useEffect(() => {
     if (!sharedPostId || didFocusSharedPost) return;
@@ -553,6 +564,7 @@ export default function HomePage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("post") === sharedPostId) {
         params.delete("post");
+        params.delete("pin");
         const nextSearch = params.toString();
         const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}#post-${sharedPostId}`;
         window.history.replaceState({}, "", nextUrl);
