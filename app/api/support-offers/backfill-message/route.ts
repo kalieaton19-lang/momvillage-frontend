@@ -165,19 +165,69 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const offerId = String(body?.offerId || "").trim();
+    const postIdFromBody = String(body?.postId || "").trim();
+    const conversationIdFromBody = String(body?.conversationId || "").trim();
 
-    if (!offerId) {
-      return NextResponse.json({ error: "Missing offerId" }, { status: 400 });
-    }
+    let offer: any = null;
 
-    const { data: offer, error: offerError } = await supabaseAdmin
-      .from("post_support_offers")
-      .select("id, post_id, offered_by_user_id, created_at, posts!inner(id,title,author_user_id)")
-      .eq("id", offerId)
-      .single();
+    if (offerId) {
+      const { data: offerById, error: offerByIdError } = await supabaseAdmin
+        .from("post_support_offers")
+        .select("id, post_id, offered_by_user_id, created_at, posts!inner(id,title,author_user_id)")
+        .eq("id", offerId)
+        .single();
 
-    if (offerError || !offer) {
-      return NextResponse.json({ error: "Support offer not found" }, { status: 404 });
+      if (offerByIdError || !offerById) {
+        return NextResponse.json({ error: "Support offer not found" }, { status: 404 });
+      }
+
+      offer = offerById;
+    } else {
+      if (!postIdFromBody || !conversationIdFromBody) {
+        return NextResponse.json({ error: "Missing offerId or (postId + conversationId)" }, { status: 400 });
+      }
+
+      const { data: conversation, error: conversationError } = await supabaseAdmin
+        .from("conversations")
+        .select("id,user1_id,user2_id")
+        .eq("id", conversationIdFromBody)
+        .single();
+
+      if (conversationError || !conversation) {
+        return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      }
+
+      const participantA = String((conversation as any).user1_id || "");
+      const participantB = String((conversation as any).user2_id || "");
+
+      if (user.id !== participantA && user.id !== participantB) {
+        return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+      }
+
+      const { data: offersForPost, error: offersForPostError } = await supabaseAdmin
+        .from("post_support_offers")
+        .select("id, post_id, offered_by_user_id, created_at, posts!inner(id,title,author_user_id)")
+        .eq("post_id", postIdFromBody)
+        .in("offered_by_user_id", [participantA, participantB])
+        .order("created_at", { ascending: false });
+
+      if (offersForPostError) {
+        return NextResponse.json({ error: offersForPostError.message || "Could not query support offer" }, { status: 500 });
+      }
+
+      offer = (offersForPost || []).find((row: any) => {
+        const postAuthorId = String(row?.posts?.author_user_id || "");
+        const offeredById = String(row?.offered_by_user_id || "");
+        return (
+          (postAuthorId === participantA || postAuthorId === participantB) &&
+          (offeredById === participantA || offeredById === participantB) &&
+          postAuthorId !== offeredById
+        );
+      });
+
+      if (!offer) {
+        return NextResponse.json({ error: "Support offer not found for this conversation" }, { status: 404 });
+      }
     }
 
     const postAuthorUserId = String((offer as any)?.posts?.author_user_id || "");
@@ -188,11 +238,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Offer data is incomplete" }, { status: 400 });
     }
 
-    if (postAuthorUserId !== user.id) {
+    const isAllowedUser = user.id === postAuthorUserId || user.id === offeredByUserId;
+    if (!isAllowedUser) {
       return NextResponse.json({ error: "Not allowed" }, { status: 403 });
     }
 
-    const conversationId = await ensureConversationForUsers(postAuthorUserId, offeredByUserId);
+    const conversationId = conversationIdFromBody || (await ensureConversationForUsers(postAuthorUserId, offeredByUserId));
 
     const { data: existingMessages } = await supabaseAdmin
       .from("messages")

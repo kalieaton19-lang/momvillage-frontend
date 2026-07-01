@@ -251,6 +251,7 @@ export default function ConversationPageInner({ conversationId }: { conversation
   const markReadInFlightRef = useRef(false);
   const supportHighlightHandledRef = useRef(false);
   const supportHighlightClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const supportBackfillAttemptedRef = useRef<Set<string>>(new Set());
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [sharedPostById, setSharedPostById] = useState<Record<string, SharedPostPreview>>({});
   const [loadingSharedPostById, setLoadingSharedPostById] = useState<Record<string, boolean>>({});
@@ -266,6 +267,10 @@ export default function ConversationPageInner({ conversationId }: { conversation
     }
     return [...ids];
   }, [messages]);
+  const sharedPostIdsKey = React.useMemo(
+    () => [...sharedPostIdsInMessages].sort().join("|"),
+    [sharedPostIdsInMessages],
+  );
 
   useEffect(() => {
     checkUser();
@@ -543,7 +548,65 @@ export default function ConversationPageInner({ conversationId }: { conversation
       clearTimeout(loadingTimeout);
       cancelled = true;
     };
-  }, [sharedPostIdsInMessages]);
+  }, [sharedPostIdsKey]);
+
+  useEffect(() => {
+    if (!conversation?.id || !user?.id || messages.length === 0) return;
+
+    const supportPostIds = new Set<string>();
+    for (const message of messages) {
+      const postId = extractSharedPostId(String(message?.message_text || ""));
+      if (!postId) continue;
+      const text = String(message?.message_text || "").toLowerCase();
+      if (text.includes("offered support")) {
+        supportPostIds.add(postId);
+      }
+    }
+
+    if (supportPostIds.size === 0) return;
+
+    const run = async () => {
+      const sessionResult = await supabase.auth.getSession();
+      let accessToken = sessionResult.data.session?.access_token || "";
+      if (!accessToken) {
+        const refreshed = await supabase.auth.refreshSession();
+        accessToken = refreshed.data.session?.access_token || "";
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      for (const postId of supportPostIds) {
+        const attemptKey = `${conversation.id}:${postId}`;
+        if (supportBackfillAttemptedRef.current.has(attemptKey)) continue;
+        supportBackfillAttemptedRef.current.add(attemptKey);
+
+        try {
+          const response = await fetch("/api/support-offers/backfill-message", {
+            method: "POST",
+            headers,
+            credentials: "include",
+            body: JSON.stringify({
+              postId,
+              conversationId: conversation.id,
+            }),
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (response.ok && payload?.inserted) {
+            void loadMessages(conversation.id);
+          }
+        } catch {
+        }
+      }
+    };
+
+    void run();
+  }, [conversation?.id, user?.id, messages]);
 
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
