@@ -192,6 +192,20 @@ export default function HomePage() {
     location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
   });
 
+  const applySharedPostPinning = React.useCallback(
+    (inputPosts: Post[]) => {
+      if (!pinSharedPostToTop || !sharedPostId) {
+        return inputPosts;
+      }
+      const target = inputPosts.find((post) => post.id === sharedPostId);
+      if (!target) {
+        return inputPosts;
+      }
+      return [target, ...inputPosts.filter((post) => post.id !== sharedPostId)];
+    },
+    [pinSharedPostToTop, sharedPostId],
+  );
+
   function getProfileHref(authorUserId?: string | null) {
     if (!authorUserId) return null;
     return authorUserId === user?.id ? '/profile' : `/profile/${authorUserId}`;
@@ -700,7 +714,7 @@ export default function HomePage() {
         const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((id): id is string => !!id))];
         if (groupIds.length === 0) {
           setGroupNameById({});
-          setPosts(nextPosts);
+          setPosts(applySharedPostPinning(nextPosts));
         } else {
           const [{ data: groupsData }, { data: membershipRows }] = await Promise.all([
             supabase
@@ -747,11 +761,11 @@ export default function HomePage() {
 
           nextPosts = visiblePosts;
           setGroupNameById(groupMap);
-          setPosts(nextPosts);
+          setPosts(applySharedPostPinning(nextPosts));
         }
       } catch (e) {
         setGroupNameById({});
-        setPosts(nextPosts.filter((post) => !post.group_id));
+        setPosts(applySharedPostPinning(nextPosts.filter((post) => !post.group_id)));
       }
 
       // Hydrate author profile photos for post cards (non-blocking)
