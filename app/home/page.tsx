@@ -978,7 +978,7 @@ export default function HomePage() {
         latestIncomingByConversation.set(conversationId, row);
       }
 
-      let unreadConversationCount = 0;
+      const unreadConversationIds = new Set<string>();
       latestIncomingByConversation.forEach((row, conversationId) => {
         const createdAt = row?.created_at as string | undefined;
         if (!createdAt) return;
@@ -991,10 +991,81 @@ export default function HomePage() {
         if (isReadBySeenTimestamp) return;
         if (readStateKnown && row?.read_at) return;
 
-        unreadConversationCount += 1;
+        unreadConversationIds.add(conversationId);
       });
 
-      setUnreadMessageCount(unreadConversationCount);
+      const requestApprovalsStorageKey = `message_requests_approved:${userId}`;
+      let approvedRequestConversationIds: string[] = [];
+      try {
+        const raw = localStorage.getItem(requestApprovalsStorageKey);
+        const parsed = raw ? JSON.parse(raw) : [];
+        approvedRequestConversationIds = Array.isArray(parsed)
+          ? parsed.filter((entry) => typeof entry === "string")
+          : [];
+      } catch {
+        approvedRequestConversationIds = [];
+      }
+
+      const { data: conversationRows } = await supabase
+        .from("conversations")
+        .select("id,user1_id,user2_id")
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+
+      const conversations = (conversationRows || []) as Array<{
+        id: string;
+        user1_id: string;
+        user2_id: string;
+      }>;
+      const conversationIds = conversations.map((conversation) => conversation.id).filter(Boolean);
+
+      let requestConversationCount = 0;
+      if (conversationIds.length > 0) {
+        const { data: acceptedVillageRows } = await supabase
+          .from("village_invitations")
+          .select("from_user_id,to_user_id,status")
+          .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+          .eq("status", "accepted");
+
+        const villageUserIds = new Set(
+          (acceptedVillageRows || [])
+            .map((row: any) =>
+              row.from_user_id === userId ? row.to_user_id : row.from_user_id,
+            )
+            .filter((entry: any) => typeof entry === "string"),
+        );
+
+        const { data: outgoingRows } = await supabase
+          .from("messages")
+          .select("conversation_id")
+          .eq("sender_id", userId)
+          .in("conversation_id", conversationIds)
+          .limit(5000);
+
+        const hasOutgoingByConversation = new Set(
+          (outgoingRows || [])
+            .map((row: any) => row?.conversation_id)
+            .filter((entry: any) => typeof entry === "string"),
+        );
+
+        const approvedSet = new Set(approvedRequestConversationIds);
+
+        for (const conversation of conversations) {
+          const conversationId = conversation.id;
+          if (!conversationId) continue;
+          if (!latestIncomingByConversation.has(conversationId)) continue;
+          if (hasOutgoingByConversation.has(conversationId)) continue;
+          if (approvedSet.has(conversationId)) continue;
+
+          const otherUserId =
+            conversation.user1_id === userId ? conversation.user2_id : conversation.user1_id;
+          if (villageUserIds.has(otherUserId)) continue;
+
+          if (unreadConversationIds.has(conversationId)) continue;
+          requestConversationCount += 1;
+        }
+      }
+
+      setUnreadMessageCount(unreadConversationIds.size + requestConversationCount);
     } catch {
       setUnreadMessageCount(0);
     }
