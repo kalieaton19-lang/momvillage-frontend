@@ -745,32 +745,15 @@ export default function ProfilePage() {
       <div className="w-full max-w-2xl mx-auto">
         <div className="relative w-full flex flex-row items-stretch gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-10 pt-6 pb-4">
           <div className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20">
-            <div className="relative">
-              <button
-                type="button"
-                aria-label="Profile actions"
-                onClick={() => setOpenPostMenuId(openPostMenuId ? null : "profile-menu")}
-                className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
-              >
-                ⋯
-              </button>
-              {openPostMenuId === "profile-menu" && (
-                <div className="absolute right-0 mt-2 z-20 w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReportModalType("account");
-                      setReportModalTargetId(user?.id || "");
-                      setReportModalOpen(true);
-                      setOpenPostMenuId(null);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                  >
-                    Report profile
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              aria-label="Open settings"
+              onClick={() => router.push("/settings")}
+              className="inline-flex items-center gap-1 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            >
+              <span aria-hidden="true">⚙️</span>
+              Settings
+            </button>
           </div>
           {profile.profile_photo_url ? (
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-pink-400 shadow flex-shrink-0">
