@@ -159,7 +159,7 @@ export default function SettingsPage() {
               <span className="font-semibold text-zinc-800 dark:text-zinc-100">Public profile:</span> All users can see your villagers, profile information, and posts.
             </p>
             <p>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-100">Private profile:</span> All users can only see your profile photo, village count, posts count, and moms helped count.
+              <span className="font-semibold text-zinc-800 dark:text-zinc-100">Private profile:</span> Only your villagers can still see your full profile information and posts. Everyone else only sees your profile photo, village count, posts count, and moms helped count.
             </p>
           </div>
         </section>

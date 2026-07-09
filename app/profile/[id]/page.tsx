@@ -58,6 +58,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [canViewPrivateProfile, setCanViewPrivateProfile] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<"in-village"|"invited-by-me"|"invited-me"|"none">("none");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [villageMembers, setVillageMembers] = useState<any[]>([]);
@@ -97,7 +98,7 @@ export default function ProfilePage() {
   }
 
   const isPrivateProfile = !!profile && profile.is_public === false;
-  const canViewFullProfile = !isPrivateProfile;
+  const canViewFullProfile = !isPrivateProfile || canViewPrivateProfile;
 
   // (All logic and hooks are now inside the component)
 
@@ -117,18 +118,33 @@ export default function ProfilePage() {
         setError("Profile not found.");
         setProfile(null);
         setGroupNameById({});
+        setCanViewPrivateProfile(false);
       } else {
         const metadataName =
           profileUserId === currentUser?.id
             ? (currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || "")
             : "";
+
+        let viewerCanSeePrivate = false;
+        if (data.is_public === false && currentUser?.id) {
+          const { data: relationshipRows } = await supabase
+            .from("village_invitations")
+            .select("status")
+            .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${profileUserId}),and(from_user_id.eq.${profileUserId},to_user_id.eq.${currentUser.id})`)
+            .eq("status", "accepted")
+            .limit(1);
+
+          viewerCanSeePrivate = (relationshipRows?.length || 0) > 0;
+        }
+        setCanViewPrivateProfile(viewerCanSeePrivate);
+
         setProfile({
           ...data,
           full_name: metadataName || pickCanonicalProfileName(data) || "",
         });
         const nextPosts = await fetchPosts({ author_user_id: data.id });
 
-        if (data.is_public === false) {
+        if (data.is_public === false && !viewerCanSeePrivate) {
           setPosts([]);
           setPostsCount(nextPosts.length);
           setGroupNameById({});

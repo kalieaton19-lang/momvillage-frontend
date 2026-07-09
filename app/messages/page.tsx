@@ -58,6 +58,10 @@ function MessagesPageInner() {
   const [user, setUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [latestMessageByConversation, setLatestMessageByConversation] = useState<Record<string, LatestMessageInfo>>({});
+  const [hasOutgoingByConversation, setHasOutgoingByConversation] = useState<Record<string, boolean>>({});
+  const [villageUserIds, setVillageUserIds] = useState<string[]>([]);
+  const [approvedRequestConversationIds, setApprovedRequestConversationIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<"messages" | "requests">("messages");
   const [typingByConversation, setTypingByConversation] = useState<Record<string, boolean>>({});
   const [seenConversationAt, setSeenConversationAt] = useState<Record<string, string>>({});
   const [isEditMode, setIsEditMode] = useState(false);
@@ -72,6 +76,7 @@ function MessagesPageInner() {
   const hasRenderedInitialConversationOrderRef = useRef(false);
 
   const seenStorageKey = user?.id ? `messages_seen_at:${user.id}` : null;
+  const requestApprovalsStorageKey = user?.id ? `message_requests_approved:${user.id}` : null;
 
   useEffect(() => {
     checkUser();
@@ -83,6 +88,9 @@ function MessagesPageInner() {
       hasRenderedInitialConversationOrderRef.current = false;
       setConversations([]);
       setLatestMessageByConversation({});
+      setHasOutgoingByConversation({});
+      setVillageUserIds([]);
+      setApprovedRequestConversationIds([]);
       return;
     }
 
@@ -302,6 +310,41 @@ function MessagesPageInner() {
     }
   }, [seenStorageKey]);
 
+  useEffect(() => {
+    if (!requestApprovalsStorageKey) {
+      setApprovedRequestConversationIds([]);
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(requestApprovalsStorageKey);
+      if (!raw) {
+        setApprovedRequestConversationIds([]);
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        setApprovedRequestConversationIds([]);
+        return;
+      }
+
+      setApprovedRequestConversationIds(parsed.filter((entry) => typeof entry === "string"));
+    } catch {
+      setApprovedRequestConversationIds([]);
+    }
+  }, [requestApprovalsStorageKey]);
+
+  function persistApprovedRequestConversationIds(nextIds: string[]) {
+    setApprovedRequestConversationIds(nextIds);
+    if (!requestApprovalsStorageKey) return;
+    try {
+      localStorage.setItem(requestApprovalsStorageKey, JSON.stringify(nextIds));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
   function persistSeenConversationAt(nextValue: Record<string, string>) {
     if (!seenStorageKey) return;
     setSeenConversationAt(nextValue);
@@ -319,6 +362,36 @@ function MessagesPageInner() {
     };
     persistSeenConversationAt(nextValue);
   }
+
+  function isConversationRequest(conversation: Conversation) {
+    if (!user?.id) return false;
+    const otherUserId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
+    const isInVillage = villageUserIds.includes(otherUserId);
+    const hasOutgoing = !!hasOutgoingByConversation[conversation.id];
+    const isApproved = approvedRequestConversationIds.includes(conversation.id);
+    const latestSenderId = latestMessageByConversation[conversation.id]?.senderId;
+    const isIncomingLatest = Boolean(latestSenderId) && latestSenderId !== user.id;
+    return !isInVillage && !hasOutgoing && !isApproved && isIncomingLatest;
+  }
+
+  const requestConversations = useMemo(
+    () => orderedConversations.filter((conversation) => isConversationRequest(conversation)),
+    [orderedConversations, villageUserIds, hasOutgoingByConversation, approvedRequestConversationIds, latestMessageByConversation, user?.id],
+  );
+
+  const messageConversations = useMemo(
+    () => orderedConversations.filter((conversation) => !isConversationRequest(conversation)),
+    [orderedConversations, villageUserIds, hasOutgoingByConversation, approvedRequestConversationIds, latestMessageByConversation, user?.id],
+  );
+
+  const visibleConversations = activeTab === "requests" ? requestConversations : messageConversations;
+
+  useEffect(() => {
+    setSelectedConversationIds([]);
+    if (activeTab === "requests") {
+      setIsEditMode(false);
+    }
+  }, [activeTab]);
 
   function openConversation(conversationId: string) {
     const nowIso = new Date().toISOString();
@@ -344,11 +417,11 @@ function MessagesPageInner() {
   }
 
   function handleSelectAllToggle() {
-    if (selectedConversationIds.length === conversations.length) {
+    if (selectedConversationIds.length === visibleConversations.length) {
       setSelectedConversationIds([]);
       return;
     }
-    setSelectedConversationIds(conversations.map((conversation) => conversation.id));
+    setSelectedConversationIds(visibleConversations.map((conversation) => conversation.id));
   }
 
   function handleMarkSelectedAsRead() {
@@ -408,6 +481,18 @@ function MessagesPageInner() {
         }
         return next;
       });
+      setHasOutgoingByConversation((prev) => {
+        const next = { ...prev };
+        selectedConversationIds.forEach((conversationId) => {
+          delete next[conversationId];
+        });
+        return next;
+      });
+      persistApprovedRequestConversationIds(
+        approvedRequestConversationIds.filter(
+          (conversationId) => !selectedConversationIds.includes(conversationId),
+        ),
+      );
 
       setSelectedConversationIds([]);
       setIsEditMode(false);
@@ -416,6 +501,52 @@ function MessagesPageInner() {
       showNotification(error?.message || "Failed to delete selected conversations.", "error");
     } finally {
       setBulkActionLoading(false);
+    }
+  }
+
+  function handleApproveRequest(conversationId: string) {
+    if (approvedRequestConversationIds.includes(conversationId)) return;
+    persistApprovedRequestConversationIds([...approvedRequestConversationIds, conversationId]);
+    showNotification("Message request approved.", "success");
+    setActiveTab("messages");
+  }
+
+  async function handleDeleteRequest(conversationId: string) {
+    if (!user?.id) return;
+
+    try {
+      const { error: deleteMessagesError } = await supabase
+        .from("messages")
+        .delete()
+        .eq("conversation_id", conversationId);
+      if (deleteMessagesError) throw deleteMessagesError;
+
+      const { error: deleteConversationError } = await supabase
+        .from("conversations")
+        .delete()
+        .eq("id", conversationId)
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      if (deleteConversationError) throw deleteConversationError;
+
+      setConversations((prev) => prev.filter((conversation) => conversation.id !== conversationId));
+      setLatestMessageByConversation((prev) => {
+        const next = { ...prev };
+        delete next[conversationId];
+        return next;
+      });
+      setHasOutgoingByConversation((prev) => {
+        const next = { ...prev };
+        delete next[conversationId];
+        return next;
+      });
+      persistApprovedRequestConversationIds(
+        approvedRequestConversationIds.filter((id) => id !== conversationId),
+      );
+      setSelectedConversationIds((prev) => prev.filter((id) => id !== conversationId));
+
+      showNotification("Message request deleted.", "success");
+    } catch (error: any) {
+      showNotification(error?.message || "Failed to delete message request.", "error");
     }
   }
 
@@ -466,6 +597,23 @@ function MessagesPageInner() {
       );
       const conversationIds = loadedConversations.map((conversation) => conversation.id);
 
+      const { data: acceptedVillageRows } = await supabase
+        .from("village_invitations")
+        .select("from_user_id,to_user_id,status")
+        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+        .eq("status", "accepted");
+
+      if (requestId !== loadConversationsRequestIdRef.current) return;
+
+      const nextVillageUserIds = [
+        ...new Set(
+          (acceptedVillageRows || []).map((row: any) =>
+            row.from_user_id === userId ? row.to_user_id : row.from_user_id,
+          ).filter((entry: any) => typeof entry === "string"),
+        ),
+      ] as string[];
+      setVillageUserIds(nextVillageUserIds);
+
       if (participantIds.length > 0) {
         const profilesRes = await supabase
           .from("user_public_profiles")
@@ -500,8 +648,26 @@ function MessagesPageInner() {
 
       if (conversationIds.length === 0) {
         setLatestMessageByConversation({});
+        setHasOutgoingByConversation({});
         return;
       }
+
+      const outgoingRowsRes = await supabase
+        .from("messages")
+        .select("conversation_id")
+        .eq("sender_id", userId)
+        .in("conversation_id", conversationIds)
+        .limit(5000);
+
+      if (requestId !== loadConversationsRequestIdRef.current) return;
+
+      const outgoingMap: Record<string, boolean> = {};
+      (outgoingRowsRes.data || []).forEach((row: any) => {
+        if (row?.conversation_id) {
+          outgoingMap[row.conversation_id] = true;
+        }
+      });
+      setHasOutgoingByConversation(outgoingMap);
 
       const latestByConversation: Record<string, LatestMessageInfo> = {};
       const targetConversationIds = new Set(conversationIds);
@@ -668,24 +834,50 @@ function MessagesPageInner() {
       <div className="max-w-2xl mx-auto h-screen flex flex-col">
         <header className="relative flex items-center justify-center px-4 sm:px-10 pt-3 pb-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 text-center w-full tracking-tight">Messages</h1>
+          {activeTab === "messages" && (
+            <button
+              type="button"
+              aria-label={isEditMode ? "Exit edit mode" : "Edit conversations"}
+              onClick={handleToggleEditMode}
+              className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-2 text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition"
+            >
+              {isEditMode ? (
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M16.5 3.5a2.121 2.121 0 113 3L12 14l-4 1 1-4 7.5-7.5z" />
+                </svg>
+              )}
+            </button>
+          )}
+        </header>
+        <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 py-2 flex items-center gap-2">
           <button
             type="button"
-            aria-label={isEditMode ? "Exit edit mode" : "Edit conversations"}
-            onClick={handleToggleEditMode}
-            className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-2 text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition"
+            onClick={() => setActiveTab("messages")}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+              activeTab === "messages"
+                ? "bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
+                : "bg-white text-zinc-600 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-300 dark:border-zinc-700"
+            }`}
           >
-            {isEditMode ? (
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M16.5 3.5a2.121 2.121 0 113 3L12 14l-4 1 1-4 7.5-7.5z" />
-              </svg>
-            )}
+            Messages
           </button>
-        </header>
-        {isEditMode && orderedConversations.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("requests")}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+              activeTab === "requests"
+                ? "bg-pink-100 text-pink-700 border-pink-500 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
+                : "bg-white text-zinc-600 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-300 dark:border-zinc-700"
+            }`}
+          >
+            Requests {requestConversations.length > 0 ? `(${requestConversations.length})` : ""}
+          </button>
+        </div>
+        {isEditMode && activeTab === "messages" && visibleConversations.length > 0 && (
           <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -713,25 +905,34 @@ function MessagesPageInner() {
           </div>
         )}
         <div className="flex-1 overflow-y-auto bg-pink-50 dark:bg-pink-950 py-2">
-          {orderedConversations.length === 0 ? (
+          {visibleConversations.length === 0 ? (
             <div className="p-6 text-center">
-              <div className="text-4xl mb-3">💌</div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                No conversations yet. Start connecting with other moms!
-              </p>
-              <Link
-                href="/find-moms"
-                className="inline-block px-4 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 transition-colors"
-              >
-                Find Moms
-              </Link>
+              <div className="text-4xl mb-3">{activeTab === "requests" ? "📨" : "💌"}</div>
+              {activeTab === "requests" ? (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                  No message requests right now.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                    No conversations yet. Start connecting with other moms!
+                  </p>
+                  <Link
+                    href="/find-moms"
+                    className="inline-block px-4 py-2 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 transition-colors"
+                  >
+                    Find Moms
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {orderedConversations.map(conv => {
+              {visibleConversations.map(conv => {
                 const otherUser = getOtherUserInfo(conv);
                 const latestInfo = latestMessageByConversation[conv.id];
                 const isTyping = !!typingByConversation[conv.id];
+                const isRequestConversation = isConversationRequest(conv);
                 const previewText = isTyping ? "Typing..." : latestInfo?.messageText || conv.last_message || "Start chatting";
                 const seenAt = seenConversationAt[conv.id] || "";
                 const latestMessageTimestamp = latestInfo?.createdAt
@@ -809,11 +1010,35 @@ function MessagesPageInner() {
                         <div className={`text-xs truncate w-full text-left ${isTyping ? "text-pink-600 dark:text-pink-300 italic font-medium" : "text-zinc-500 dark:text-zinc-400"}`}>{previewText}</div>
                       </div>
                     </div>
-                    {!isEditMode && (
+                    {!isEditMode && !isRequestConversation && (
                       <div className="flex items-center ml-2">
                         <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-pink-400">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                         </svg>
+                      </div>
+                    )}
+                    {!isEditMode && isRequestConversation && (
+                      <div className="ml-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleApproveRequest(conv.id);
+                          }}
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold border border-pink-500 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDeleteRequest(conv.id);
+                          }}
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold border border-red-300 bg-white text-red-600 hover:bg-red-50 dark:bg-zinc-900 dark:text-red-300 dark:border-red-900/40 dark:hover:bg-red-900/20"
+                        >
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
