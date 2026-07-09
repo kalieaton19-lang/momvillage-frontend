@@ -65,7 +65,18 @@ export default function SignupPage() {
       });
 
       if (error) {
-        setMessage(error.message || "Could not start social sign-up.");
+        const rawMessage = String(error.message || "");
+        const unsupportedProvider =
+          rawMessage.toLowerCase().includes("unsupported provider") ||
+          rawMessage.toLowerCase().includes("provider is not enabled");
+
+        if (unsupportedProvider) {
+          setMessage(
+            `"Continue with ${provider === "google" ? "Google" : "Apple"}" is not enabled yet in Supabase Auth providers.`,
+          );
+        } else {
+          setMessage(rawMessage || "Could not start social sign-up.");
+        }
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not start social sign-up.");
