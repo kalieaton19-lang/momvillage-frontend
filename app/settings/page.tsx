@@ -77,6 +77,11 @@ export default function SettingsPage() {
     setPrivacySaving(false);
   }
 
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/");
+  }
+
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-pink-950 p-0 sm:p-4">
       <div className="w-full max-w-2xl mx-auto flex items-center pt-4 pb-2 px-2 sm:px-0">
@@ -121,6 +126,13 @@ export default function SettingsPage() {
           >
             Edit profile details
           </Link>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="inline-flex mt-3 ml-2 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 font-semibold text-sm"
+          >
+            Sign Out
+          </button>
         </section>
 
         <section className="mt-4 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">

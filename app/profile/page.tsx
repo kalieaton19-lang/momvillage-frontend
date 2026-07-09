@@ -707,11 +707,6 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/");
-  }
-
   if (loading) {
     return <div className="p-8 text-center">Loading profile...</div>;
   }
@@ -864,21 +859,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-        </div>
-
-        <div className="flex flex-row justify-center items-center gap-3 mt-3 mb-2">
-          <button
-            onClick={() => router.push("/edit-profile")}
-            className="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-500 rounded-lg font-semibold text-base transition-colors whitespace-nowrap dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700 dark:hover:bg-pink-900/45"
-          >
-            Edit Profile
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-lg font-semibold text-base transition-colors whitespace-nowrap"
-          >
-            Sign Out
-          </button>
         </div>
 
         <div className="w-full flex flex-col gap-4 py-8">
