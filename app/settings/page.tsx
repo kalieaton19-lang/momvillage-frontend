@@ -11,6 +11,7 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState("Mom");
   const [email, setEmail] = useState("");
   const [privateProfile, setPrivateProfile] = useState(false);
+  const [privacySaving, setPrivacySaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -29,6 +30,16 @@ export default function SettingsPage() {
 
         setFullName(displayName);
         setEmail(authUser.email || "");
+
+        const { data: publicProfile } = await supabase
+          .from("user_public_profiles")
+          .select("is_public")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (publicProfile) {
+          setPrivateProfile(publicProfile.is_public === false);
+        }
       } finally {
         setLoading(false);
       }
@@ -39,6 +50,31 @@ export default function SettingsPage() {
 
   if (loading) {
     return <div className="p-8 text-center">Loading settings...</div>;
+  }
+
+  async function handlePrivateToggle(nextPrivateValue: boolean) {
+    setPrivateProfile(nextPrivateValue);
+    setPrivacySaving(true);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      setPrivacySaving(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_public_profiles")
+      .update({ is_public: !nextPrivateValue })
+      .eq("id", userId);
+
+    if (error) {
+      setPrivateProfile(!nextPrivateValue);
+      alert(error.message || "Could not update privacy setting.");
+    }
+
+    setPrivacySaving(false);
   }
 
   return (
@@ -96,11 +132,24 @@ export default function SettingsPage() {
             <input
               type="checkbox"
               checked={privateProfile}
-              onChange={(event) => setPrivateProfile(event.target.checked)}
+              onChange={(event) => {
+                void handlePrivateToggle(event.target.checked);
+              }}
+              disabled={privacySaving}
               className="h-4 w-4 rounded border-zinc-300 text-pink-600 focus:ring-pink-500"
             />
-            <span className="text-sm text-zinc-700 dark:text-zinc-200">Private profile (coming soon)</span>
+            <span className="text-sm text-zinc-700 dark:text-zinc-200">
+              Private profile {privacySaving ? "(saving...)" : ""}
+            </span>
           </label>
+          <div className="mt-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 p-3 text-xs text-zinc-600 dark:text-zinc-300 space-y-2">
+            <p>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-100">Public profile:</span> All users can see your villagers, profile information, and posts.
+            </p>
+            <p>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-100">Private profile:</span> All users can only see your profile photo, village count, posts count, and moms helped count.
+            </p>
+          </div>
         </section>
 
         <section className="mt-4 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">

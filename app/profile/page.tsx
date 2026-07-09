@@ -749,10 +749,32 @@ export default function ProfilePage() {
               type="button"
               aria-label="Open settings"
               onClick={() => router.push("/settings")}
-              className="inline-flex items-center gap-1 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center"
             >
-              <span aria-hidden="true">⚙️</span>
-              Settings
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                className="text-black"
+              >
+                <path
+                  d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M19.4 13.5a1.6 1.6 0 0 0 .32 1.76l.06.06a1.94 1.94 0 0 1-2.74 2.74l-.06-.06a1.6 1.6 0 0 0-1.76-.32 1.6 1.6 0 0 0-.96 1.46V19.4A1.94 1.94 0 0 1 12 21.34a1.94 1.94 0 0 1-1.94-1.94v-.1a1.6 1.6 0 0 0-.96-1.46 1.6 1.6 0 0 0-1.76.32l-.06.06a1.94 1.94 0 0 1-2.74-2.74l.06-.06a1.6 1.6 0 0 0 .32-1.76 1.6 1.6 0 0 0-1.46-.96H3.4A1.94 1.94 0 0 1 1.46 12 1.94 1.94 0 0 1 3.4 10.06h.1a1.6 1.6 0 0 0 1.46-.96 1.6 1.6 0 0 0-.32-1.76l-.06-.06A1.94 1.94 0 0 1 7.32 4.54l.06.06a1.6 1.6 0 0 0 1.76.32h.08a1.6 1.6 0 0 0 .96-1.46V3.4A1.94 1.94 0 0 1 12 1.46a1.94 1.94 0 0 1 1.94 1.94v.1a1.6 1.6 0 0 0 .96 1.46 1.6 1.6 0 0 0 1.76-.32l.06-.06a1.94 1.94 0 0 1 2.74 2.74l-.06.06a1.6 1.6 0 0 0-.32 1.76v.08a1.6 1.6 0 0 0 1.46.96h.1A1.94 1.94 0 0 1 22.54 12a1.94 1.94 0 0 1-1.94 1.94h-.1a1.6 1.6 0 0 0-1.46.96v.6Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
           {profile.profile_photo_url ? (

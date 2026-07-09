@@ -61,6 +61,7 @@ export default function ProfilePage() {
   const [inviteStatus, setInviteStatus] = useState<"in-village"|"invited-by-me"|"invited-me"|"none">("none");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [villageMembers, setVillageMembers] = useState<any[]>([]);
+  const [villageCount, setVillageCount] = useState(0);
   const [postsCount, setPostsCount] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostCommentRow[]>>({});
@@ -95,6 +96,9 @@ export default function ProfilePage() {
     return authorUserId === currentUser?.id ? "/profile" : `/profile/${authorUserId}`;
   }
 
+  const isPrivateProfile = !!profile && profile.is_public === false;
+  const canViewFullProfile = !isPrivateProfile;
+
   // (All logic and hooks are now inside the component)
 
   // Fetch profile info and posts count
@@ -123,6 +127,21 @@ export default function ProfilePage() {
           full_name: metadataName || pickCanonicalProfileName(data) || "",
         });
         const nextPosts = await fetchPosts({ author_user_id: data.id });
+
+        if (data.is_public === false) {
+          setPosts([]);
+          setPostsCount(nextPosts.length);
+          setGroupNameById({});
+          setAuthorPhotoById({});
+          setAuthorNameById({});
+          setLikesCountByPost({});
+          setLikedByMeByPost({});
+          setSharesCountByPost({});
+          setCommentsByPost({});
+          hasLoadedProfileRef.current = true;
+          setLoading(false);
+          return;
+        }
 
         const groupIds = [...new Set(nextPosts.map((post) => post.group_id).filter((entry): entry is string => !!entry))];
         let visiblePosts = nextPosts;
@@ -392,6 +411,13 @@ export default function ProfilePage() {
       const memberIds = [...new Set((invites ?? []).map((invite: any) => (
         invite.from_user_id === profileUserId ? invite.to_user_id : invite.from_user_id
       )))];
+      setVillageCount(memberIds.length);
+
+      if (!canViewFullProfile) {
+        setVillageMembers([]);
+        return;
+      }
+
       if (memberIds.length === 0) {
         setVillageMembers([]);
         return;
@@ -403,7 +429,7 @@ export default function ProfilePage() {
       setVillageMembers(profiles ?? []);
     }
     fetchVillage();
-  }, [profileUserId]);
+  }, [profileUserId, canViewFullProfile]);
 
   async function handleInvite() {
     if (!currentUser || !profileUserId) {
@@ -882,13 +908,22 @@ export default function ProfilePage() {
           {/* Profile Info */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-1 w-full">
-              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate w-full text-left">{getSafeDisplayName(profile.full_name)}</span>
+              <span className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate w-full text-left">
+                {canViewFullProfile ? getSafeDisplayName(profile.full_name) : "Private Profile"}
+              </span>
             </div>
             <div className="flex flex-row items-center gap-8 mt-1 mb-2 w-full">
-              <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillageModal(true)} title="Show Village">
-                <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center group-hover:underline">{villageMembers.length}</span>
-                <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">Village</span>
-              </button>
+              {canViewFullProfile ? (
+                <button className="flex flex-col items-center group focus:outline-none" onClick={() => setShowVillageModal(true)} title="Show Village">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center group-hover:underline">{villageCount}</span>
+                  <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">Village</span>
+                </button>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-pink-600 leading-none text-center">{villageCount}</span>
+                  <span className="text-[10px] font-medium text-pink-700 uppercase tracking-wide mt-0.5 text-center">Village</span>
+                </div>
+              )}
               {typeof postsCount === "number" && (
                 <div className="flex flex-col items-center">
                   <span className="text-2xl sm:text-3xl font-extrabold text-pink-300 leading-none text-center">{postsCount}</span>
@@ -900,7 +935,8 @@ export default function ProfilePage() {
                 <span className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide mt-0.5 text-center">Moms Helped</span>
               </div>
             </div>
-            <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            {canViewFullProfile && (
+              <div className="flex gap-3 flex-wrap text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               {profile.city && (
                 <span>Location: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.city}{profile.state ? `, ${profile.state}` : ''}</span></span>
               )}
@@ -913,7 +949,8 @@ export default function ProfilePage() {
               {profile.parenting_style && (
                 <span>Parenting Style: <span className="font-medium text-zinc-700 dark:text-zinc-200">{profile.parenting_style}</span></span>
               )}
-            </div>
+              </div>
+            )}
           </div>
           {/* Message Button removed from banner as now redundant */}
         </div>
@@ -1021,7 +1058,11 @@ export default function ProfilePage() {
         {/* Bio Section (below profile info, above posts) */}
         {/* Profile posts or other content can go here */}
         <div className="w-full flex flex-col gap-4 py-8">
-          {posts.length === 0 ? (
+          {!canViewFullProfile ? (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
+              <div className="text-zinc-500 text-center">This account is private. Only profile photo and counts are visible.</div>
+            </div>
+          ) : posts.length === 0 ? (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm w-full max-w-2xl mx-auto p-6 flex flex-col items-center justify-center">
               <div className="text-zinc-400 italic">(Their posts will appear here)</div>
             </div>
@@ -1386,7 +1427,7 @@ export default function ProfilePage() {
           )}
         </div>
         {/* Village Members Modal */}
-        {showVillageModal && (
+        {showVillageModal && canViewFullProfile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 shadow-xl w-full max-w-md relative">
               <button
