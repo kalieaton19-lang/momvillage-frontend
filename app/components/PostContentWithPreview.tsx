@@ -97,9 +97,11 @@ function getFallbackPreviewMeta(url: string): FallbackPreviewMeta {
 export default function PostContentWithPreview({
   text,
   className,
+  compact = false,
 }: {
   text: string;
   className?: string;
+  compact?: boolean;
 }) {
   const urls = useMemo(() => {
     return extractUrls(text);
@@ -185,7 +187,7 @@ export default function PostContentWithPreview({
   }, [text]);
 
   return (
-    <div>
+    <div className="max-w-full min-w-0">
       <div className={className}>
         {parts.map((part, index) =>
           part.type === "link" ? (
@@ -213,12 +215,14 @@ export default function PostContentWithPreview({
           href={firstUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 block overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800"
+          className="mt-3 block max-w-full overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800"
         >
           <img
             src={firstUrl}
             alt="Shared link preview"
-            className="w-full max-h-[28rem] object-contain bg-zinc-50 dark:bg-zinc-950"
+            className={compact
+              ? "w-full max-h-40 object-contain bg-zinc-50 dark:bg-zinc-950"
+              : "w-full max-h-[28rem] object-contain bg-zinc-50 dark:bg-zinc-950"}
           />
         </a>
       )}
@@ -228,13 +232,17 @@ export default function PostContentWithPreview({
           href={preview.url}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 block rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900 hover:bg-pink-50 dark:hover:bg-pink-950/20 transition-colors"
+          className={compact
+            ? "mt-2 block max-w-full rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900 hover:bg-pink-50 dark:hover:bg-pink-950/20 transition-colors"
+            : "mt-3 block max-w-full rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900 hover:bg-pink-50 dark:hover:bg-pink-950/20 transition-colors"}
         >
           {activePreviewImage ? (
             <img
               src={proxiedPreviewImage}
               alt={preview.title || "Link preview"}
-              className="w-full max-h-[28rem] object-contain bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800"
+              className={compact
+                ? "w-full max-h-36 object-contain bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800"
+                : "w-full max-h-[28rem] object-contain bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800"}
               onError={() => {
                 setPreviewImageIndex((currentIndex) => {
                   if (currentIndex + 1 < previewImages.length) {
@@ -251,15 +259,27 @@ export default function PostContentWithPreview({
               </div>
             </div>
           )}
-          <div className="p-4">
-            <div className="text-xs uppercase tracking-wide text-pink-600 dark:text-pink-300 mb-1">
+          <div className={compact ? "p-3" : "p-4"}>
+            <div
+              className={compact
+                ? "mb-0.5 text-[10px] uppercase tracking-wide text-pink-600 dark:text-pink-300"
+                : "mb-1 text-xs uppercase tracking-wide text-pink-600 dark:text-pink-300"}
+            >
               {preview.siteName || fallbackMeta?.siteName || getHostname(preview.url)}
             </div>
-            <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+            <div
+              className={compact
+                ? "text-sm font-semibold text-zinc-900 dark:text-zinc-50 break-words line-clamp-2"
+                : "font-semibold text-zinc-900 dark:text-zinc-50"}
+            >
               {preview.title || fallbackMeta?.title || preview.url}
             </div>
             {(preview.description || fallbackMeta?.description) && (
-              <div className="text-sm text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-3">
+              <div
+                className={compact
+                  ? "mt-1 text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2"
+                  : "mt-1 text-sm text-zinc-600 dark:text-zinc-300 line-clamp-3"}
+              >
                 {preview.description || fallbackMeta?.description}
               </div>
             )}

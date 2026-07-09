@@ -1478,11 +1478,11 @@ export default function ConversationPageInner({ conversationId }: { conversation
                       ) : null}
 
                       {sharedPostId && (
-                        <div className="mt-2">
+                        <div className="mt-2 max-w-full">
                           {sharedPost ? (
                             <a
                               href={`/home?post=${encodeURIComponent(sharedPost.id)}&pin=1#post-${encodeURIComponent(sharedPost.id)}`}
-                              className="block w-[70vw] max-w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+                              className="block w-full max-w-[280px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
                             >
                               {sharedPost.type === "support" && (
                                 <div className="px-3 py-1.5 bg-pink-600 text-white text-[11px] font-semibold uppercase tracking-wide">
@@ -1531,7 +1531,8 @@ export default function ConversationPageInner({ conversationId }: { conversation
                                 {sharedPost.content ? (
                                   <PostContentWithPreview
                                     text={sharedPost.content}
-                                    className="text-sm text-zinc-700 dark:text-zinc-200 line-clamp-4"
+                                    className="text-sm text-zinc-700 dark:text-zinc-200 line-clamp-3"
+                                    compact
                                   />
                                 ) : (
                                   <div className="text-sm text-zinc-500 dark:text-zinc-400">Tap to open this shared post.</div>
