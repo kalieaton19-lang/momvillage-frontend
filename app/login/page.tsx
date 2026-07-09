@@ -74,9 +74,8 @@ export default function LoginPage() {
     setOauthLoadingProvider(provider);
 
     try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/home`
-        : undefined;
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/$/, "");
+      const redirectTo = siteUrl ? `${siteUrl}/home` : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
