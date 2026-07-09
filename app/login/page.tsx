@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoadingProvider, setOauthLoadingProvider] = useState<"google" | "apple" | null>(null);
   const [success, setSuccess] = useState("");
 
   function validate() {
@@ -64,6 +65,33 @@ export default function LoginPage() {
       setError(`Network error: ${err instanceof Error ? err.message : 'Unknown'}. Check console and verify Supabase URL in .env.local`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleOAuthSignIn(provider: "google" | "apple") {
+    setError("");
+    setSuccess("");
+    setOauthLoadingProvider(provider);
+
+    try {
+      const redirectTo = typeof window !== "undefined"
+        ? `${window.location.origin}/home`
+        : undefined;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+        },
+      });
+
+      if (error) {
+        setError(error.message || "Could not start social sign-in.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start social sign-in.");
+    } finally {
+      setOauthLoadingProvider(null);
     }
   }
 
@@ -126,8 +154,22 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-3 flex gap-3">
-          <button className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800">Continue with Google</button>
-          <button className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800">Continue with Apple</button>
+          <button
+            type="button"
+            onClick={() => void handleOAuthSignIn("google")}
+            disabled={!!oauthLoadingProvider}
+            className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800 disabled:opacity-60"
+          >
+            {oauthLoadingProvider === "google" ? "Connecting…" : "Continue with Google"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleOAuthSignIn("apple")}
+            disabled={!!oauthLoadingProvider}
+            className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800 disabled:opacity-60"
+          >
+            {oauthLoadingProvider === "apple" ? "Connecting…" : "Continue with Apple"}
+          </button>
         </div>
 
         <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
