@@ -219,6 +219,63 @@ export default function HomePage() {
     return "open";
   }
 
+  function isMissingSupportColumnError(error: any): boolean {
+    const message = String(error?.message || "").toLowerCase();
+    return (
+      error?.code === "42703" ||
+      error?.code === "PGRST204" ||
+      message.includes("support_fulfilled_by_user_id") ||
+      message.includes("support_fulfilled_at") ||
+      (message.includes("schema cache") && message.includes("support_"))
+    );
+  }
+
+  async function updateSupportPostStatusCompat(params: {
+    postId: string;
+    authorUserId: string;
+    nextStatus: "fulfilled" | "canceled";
+    fulfilledByUserId?: string | null;
+    fulfilledAt?: string | null;
+  }) {
+    const {
+      postId,
+      authorUserId,
+      nextStatus,
+      fulfilledByUserId = null,
+      fulfilledAt = null,
+    } = params;
+
+    const fullUpdate = await supabase
+      .from("posts")
+      .update({
+        support_status: nextStatus,
+        support_fulfilled_by_user_id: fulfilledByUserId,
+        support_fulfilled_at: fulfilledAt,
+      })
+      .eq("id", postId)
+      .eq("author_user_id", authorUserId)
+      .eq("type", "support");
+
+    if (!fullUpdate.error) return;
+
+    if (!isMissingSupportColumnError(fullUpdate.error)) {
+      throw fullUpdate.error;
+    }
+
+    const fallbackUpdate = await supabase
+      .from("posts")
+      .update({
+        support_status: nextStatus,
+      })
+      .eq("id", postId)
+      .eq("author_user_id", authorUserId)
+      .eq("type", "support");
+
+    if (fallbackUpdate.error) {
+      throw fallbackUpdate.error;
+    }
+  }
+
   async function ensureConversation(
     otherUserId: string,
     otherUserName: string,
@@ -1553,18 +1610,13 @@ export default function HomePage() {
 
     setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
-      const { error } = await supabase
-        .from("posts")
-        .update({
-          support_status: "canceled",
-          support_fulfilled_by_user_id: null,
-          support_fulfilled_at: null,
-        })
-        .eq("id", post.id)
-        .eq("author_user_id", user.id)
-        .eq("type", "support");
-
-      if (error) throw error;
+      await updateSupportPostStatusCompat({
+        postId: post.id,
+        authorUserId: user.id,
+        nextStatus: "canceled",
+        fulfilledByUserId: null,
+        fulfilledAt: null,
+      });
 
       setPosts((prev) =>
         prev.map((entry) =>
@@ -1624,18 +1676,13 @@ export default function HomePage() {
 
     setSupportActionBusyByPost((prev) => ({ ...prev, [post.id]: true }));
     try {
-      const { error } = await supabase
-        .from("posts")
-        .update({
-          support_status: "fulfilled",
-          support_fulfilled_by_user_id: selectedOffer.offered_by_user_id,
-          support_fulfilled_at: fulfilledAt,
-        })
-        .eq("id", post.id)
-        .eq("author_user_id", user.id)
-        .eq("type", "support");
-
-      if (error) throw error;
+      await updateSupportPostStatusCompat({
+        postId: post.id,
+        authorUserId: user.id,
+        nextStatus: "fulfilled",
+        fulfilledByUserId: selectedOffer.offered_by_user_id,
+        fulfilledAt,
+      });
 
       const helperName =
         authorNameById[selectedOffer.offered_by_user_id] ||
