@@ -2520,37 +2520,23 @@ export default function HomePage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => setShowGroupPostForm((value) => !value)}
+                          onClick={() => {
+                            setForm((previous) => ({
+                              ...previous,
+                              title: "",
+                              content: "",
+                              visibility: "group",
+                              location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : previous.location,
+                            }));
+                            setCreatePostGroupId(selectedGroupId);
+                            setCreateGroupSearch("");
+                            setShowCreateGroupPicker(false);
+                            setShowCreateModal(true);
+                          }}
                           className="mt-2 px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
                         >
-                          {showGroupPostForm ? "Cancel" : "Create Post"}
+                          Create Post
                         </button>
-                      )}
-
-                      {canCreateGroupPosts && showGroupPostForm && (
-                        <div className="mt-3 space-y-2">
-                          <input
-                            type="text"
-                            value={groupPostTitle}
-                            onChange={(event) => setGroupPostTitle(event.target.value)}
-                            placeholder="Post title"
-                            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                          />
-                          <textarea
-                            value={groupPostContent}
-                            onChange={(event) => setGroupPostContent(event.target.value)}
-                            placeholder="What do you want to share with this group?"
-                            rows={4}
-                            className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                          />
-                          <button
-                            onClick={() => void handleCreateGroupPost()}
-                            disabled={creatingGroupPost}
-                            className="px-4 py-2 rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60"
-                          >
-                            {creatingGroupPost ? "Posting..." : "Publish to Group"}
-                          </button>
-                        </div>
                       )}
 
                       {(groupPostMessage || groupAccessMessage) && (
