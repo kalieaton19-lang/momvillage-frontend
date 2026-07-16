@@ -9,6 +9,7 @@ import { supabase } from "../../../lib/supabase";
 import { addPostComment, fetchPostInteractions, PostCommentRow, sharePost, togglePostLike } from "../../../lib/posts";
 import { Post } from "../../../types/post";
 import { formatTimeAgo } from "../../../utils";
+import type { PostType } from "../../../types/post";
 
 type GroupRow = {
   id: string;
@@ -47,9 +48,10 @@ export default function GroupDetailPage() {
   const [groupPosts, setGroupPosts] = useState<Post[]>([]);
   const [groupPostsLoading, setGroupPostsLoading] = useState(false);
   const [groupPostMessage, setGroupPostMessage] = useState("");
-  const [showGroupPostForm, setShowGroupPostForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [groupPostTitle, setGroupPostTitle] = useState("");
   const [groupPostContent, setGroupPostContent] = useState("");
+  const [groupPostType, setGroupPostType] = useState<PostType>("general");
   const [creatingGroupPost, setCreatingGroupPost] = useState(false);
   const [requestingAccess, setRequestingAccess] = useState(false);
   const [updatingMembership, setUpdatingMembership] = useState(false);
@@ -398,7 +400,7 @@ export default function GroupDetailPage() {
           .eq("user_id", user.id);
         if (error) throw error;
         setMembershipStatus(null);
-        setShowGroupPostForm(false);
+        setShowCreateModal(false);
         setGroupPostMessage("You left the group.");
         await loadGroupPosts(groupId);
         return;
@@ -445,7 +447,7 @@ export default function GroupDetailPage() {
       const { error } = await supabase.from("posts").insert({
         author_user_id: user.id,
         author_name: profile?.full_name || "Mom",
-        type: "general",
+        type: groupPostType,
         scope: "public",
         visibility: "public",
         title: trimmedTitle,
@@ -458,7 +460,8 @@ export default function GroupDetailPage() {
 
       setGroupPostTitle("");
       setGroupPostContent("");
-      setShowGroupPostForm(false);
+      setGroupPostType("general");
+      setShowCreateModal(false);
       setGroupPostMessage("Post created.");
       await loadGroupPosts(groupId);
     } catch (error) {
@@ -688,11 +691,16 @@ export default function GroupDetailPage() {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
-              onClick={() => setShowGroupPostForm((value) => !value)}
+              onClick={() => {
+                setGroupPostTitle("");
+                setGroupPostContent("");
+                setGroupPostType("general");
+                setShowCreateModal(true);
+              }}
               disabled={!canCreateGroupPosts}
               className="px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 disabled:opacity-50 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
             >
-              {showGroupPostForm ? "Cancel" : "Create Post"}
+              Create Post
             </button>
             <button
               onClick={() => void handleJoinOrLeaveGroup()}
@@ -718,34 +726,85 @@ export default function GroupDetailPage() {
       <div className="border rounded-xl p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
         {group.bio && <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-3 whitespace-pre-line">{group.bio}</div>}
 
-        {canCreateGroupPosts && showGroupPostForm && (
-          <div className="mt-3 space-y-2">
-            <input
-              type="text"
-              value={groupPostTitle}
-              onChange={(event) => setGroupPostTitle(event.target.value)}
-              placeholder="Post title"
-              className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
-            />
-            <textarea
-              value={groupPostContent}
-              onChange={(event) => setGroupPostContent(event.target.value)}
-              placeholder="What do you want to share with this group?"
-              rows={4}
-              className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
-            />
-            <button
-              onClick={() => void handleCreateGroupPost()}
-              disabled={creatingGroupPost}
-              className="px-4 py-2 rounded-full bg-pink-100 text-pink-700 border border-pink-400 hover:bg-pink-200 disabled:opacity-60 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
-            >
-              {creatingGroupPost ? "Posting..." : "Publish to Group"}
-            </button>
-          </div>
-        )}
-
         {groupPostMessage && <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{groupPostMessage}</div>}
       </div>
+
+      {showCreateModal && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn p-2">
+            <div className="relative w-full max-w-md sm:max-w-sm p-4 sm:p-6 md:p-8 rounded-3xl shadow-2xl animate-modalIn bg-white dark:bg-zinc-900 border-2 border-pink-200 dark:border-zinc-700"
+              style={{ maxHeight: '95vh', overflowY: 'auto' }}
+            >
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="absolute top-3 right-3 text-pink-400 dark:text-pink-300 hover:text-pink-600 dark:hover:text-pink-200 text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                aria-label="Close"
+              >
+                &times;
+              </button>
+              <h2 className="text-2xl font-extrabold mb-4 text-center text-pink-600 dark:text-pink-200 tracking-tight">Create a Post</h2>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${groupPostType === 'general' ? 'bg-pink-100 text-pink-700 border-pink-500 shadow dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100 dark:bg-zinc-900 dark:text-pink-300 dark:border-zinc-700 dark:hover:bg-pink-900/20'}`}
+                    onClick={() => setGroupPostType('general')}
+                  >
+                    General
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 rounded-lg font-semibold text-lg transition border-2 ${groupPostType === 'support' ? 'bg-pink-100 text-pink-700 border-pink-500 shadow dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100 dark:bg-zinc-900 dark:text-pink-300 dark:border-zinc-700 dark:hover:bg-pink-900/20'}`}
+                    onClick={() => setGroupPostType('support')}
+                  >
+                    Support
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={groupPostTitle}
+                    onChange={(event) => setGroupPostTitle(event.target.value)}
+                    placeholder="Post title"
+                    className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Content</label>
+                  <textarea
+                    value={groupPostContent}
+                    onChange={(event) => setGroupPostContent(event.target.value)}
+                    placeholder="What do you want to share with this group?"
+                    rows={4}
+                    className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">Visibility</label>
+                  <div className="w-full rounded-lg border border-pink-200 px-4 py-2 bg-pink-50 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100">
+                    Group ({group.name})
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void handleCreateGroupPost()}
+                  disabled={creatingGroupPost}
+                  className="w-full rounded-lg py-3 text-lg font-bold shadow-md bg-pink-100 text-pink-700 border border-pink-500 hover:bg-pink-200 disabled:opacity-60 mt-2 dark:bg-pink-900/30 dark:text-pink-200 dark:border-pink-700"
+                >
+                  {creatingGroupPost ? "Posting..." : "Post"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mt-4">
         <h2 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-50">Posts</h2>
