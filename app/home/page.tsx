@@ -29,6 +29,8 @@ type SupportOfferRow = {
   created_at: string;
 };
 
+type CreatePostVisibility = PostVisibility | "group";
+
 function getSafeDisplayName(name?: string | null, fallback = "Mom") {
   const normalized = (name || "").trim();
   if (!normalized) return fallback;
@@ -150,6 +152,9 @@ export default function HomePage() {
   const [groupPostContent, setGroupPostContent] = useState("");
   const [creatingGroupPost, setCreatingGroupPost] = useState(false);
   const [groupPostMessage, setGroupPostMessage] = useState("");
+  const [showCreateGroupPicker, setShowCreateGroupPicker] = useState(false);
+  const [createGroupSearch, setCreateGroupSearch] = useState("");
+  const [createPostGroupId, setCreatePostGroupId] = useState<string>("");
   const [authorPhotoById, setAuthorPhotoById] = useState<Record<string, string>>({});
   const [authorNameById, setAuthorNameById] = useState<Record<string, string>>({});
   const [groupNameById, setGroupNameById] = useState<Record<string, string>>({});
@@ -188,9 +193,13 @@ export default function HomePage() {
     title: '',
     content: '',
     type: 'general' as PostType,
-    visibility: 'public' as PostVisibility,
+    visibility: 'public' as CreatePostVisibility,
     location: profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : '',
   });
+
+  const filteredCreateGroups = myGroups.filter((group) =>
+    group.name.toLowerCase().includes(createGroupSearch.trim().toLowerCase())
+  );
 
   const applySharedPostPinning = React.useCallback(
     (inputPosts: Post[]) => {
@@ -2042,6 +2051,79 @@ export default function HomePage() {
     }
     console.log("Authenticated user id:", session.user.id);
     try {
+      let photo_url: string | undefined = undefined;
+      if (photoFile) {
+        const ext = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}-${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('post-photos')
+          .upload(fileName, photoFile, { upsert: true });
+        if (uploadError) {
+          alert('Photo upload failed: ' + uploadError.message);
+          setCreating(false);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from('post-photos').getPublicUrl(fileName);
+        photo_url = urlData.publicUrl;
+      }
+
+      if (form.visibility === "group") {
+        if (!createPostGroupId) {
+          alert("Please choose a group.");
+          setCreating(false);
+          return;
+        }
+
+        const trimmedTitle = form.title.trim();
+        const trimmedContent = form.content.trim();
+        if (!trimmedTitle || !trimmedContent) {
+          alert("Title and content are required.");
+          setCreating(false);
+          return;
+        }
+
+        const { error: groupInsertError } = await supabase.from("posts").insert({
+          author_user_id: user.id,
+          author_name: getSafeDisplayName(profile?.full_name, "Anonymous"),
+          type: form.type,
+          scope: "public",
+          visibility: "public",
+          title: trimmedTitle,
+          content: trimmedContent,
+          location: form.location || null,
+          group_id: createPostGroupId,
+          photo_url,
+        });
+
+        if (groupInsertError) {
+          if (isMissingGroupIdColumnError(groupInsertError)) {
+            alert("Could not create group post: run migration 016 to add posts.group_id.");
+          } else {
+            alert("Failed to create group post.");
+          }
+          setCreating(false);
+          return;
+        }
+
+        setForm({
+          title: "",
+          content: "",
+          type: "general",
+          visibility: "public",
+          location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
+        });
+        setCreatePostGroupId("");
+        setCreateGroupSearch("");
+        setShowCreateGroupPicker(false);
+        setShowCreateModal(false);
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        if (photoInputRef.current) photoInputRef.current.value = "";
+        await loadPosts();
+        setCreating(false);
+        return;
+      }
+
       let village_member_id: string | null = null;
       if (form.visibility === "village") {
         const { data, error } = await supabase
@@ -2063,28 +2145,12 @@ export default function HomePage() {
       let scope = form.visibility === "village" ? "village" : "public";
       const normalizedScope = scope.trim().toLowerCase();
 
-      // Upload photo if selected
-      let photo_url: string | undefined = undefined;
-      if (photoFile) {
-        const ext = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${user.id}-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('post-photos')
-          .upload(fileName, photoFile, { upsert: true });
-        if (uploadError) {
-          alert('Photo upload failed: ' + uploadError.message);
-          setCreating(false);
-          return;
-        }
-        const { data: urlData } = supabase.storage.from('post-photos').getPublicUrl(fileName);
-        photo_url = urlData.publicUrl;
-      }
-
       const { data, error } = await createPost({
         ...form,
         author_user_id: user.id,
         author_name: getSafeDisplayName(profile?.full_name, "Anonymous"),
         scope: normalizedScope as PostScope,
+        visibility: form.visibility as PostVisibility,
         village_member_id: normalizedScope === "village" ? village_member_id ?? undefined : undefined,
         photo_url,
       });
@@ -2115,6 +2181,10 @@ export default function HomePage() {
           visibility: "public",
           location: profile?.city ? `${profile.city}${profile.state ? ", " + profile.state : ""}` : "",
         });
+        setCreatePostGroupId("");
+        setCreateGroupSearch("");
+        setShowCreateGroupPicker(false);
+        setShowCreateModal(false);
         setPhotoFile(null);
         setPhotoPreview(null);
         if (photoInputRef.current) photoInputRef.current.value = '';
@@ -2244,12 +2314,30 @@ export default function HomePage() {
                       id="post-visibility"
                       name="visibility"
                       value={form.visibility}
-                      onChange={e => setForm(f => ({ ...f, visibility: e.target.value as PostVisibility }))}
+                      onChange={e => setForm(f => ({ ...f, visibility: e.target.value as CreatePostVisibility }))}
                       className="w-full rounded-lg border border-pink-200 dark:border-zinc-700 px-4 py-2 bg-pink-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
                     >
                       <option value="public">Public (visible to all)</option>
                       <option value="village">My Village Only</option>
+                      <option value="group">Group</option>
                     </select>
+                    {form.visibility === "group" && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          className="w-full rounded-lg border border-pink-300 dark:border-zinc-700 px-4 py-2 bg-white dark:bg-zinc-900 text-left text-sm text-zinc-800 dark:text-zinc-100 hover:bg-pink-50 dark:hover:bg-zinc-800"
+                          onClick={() => {
+                            setShowCreateGroupPicker(true);
+                            if (!myGroups.length) void loadMyGroups();
+                          }}
+                        >
+                          {createPostGroupId
+                            ? `Group: ${myGroups.find((group) => group.id === createPostGroupId)?.name || "Selected group"}`
+                            : "Choose group"
+                          }
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <LocationField
                     profileLocation={profile?.city ? `${profile.city}${profile.state ? ', ' + profile.state : ''}` : ''}
@@ -2309,6 +2397,55 @@ export default function HomePage() {
                   {creating ? 'Posting...' : 'Post'}
                 </button>
                 </form>
+              </div>
+            </div>
+          </>
+        )}
+        {showCreateGroupPicker && (
+          <>
+            <div className="fixed inset-0 z-[55] bg-black/35 backdrop-blur-sm" aria-hidden="true" />
+            <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+              <div className="w-full max-w-md rounded-2xl border border-pink-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-pink-600 dark:text-pink-200">Choose Group</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateGroupPicker(false)}
+                    className="text-2xl text-pink-400 hover:text-pink-600"
+                    aria-label="Close group picker"
+                  >
+                    &times;
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={createGroupSearch}
+                  onChange={(event) => setCreateGroupSearch(event.target.value)}
+                  placeholder="Search groups"
+                  className="w-full mb-3 rounded-lg border border-pink-200 dark:border-zinc-700 px-3 py-2 bg-pink-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
+                />
+                <div className="max-h-72 overflow-y-auto space-y-2">
+                  {myGroupsLoading ? (
+                    <div className="text-sm text-zinc-500">Loading groups...</div>
+                  ) : filteredCreateGroups.length === 0 ? (
+                    <div className="text-sm text-zinc-500">No groups found.</div>
+                  ) : (
+                    filteredCreateGroups.map((group) => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => {
+                          setCreatePostGroupId(group.id);
+                          setShowCreateGroupPicker(false);
+                        }}
+                        className={`w-full text-left rounded-lg border px-3 py-2 transition ${createPostGroupId === group.id ? "border-pink-500 bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-200" : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 hover:bg-pink-50 dark:hover:bg-zinc-800"}`}
+                      >
+                        <div className="font-semibold">{group.name}</div>
+                        {group.bio ? <div className="text-xs opacity-80 mt-0.5 line-clamp-2">{group.bio}</div> : null}
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </>
