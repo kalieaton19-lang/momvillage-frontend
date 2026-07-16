@@ -113,20 +113,40 @@ export default function ProfilePage() {
         .from("user_public_profiles")
         .select("id, full_name, name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio, moms_helped_count")
         .eq("id", profileUserId)
-        .single();
-      if (error) {
+        .maybeSingle();
+
+      const notFoundProfile = error?.code === "PGRST116" || (!error && !data);
+      if (error && !notFoundProfile) {
         setError("Profile not found.");
         setProfile(null);
         setGroupNameById({});
         setCanViewPrivateProfile(false);
       } else {
+        const nextPosts = await fetchPosts({ author_user_id: profileUserId });
+        const fallbackAuthorName = nextPosts[0]?.author_name || "Mom";
+        const resolvedProfile = data || {
+          id: profileUserId,
+          full_name: fallbackAuthorName,
+          name: fallbackAuthorName,
+          profile_photo_url: null,
+          city: null,
+          state: null,
+          is_public: true,
+          number_of_kids: null,
+          kids_age_groups: [],
+          parenting_style: null,
+          bio: null,
+          moms_helped_count: 0,
+        };
+
+        setError("");
         const metadataName =
           profileUserId === currentUser?.id
             ? (currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || "")
             : "";
 
         let viewerCanSeePrivate = false;
-        if (data.is_public === false && currentUser?.id) {
+        if (resolvedProfile.is_public === false && currentUser?.id) {
           const { data: relationshipRows } = await supabase
             .from("village_invitations")
             .select("status")
@@ -139,12 +159,11 @@ export default function ProfilePage() {
         setCanViewPrivateProfile(viewerCanSeePrivate);
 
         setProfile({
-          ...data,
-          full_name: metadataName || pickCanonicalProfileName(data) || "",
+          ...resolvedProfile,
+          full_name: metadataName || pickCanonicalProfileName(resolvedProfile) || fallbackAuthorName,
         });
-        const nextPosts = await fetchPosts({ author_user_id: data.id });
 
-        if (data.is_public === false && !viewerCanSeePrivate) {
+        if (resolvedProfile.is_public === false && !viewerCanSeePrivate) {
           setPosts([]);
           setPostsCount(nextPosts.length);
           setGroupNameById({});

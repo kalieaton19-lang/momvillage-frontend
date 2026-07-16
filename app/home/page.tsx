@@ -224,9 +224,16 @@ export default function HomePage() {
     return (
       error?.code === "42703" ||
       error?.code === "PGRST204" ||
+      message.includes("support_status") ||
       message.includes("support_fulfilled_by_user_id") ||
       message.includes("support_fulfilled_at") ||
       (message.includes("schema cache") && message.includes("support_"))
+    );
+  }
+
+  function buildSupportMigrationRequiredError() {
+    return new Error(
+      "Support workflow columns are missing in your database. Run migration 022 (`supabase/migrations/022_add_support_post_workflow.sql`) in Supabase SQL Editor."
     );
   }
 
@@ -272,6 +279,9 @@ export default function HomePage() {
       .eq("type", "support");
 
     if (fallbackUpdate.error) {
+      if (isMissingSupportColumnError(fallbackUpdate.error)) {
+        throw buildSupportMigrationRequiredError();
+      }
       throw fallbackUpdate.error;
     }
   }
