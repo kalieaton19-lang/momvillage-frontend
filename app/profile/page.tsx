@@ -880,40 +880,42 @@ export default function ProfilePage() {
                   )}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     {getProfileHref(post.author_user_id) ? (
-                      <Link href={getProfileHref(post.author_user_id)!} className="flex items-center gap-3 min-w-0 group w-fit max-w-full">
-                        {authorPhotoById[post.author_user_id] ? (
-                          <img
-                            src={authorPhotoById[post.author_user_id]}
-                            alt={authorNameById[post.author_user_id] || post.author_name || "Mom"}
-                            className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
-                            {(authorNameById[post.author_user_id] || post.author_name || "M").charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Link href={getProfileHref(post.author_user_id)!} className="flex items-center gap-3 group w-fit max-w-full">
+                          {authorPhotoById[post.author_user_id] ? (
+                            <img
+                              src={authorPhotoById[post.author_user_id]}
+                              alt={authorNameById[post.author_user_id] || post.author_name || "Mom"}
+                              className="w-10 h-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-semibold border border-pink-300">
+                              {(authorNameById[post.author_user_id] || post.author_name || "M").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </Link>
                         <div className="min-w-0">
                           {post.group_id ? (
                             <div className="space-y-0.5 min-w-0">
-                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 group-hover:underline">
+                              <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-zinc-900 dark:text-zinc-50 group-hover:underline">
                                 {formatFirstNameLastInitial(authorNameById[post.author_user_id] || post.author_name || "Mom")}
-                              </div>
+                              </Link>
                               <div className="text-xs text-pink-600 dark:text-pink-300 leading-tight break-words">
-                                posted in <span className="font-bold">{groupNameById[post.group_id] || "Group"}</span>
+                                posted in <Link href={`/groups/${post.group_id}`} className="font-bold hover:text-pink-700 dark:hover:text-pink-200 break-words">{groupNameById[post.group_id] || "Group"}</Link>
                               </div>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 min-w-0 text-sm">
-                              <div className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
+                              <Link href={getProfileHref(post.author_user_id)!} className="font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:underline">
                                 {authorNameById[post.author_user_id] || post.author_name || "Mom"}
-                              </div>
+                              </Link>
                             </div>
                           )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Posted {formatTimeAgo(post.created_at)}
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-3 min-w-0">
                         {authorPhotoById[post.author_user_id] ? (
@@ -934,7 +936,7 @@ export default function ProfilePage() {
                                 {formatFirstNameLastInitial(authorNameById[post.author_user_id] || post.author_name || "Mom")}
                               </div>
                               <div className="text-xs text-pink-600 dark:text-pink-300 leading-tight break-words">
-                                posted in <span className="font-bold">{groupNameById[post.group_id] || "Group"}</span>
+                                posted in <Link href={`/groups/${post.group_id}`} className="font-bold hover:text-pink-700 dark:hover:text-pink-200 break-words">{groupNameById[post.group_id] || "Group"}</Link>
                               </div>
                             </div>
                           ) : (
