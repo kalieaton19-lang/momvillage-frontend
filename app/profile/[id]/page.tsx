@@ -109,11 +109,34 @@ export default function ProfilePage() {
         setLoading(true);
       }
       setError("");
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("user_public_profiles")
         .select("id, full_name, name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style, bio, moms_helped_count")
         .eq("id", profileUserId)
         .maybeSingle();
+
+      const initialErrorMessage = String(error?.message || "").toLowerCase();
+      const missingProfileColumnError =
+        error?.code === "42703" ||
+        initialErrorMessage.includes("column") ||
+        initialErrorMessage.includes("schema cache");
+
+      if (error && missingProfileColumnError) {
+        const fallbackResult = await supabase
+          .from("user_public_profiles")
+          .select("id, full_name, name, profile_photo_url, city, state, is_public, number_of_kids, kids_age_groups, parenting_style")
+          .eq("id", profileUserId)
+          .maybeSingle();
+
+        data = fallbackResult.data
+          ? {
+              ...fallbackResult.data,
+              bio: null,
+              moms_helped_count: 0,
+            }
+          : fallbackResult.data;
+        error = fallbackResult.error;
+      }
 
       const notFoundProfile = error?.code === "PGRST116" || (!error && !data);
       if (error && !notFoundProfile) {
